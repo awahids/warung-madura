@@ -18,6 +18,12 @@ Game ini PWA: bisa dipasang ke layar utama dan dimainkan **offline** setelah dib
 - **iPhone/iPad (Safari):** ketuk **Bagikan → Tambah ke Layar Utama**.
 Berkas terkait: `public/manifest.webmanifest`, `public/sw.js` (daftar precache & versi disuntik saat build oleh `vite.config.js`), `public/icons/`.
 
+## Warung 3D (prosedural)
+Buka `#/warung` (tautan **Warung 3D** di bawah game): bangunan warung Madura lengkap dibuat lewat kode Three.js, tanpa model eksternal.
+Isi: rolling door yang bisa dibuka/tutup (klik pintu atau tombol), spanduk, meja kasir + etalase kaca, rak dinding, renteng gantung,
+kulkas minuman, karung beras/galon/gas, rak bensin, bangku, jalan & lampu jalan, tiga orang sederhana, mode siang/malam (neon),
+dan tiga sudut kamera (dari luar, pembeli, penjaga/sudut pandang orang pertama). Sumber: `src/scene3d/`.
+
 ## Uji coba prop 3D
 Buka `#/props` (mis. https://awahids.github.io/warung-madura/#/props, atau tautan **Uji coba 3D** di bawah game).
 7 prop dibuat prosedural dengan Three.js (galon, gas melon, toples kerupuk, botol & rak bensin, kardus, karung beras), dibandingkan dengan sprite 2D-nya.

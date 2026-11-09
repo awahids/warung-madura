@@ -5,6 +5,7 @@ import Toolbar from './components/Toolbar';
 import OrientationGuard from './components/OrientationGuard';
 
 const Props3D = lazy(() => import('./props3d/Props3D'));
+const Warung3D = lazy(() => import('./scene3d/Warung3D'));
 
 function useHashRoute() {
   const [hash, setHash] = useState(window.location.hash);
@@ -14,6 +15,7 @@ function useHashRoute() {
 
 export default function App() {
   const route = useHashRoute();
+  if (route === '#/warung') return <Suspense fallback={<Loading />}><Warung3D /></Suspense>;
   if (route === '#/props') return <Suspense fallback={<Loading />}><Props3D /></Suspense>;
   return <GameApp />;
 }
