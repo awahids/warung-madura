@@ -1,6 +1,6 @@
 :root { --bg: #1b1209; --fg: #f3d9a4; --accent: #ffd23a; }
 * { box-sizing: border-box; }
-html, body, #root { margin: 0; height: 100%; background: var(--bg); color: var(--fg); overflow: hidden;
+html, body, #root { margin: 0; height: 100%; height: 100dvh; background: var(--bg); color: var(--fg); overflow: hidden;
   font-family: "Trebuchet MS", "Segoe UI", Roboto, Arial, sans-serif; -webkit-user-select: none; user-select: none; }
 .app { height: 100%; display: flex; flex-direction: column; }
 .stage { position: relative; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; touch-action: none; }
@@ -15,3 +15,7 @@ html, body, #root { margin: 0; height: 100%; background: var(--bg); color: var(-
 .toolbar button:hover { background: #55341a; }
 .toolbar .spacer { flex: 1; }
 @media (max-height: 420px) { .toolbar { display: none; } }
+.immersive .toolbar { display: none; }
+.immersive, .immersive body, .immersive #root { position: fixed; inset: 0; width: 100vw; height: 100dvh; }
+.exit-fs { position: fixed; top: 8px; right: 8px; z-index: 10; background: #000a; color: #fff; border: 1px solid #fff5; border-radius: 16px; padding: 4px 12px; font: 700 13px inherit; cursor: pointer; opacity: .55; }
+.exit-fs:hover, .exit-fs:focus-visible { opacity: 1; }
