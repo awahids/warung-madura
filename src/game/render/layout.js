@@ -3,6 +3,9 @@ import { ctx } from '../gfx';
 import { rr, T } from '../util';
 import { BY } from '../data';
 
+/** Tinggi tampilan barang (px, koordinat game 1280×720) — besar agar terbaca di layar HP. */
+export const SZ = { shelf: 120, ground: 140, rakBensin: 190, etalase: 230, hang: 150, gear: 80 };
+
 /** Skala agar sprite punya tinggi `h` piksel. */
 export const scaleH = (name, h) => h / ATLAS[name][3];
 
@@ -21,12 +24,12 @@ export function groundShadow(cx, y, w) {
 
 /** Papan rak kayu tempat barang berdiri, dengan label harga di bawah tiap barang. */
 export function shelfPlank(left, right, y, slots) {
-  const x = left - 14, w = right - left + 28, h = 20;
+  const x = left - 14, w = right - left + 28, h = 24;
   ctx.fillStyle = 'rgba(0,0,0,.28)'; rr(ctx, x + 2, y + 4, w, h, 5); ctx.fill();
   const g = ctx.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, '#e0b070'); g.addColorStop(1, '#9a6430');
   ctx.fillStyle = g; rr(ctx, x, y, w, h, 5); ctx.fill();
   ctx.strokeStyle = '#6b4020'; ctx.lineWidth = 2; ctx.stroke();
-  for (const s of slots) T(`${BY[s.id].price / 1000}rb`, s.cx, y + 15, { s: 12, a: 'center', c: '#fff6dc', stroke: 'rgba(60,30,10,.8)', sw: 3 });
+  for (const s of slots) T(`${BY[s.id].price / 1000}rb`, s.cx, y + 18, { s: 15, a: 'center', c: '#fff6dc', stroke: 'rgba(60,30,10,.8)', sw: 3 });
 }
 
 /** Plakat nama kecil di atas rak/etalase. */

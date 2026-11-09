@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import InstallButton from './InstallButton';
 
 const REPO = 'https://github.com/awahids/warung-madura';
 const root = () => document.documentElement;
@@ -62,6 +63,7 @@ export default function Toolbar() {
         <span>Juragan Warung · simulasi warung Madura</span>
         <span className="spacer" />
         <a href={REPO} target="_blank" rel="noreferrer">GitHub</a>
+        <InstallButton />
         <button type="button" onClick={toggle}>Layar penuh</button>
       </div>
       {active && (

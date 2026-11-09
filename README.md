@@ -12,6 +12,12 @@ Simulasi warung Madura 2D yang berjalan di browser. Dibangun dengan **React + Vi
 
 Pintasan: `Esc` jeda, `Spasi` hitung.
 
+## Pasang sebagai aplikasi (PWA)
+Game ini PWA: bisa dipasang ke layar utama dan dimainkan **offline** setelah dibuka sekali.
+- **Android/Chrome & desktop:** ketuk tombol **Pasang aplikasi** di bagian bawah, atau menu browser → *Install app*.
+- **iPhone/iPad (Safari):** ketuk **Bagikan → Tambah ke Layar Utama**.
+Berkas terkait: `public/manifest.webmanifest`, `public/sw.js` (daftar precache & versi disuntik saat build oleh `vite.config.js`), `public/icons/`.
+
 ## Pengembangan
 ```bash
 npm install

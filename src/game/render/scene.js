@@ -1,4 +1,4 @@
-import { flow, groundShadow, shelfPlank, nameTag, scaleH } from './layout';
+import { SZ, flow, groundShadow, shelfPlank, nameTag, scaleH } from './layout';
 import { ATLAS } from '../atlas.js';
 import { SFX } from '../audio.js';
 import { H, HUD_H, W } from '../constants.js';
@@ -83,9 +83,9 @@ export function drawScene() {
   SP('promo', 14, 70, .9, 0, 0, { fn: usePromo, tip: G.promo ? 'Promo sedang aktif' : 'Pasang promo Rp 20.000 (pembeli lebih ramai)', glow: G.promo, glowC: 'rgba(120,255,120,.9)' });
   T(G.promo ? 'PROMO AKTIF' : 'PROMO Rp20rb', 14 + 42, 162, { s: 12, a: 'center', c: G.promo ? '#9dff8c' : '#fff', stroke: 'rgba(0,0,0,.7)', sw: 3 });
   // barang di trotoar: semua berdiri di garis y=500, tinggi seragam, rata kanan
-  groundShadow(82, 500, 130); R('rakBensin', 82, 500, scaleH('rakBensin', 168), .5, 1, 'bensin');
-  nameTag(82, 300, 'BENSIN ' + rp(12000).replace('Rp ', '') );
-  const ground = flow([{ spr: 'gas', id: 'gas' }, { spr: 'galon', id: 'galon' }, { spr: 'beras2', id: 'beras' }], { h: 118, gap: 22, x: 1248, align: 'right' });
+  groundShadow(82, 500, 150); R('rakBensin', 82, 500, scaleH('rakBensin', SZ.rakBensin), .5, 1, 'bensin');
+  nameTag(82, 500 - SZ.rakBensin - 28, 'BENSIN ' + rp(12000).replace('Rp ', ''));
+  const ground = flow([{ spr: 'gas', id: 'gas' }, { spr: 'galon', id: 'galon' }, { spr: 'beras2', id: 'beras' }], { h: SZ.ground, gap: 20, x: 1250, align: 'right' });
   for (const s of ground.slots) { groundShadow(s.cx, 500, s.w); R(s.spr, s.cx, 500, s.sc, .5, 1, s.id); }
 
   // ---------- awning / banner ----------
@@ -101,9 +101,9 @@ export function drawScene() {
   SP(G.doorState === 'open' ? 'signBuka' : 'signTutup', 910, 60, .85, 0, 0);
   SP('bendera', 1236, 66, .62, .5, 0);
   // gantungan renteng
-  const kopiR = SP('renteng2', 250, 100, scaleH('renteng2', 124), .5, 0, { fn: () => addToTray('kopi'), tip: `Kopi Sachet · ${rp(2000)} · stok ${G.stock.kopi}` });
+  const kopiR = SP('renteng2', 238, 100, scaleH('renteng2', SZ.hang), .5, 0, { fn: () => addToTray('kopi'), tip: `Kopi Sachet · ${rp(2000)} · stok ${G.stock.kopi}` });
   badge(kopiR, G.stock.kopi || 0);
-  const snR = SP('rakChips', 372, 100, scaleH('rakChips', 124), .5, 0, { fn: () => addToTray('snack'), tip: `Keripik Renteng · ${rp(2000)} · stok ${G.stock.snack}` });
+  const snR = SP('rakChips', 366, 100, scaleH('rakChips', SZ.hang), .5, 0, { fn: () => addToTray('snack'), tip: `Keripik Renteng · ${rp(2000)} · stok ${G.stock.snack}` });
   badge(snR, G.stock.snack || 0);
 
   // ---------- meja counter ----------
@@ -115,16 +115,16 @@ export function drawScene() {
   for (let y = 540; y < H; y += 44) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
 
   // etalase rokok (kiri, rata di garis y=606)
-  groundShadow(235, 606, 190);
-  const et = SP('etalase', 235, 606, scaleH('etalase', 196), .5, 1, { fn: () => addToTray('rokok'), tip: `Rokok Ketengan · ${rp(2000)} · stok ${G.stock.rokok}` });
+  groundShadow(258, 606, 210);
+  const et = SP('etalase', 258, 606, scaleH('etalase', SZ.etalase), .5, 1, { fn: () => addToTray('rokok'), tip: `Rokok Ketengan · ${rp(2000)} · stok ${G.stock.rokok}` });
   badge(et, G.stock.rokok || 0);
-  nameTag(235, 380, 'ROKOK ' + rp(2000).replace('Rp ', '') + '/btg');
+  nameTag(258, 606 - SZ.etalase - 30, 'ROKOK ' + rp(2000).replace('Rp ', '') + '/btg');
   // rak minuman: tinggi seragam, jarak merata, berdiri di papan kayu
-  const shelf = flow([{ spr: 'toples', id: 'kerupuk' }, { spr: 'mie', id: 'mie' }, { spr: 'aqua', id: 'aqua' }, { spr: 'cola', id: 'cola' }, { spr: 'redbull', id: 'redbull' }], { h: 84, gap: 26, x: 410 });
+  const shelf = flow([{ spr: 'toples', id: 'kerupuk' }, { spr: 'mie', id: 'mie' }, { spr: 'aqua', id: 'aqua' }, { spr: 'cola', id: 'cola' }, { spr: 'redbull', id: 'redbull' }], { h: SZ.shelf, gap: 22, x: 420 });
   shelfPlank(shelf.left, shelf.right, 586, shelf.slots);
   for (const s of shelf.slots) { groundShadow(s.cx, 586, s.w); R(s.spr, s.cx, 586, s.sc, .5, 1, s.id); }
   // peralatan kasir di ujung kanan meja
-  const gear = flow([{ spr: 'printer', h: 62 }, { spr: 'scanner', h: 72 }], { h: 64, gap: 30, x: shelf.right + 80 });
+  const gear = flow([{ spr: 'printer', h: SZ.gear }, { spr: 'scanner', h: SZ.gear + 12 }], { h: SZ.gear, gap: 24, x: shelf.right + 60 });
   for (const s of gear.slots) { groundShadow(s.cx, 592, s.w); SP(s.spr, s.cx, 592, s.sc, .5, 1); }
 
   // barisan depan

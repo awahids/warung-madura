@@ -27,3 +27,6 @@ html, body, #root { margin: 0; height: 100%; height: 100dvh; background: var(--b
 .phone { width: 54px; height: 96px; border: 5px solid var(--accent); border-radius: 12px; position: relative; animation: turn 2.2s ease-in-out infinite; }
 .phone::after { content: ''; position: absolute; left: 50%; bottom: 6px; width: 14px; height: 4px; margin-left: -7px; border-radius: 2px; background: var(--accent); }
 @keyframes turn { 0%, 15% { transform: rotate(0); } 55%, 100% { transform: rotate(-90deg); } }
+
+.ios-hint { font-size: 11px; color: var(--accent); }
+@media (display-mode: standalone), (display-mode: fullscreen) { .toolbar { display: none; } }

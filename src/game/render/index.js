@@ -15,7 +15,7 @@ export function drawFloats() {
   ctx.globalAlpha = 1;
   fx.toasts.forEach((t, i) => {
     const a = t.t < .2 ? t.t / .2 : t.t > 3 ? (3.4 - t.t) / .4 : 1; ctx.globalAlpha = clamp(a, 0, 1);
-    ctx.font = `700 16px ${FONT}`; const w = ctx.measureText(t.s).width + 40, ty = (ui.touch ? 480 : 580) - (fx.toasts.length - 1 - i) * 40;
+    ctx.font = `700 16px ${FONT}`; const w = ctx.measureText(t.s).width + 40, ty = (ui.touch ? 446 : 580) - (fx.toasts.length - 1 - i) * 40;
     ctx.fillStyle = 'rgba(30,18,8,.88)'; rr(ctx, 640 - w / 2, ty - 24, w, 34, 17); ctx.fill();
     T(t.s, 640, ty - 1, { s: 16, a: 'center', c: t.c });
   });

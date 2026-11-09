@@ -22,8 +22,8 @@ export function SP(name, x, y, sc = 1, ax = 0, ay = 0, o = {}) {
 export function badge(r, n) {
   const x = r.x + r.w - 6, y = r.y + 8;
   ctx.fillStyle = n === 0 ? '#d62f2f' : n <= 2 ? '#e08a1c' : '#3b2412';
-  ctx.beginPath(); ctx.arc(x, y, 14, 0, 7); ctx.fill();
-  ctx.lineWidth = 2; ctx.strokeStyle = '#fff'; ctx.stroke();
-  T(String(n), x, y + 5, { s: 14, a: 'center', c: '#fff' });
+  ctx.beginPath(); ctx.arc(x, y, 18, 0, 7); ctx.fill();
+  ctx.lineWidth = 2.5; ctx.strokeStyle = '#fff'; ctx.stroke();
+  T(String(n), x, y + 6, { s: 18, a: 'center', c: '#fff' });
 }
 

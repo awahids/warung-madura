@@ -62,9 +62,9 @@ export function drawBackground() {
   ctx.fillStyle = 'rgba(0,0,0,.06)'; for (let x = 0; x < W; x += 80) ctx.fillRect(x, 424, 2, 296);
   // dekor
   SP('tree', 1180, 346, 1.25, .5, 1);
-  SP('esteh', 330, 410, .62, .5, 1);
+  SP('esteh', 545, 410, .62, .5, 1);
   SP('tong', 790, 424, .78, .5, 1);
-  SP('cone', 590, 420, .5, .5, 1);
+  SP('cone', 715, 420, .5, .5, 1);
   // lalu lintas
   for (const t of fx.traffic) SP('motor', t.x, 396, .62, .5, 1, { flip: t.dir < 0 });
   // gelap malam
