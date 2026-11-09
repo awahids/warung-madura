@@ -38,7 +38,7 @@ export function drawHUD() {
   });
   if (G.energy < 25) { ctx.fillStyle = `rgba(255,60,40,${.35 + Math.sin(ui.frame / 8) * .25})`; ctx.fillRect(470 + 30, 25, 150, 16); }
   // tombol
-  const hb = (name, x, fn, tip) => SP(name, x, 8, .9, 0, 0, { fn, tip, always: true });
+  const hb = (name, x, fn, tip) => SP(name, x, 8, .9, 0, 0, { fn, tip, always: true, pad: ui.touch ? 10 : 0 });
   hb('pause', 1086, () => { ui.modal = ui.modal ? null : 'pause'; SFX.click(); }, 'Jeda');
   hb('gear', 1136, () => { ui.modal = 'pause'; SFX.click(); }, 'Pengaturan');
   hb('tanya', 1186, () => { ui.modal = 'help'; SFX.click(); }, 'Cara main');

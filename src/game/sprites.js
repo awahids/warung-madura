@@ -16,7 +16,7 @@ export function SP(name, x, y, sc = 1, ax = 0, ay = 0, o = {}) {
   else ctx.drawImage(IMG, a[0], a[1], a[2], a[3], dx, dy, w, h);
   ctx.globalAlpha = 1;
   if (hv || o.glow) ctx.restore();
-  if (act) { hit(dx, dy, w, h, o.fn, o.tip); if (hv && o.tip) ui.tooltip = o.tip; }
+  if (act) { const pad = o.pad ?? (ui.touch ? 6 : 0); hit(dx - pad, dy - pad, w + 2 * pad, h + 2 * pad, o.fn, o.tip); if (hv && o.tip) ui.tooltip = o.tip; }
   return { x: dx, y: dy, w, h, hv };
 }
 export function badge(r, n) {

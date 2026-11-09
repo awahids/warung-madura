@@ -8,13 +8,18 @@ import { update } from './update';
 import { draw } from './render';
 import { updateAmbient } from './ambient';
 import { attachInput } from './input';
+import * as customers from './logic/customers';
+import * as day from './logic/day';
+import { G } from './state';
 
 /**
  * Mesin game: memuat atlas, menjalankan loop update/draw di sebuah <canvas>.
  * Dipakai oleh komponen React <GameCanvas />.
  */
 export function createEngine(canvas, { onReady, onError } = {}) {
+  if (import.meta.env.DEV) window.__game = { G, ui, ...customers, ...day }; // hanya untuk debug/tes UI
   ui.cv = canvas;
+  ui.touch = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
   setCtx(canvas.getContext('2d'));
   let raf = 0, last = 0, alive = true, detach = () => { }, ro = null;
 

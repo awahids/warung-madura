@@ -15,16 +15,20 @@ export function drawFloats() {
   ctx.globalAlpha = 1;
   fx.toasts.forEach((t, i) => {
     const a = t.t < .2 ? t.t / .2 : t.t > 3 ? (3.4 - t.t) / .4 : 1; ctx.globalAlpha = clamp(a, 0, 1);
-    ctx.font = `700 16px ${FONT}`; const w = ctx.measureText(t.s).width + 40, ty = 580 - (fx.toasts.length - 1 - i) * 40;
+    ctx.font = `700 16px ${FONT}`; const w = ctx.measureText(t.s).width + 40, ty = (ui.touch ? 480 : 580) - (fx.toasts.length - 1 - i) * 40;
     ctx.fillStyle = 'rgba(30,18,8,.88)'; rr(ctx, 640 - w / 2, ty - 24, w, 34, 17); ctx.fill();
     T(t.s, 640, ty - 1, { s: 16, a: 'center', c: t.c });
   });
   ctx.globalAlpha = 1;
 }
 export function drawTooltip() {
-  if (!ui.tooltip || ui.modal) return; ctx.font = `700 14px ${FONT}`; const w = ctx.measureText(ui.tooltip).width + 22;
-  let x = clamp(mouse.x + 16, 6, W - w - 6), y = clamp(mouse.y + 22, 62, H - 40);
-  ctx.fillStyle = 'rgba(20,12,4,.92)'; rr(ctx, x, y, w, 30, 8); ctx.fill(); T(ui.tooltip, x + 11, y + 20, { s: 14, c: '#fff' });
+  const text = ui.touch ? ui.longTip : ui.tooltip;   // layar sentuh: info muncul saat tekan-tahan
+  if (!text || ui.modal) return;
+  const big = ui.touch; ctx.font = `700 ${big ? 18 : 14}px ${FONT}`; const w = ctx.measureText(text).width + 26, h = big ? 38 : 30;
+  const x = clamp(big ? mouse.x - w / 2 : mouse.x + 16, 6, W - w - 6), y = clamp(big ? mouse.y - 90 : mouse.y + 22, 62, H - 40);
+  ctx.fillStyle = 'rgba(20,12,4,.94)'; rr(ctx, x, y, w, h, 10); ctx.fill();
+  ctx.strokeStyle = '#ffd23a'; ctx.lineWidth = 2; ctx.stroke();
+  T(text, x + 13, y + (big ? 26 : 20), { s: big ? 18 : 14, c: '#fff' });
 }
 export function draw() {
   ui.hits = []; ui.tooltip = '';

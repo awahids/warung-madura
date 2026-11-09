@@ -33,8 +33,9 @@ export function drawTray() {
       ix += 62;
     });
     const ok = trayMatches(c);
-    button(x + w - 150, y + 14, 134, 38, 'HITUNG', doHitung, { col: ok ? 'green' : 'wood', s: 18 });
-    if (shortfall(c)) button(x + w - 150, y + 58, 134, 34, 'MAAF, HABIS', doHabis, { col: 'red', s: 13 });
+    const tc = ui.touch;
+    button(x + w - 150, y + (tc ? 8 : 14), 134, tc ? 46 : 38, 'HITUNG', doHitung, { col: ok ? 'green' : 'wood', s: 18 });
+    if (shortfall(c)) button(x + w - 150, y + (tc ? 58 : 58), 134, tc ? 40 : 34, 'MAAF, HABIS', doHabis, { col: 'red', s: tc ? 14 : 13 });
   } else if (c.stage === 'kasbon') {
     T(`Kasbon ${rp(c.total)}?`, x + 20, y + 40, { s: 20, c: '#3a210c' });
     T('Dicatat di buku, dibayar besok (kadang macet).', x + 20, y + 64, { s: 12, c: '#5a3a1a' });
@@ -43,7 +44,7 @@ export function drawTray() {
   } else if (c.stage === 'pay') {
     T(`Kembali: ${rp(c.change)}`, x + 18, y + 30, { s: 15, c: '#3a210c' });
     T(`Diberi: ${rp(c.given)}`, x + 18, y + 50, { s: 15, c: c.given > c.change ? '#c0392b' : c.given === c.change ? '#2a8a2a' : '#3a210c' });
-    BILLS.forEach((b, i) => {
+    if (ui.touch) drawTouchBills(c); else BILLS.forEach((b, i) => {
       const bx = x + 14 + i * 60, by = y + 58, bw = 54, bh = 36;
       const hv = inRect(mouse.x, mouse.y, bx, by, bw, bh);
       ctx.fillStyle = 'rgba(0,0,0,.3)'; rr(ctx, bx, by + 3, bw, bh, 6); ctx.fill();
@@ -52,10 +53,28 @@ export function drawTray() {
       T(b.l, bx + bw / 2, by + 24, { s: 16, a: 'center', c: '#fff', stroke: 'rgba(0,0,0,.5)', sw: 3 });
       hit(bx, by, bw, bh, () => giveBill(b.v, c), 'Beri ' + rp(b.v));
     });
-    button(x + w - 130, y + 14, 112, 34, 'BERI', confirmChange, { col: c.given >= c.change ? 'green' : 'wood', s: 17, disabled: c.given < c.change });
-    button(x + w - 130, y + 56, 112, 34, 'ULANG', () => { c.given = 0; }, { col: 'blue', s: 15 });
+    const th = ui.touch ? 44 : 34;
+    button(x + w - 130, y + (ui.touch ? 8 : 14), 112, th, 'BERI', confirmChange, { col: c.given >= c.change ? 'green' : 'wood', s: 17, disabled: c.given < c.change });
+    button(x + w - 130, y + (ui.touch ? 56 : 56), 112, th, 'ULANG', () => { c.given = 0; }, { col: 'blue', s: 15 });
     const missing = c.change - c.given;
     if (missing > 0 && missing < 1e9) T(`kurang ${rp(missing)}`, x + 255, y + 50, { s: 12, c: '#7a3a1a' });
   }
 }
 
+
+/** Layar sentuh: pecahan uang besar dalam panel terpisah di atas rak (rak tak dipakai saat membayar). */
+function drawTouchBills(c) {
+  const px = 350, py = 512, pw = 500, ph = 84;
+  ctx.fillStyle = 'rgba(40,20,6,.94)'; rr(ctx, px, py, pw, ph, 14); ctx.fill();
+  ctx.strokeStyle = '#d9a55f'; ctx.lineWidth = 3; ctx.stroke();
+  T('Ketuk uang untuk memberi kembalian', px + pw / 2, py + 17, { s: 12, a: 'center', c: '#f3d9a4' });
+  BILLS.forEach((b, i) => {
+    const bw = 74, bh = 52, bx = px + 8 + i * (bw + 8), by = py + 24;
+    const pr = mouse.down && inRect(mouse.x, mouse.y, bx, by, bw, bh);
+    ctx.fillStyle = 'rgba(0,0,0,.35)'; rr(ctx, bx, by + 3, bw, bh, 8); ctx.fill();
+    ctx.fillStyle = b.c; rr(ctx, bx, by + (pr ? 2 : 0), bw, bh, 8); ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = pr ? '#fff' : 'rgba(0,0,0,.5)'; ctx.stroke();
+    T(b.l, bx + bw / 2, by + 33, { s: 21, a: 'center', c: '#fff', stroke: 'rgba(0,0,0,.5)', sw: 3 });
+    hit(bx, by, bw, bh, () => giveBill(b.v, c), 'Beri ' + rp(b.v));
+  });
+}

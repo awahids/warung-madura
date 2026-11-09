@@ -9,6 +9,7 @@ import { toast } from './widgets.js';
 
 /* ---- update ---- */
 export function update(dt) {
+  if (ui.paused) return;
   ui.frame++;
   G.phoneCd = Math.max(0, (G.phoneCd || 0) - dt); G.drinkCd = Math.max(0, (G.drinkCd || 0) - dt);
   for (const f of fx.floats) f.t += dt; fx.floats = fx.floats.filter(f => f.t < 1.4);
