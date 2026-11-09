@@ -1,0 +1,17 @@
+:root { --bg: #1b1209; --fg: #f3d9a4; --accent: #ffd23a; }
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; height: 100%; background: var(--bg); color: var(--fg); overflow: hidden;
+  font-family: "Trebuchet MS", "Segoe UI", Roboto, Arial, sans-serif; -webkit-user-select: none; user-select: none; }
+.app { height: 100%; display: flex; flex-direction: column; }
+.stage { position: relative; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; touch-action: none; }
+.stage canvas { display: block; box-shadow: 0 0 40px #000a; }
+.overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: var(--bg); text-align: center; padding: 24px; }
+.overlay h1 { margin: 0; color: var(--accent); font-size: 2rem; }
+.spinner { width: 44px; height: 44px; border-radius: 50%; border: 5px solid #ffffff33; border-top-color: var(--accent); animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.toolbar { display: flex; gap: 8px; justify-content: flex-end; align-items: center; padding: 4px 10px; font-size: 12px; background: #000a; }
+.toolbar a { color: var(--fg); }
+.toolbar button { background: #3a2410; color: var(--fg); border: 1px solid #6b4020; border-radius: 6px; padding: 3px 10px; cursor: pointer; font: inherit; }
+.toolbar button:hover { background: #55341a; }
+.toolbar .spacer { flex: 1; }
+@media (max-height: 420px) { .toolbar { display: none; } }
