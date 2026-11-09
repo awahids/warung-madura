@@ -21,7 +21,7 @@ Berkas terkait: `public/manifest.webmanifest`, `public/sw.js` (daftar precache &
 ## Uji coba prop 3D
 Buka `#/props` (mis. https://awahids.github.io/warung-madura/#/props, atau tautan **Uji coba 3D** di bawah game).
 7 prop dibuat prosedural dengan Three.js (galon, gas melon, toples kerupuk, botol & rak bensin, kardus, karung beras), dibandingkan dengan sprite 2D-nya.
-Untuk mengganti dengan model hasil Meshy/Blender, taruh GLB di `public/models/<id>.glb` (lihat `public/models/README.md`).
+Untuk mengganti dengan model sendiri/dari pustaka gratis, taruh GLB di `public/models/<id>.glb` lalu jalankan `npm run models:check` (lihat `public/models/README.md`).
 
 ## Pengembangan
 ```bash

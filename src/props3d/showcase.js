@@ -22,6 +22,7 @@ async function tryLoadGLB(id, targetH) {
     if (new TextDecoder().decode(buf.slice(0, 4)) !== 'glTF') return null; // server SPA mengembalikan html
     const gltf = await new Promise((ok, no) => new GLTFLoader().parse(buf, '', ok, no));
     const obj = gltf.scene, box = new THREE.Box3().setFromObject(obj), size = box.getSize(new THREE.Vector3());
+    if (!(size.y > 0) || !isFinite(size.y)) return null; // model rusak/datar → pakai prosedural
     obj.scale.setScalar(targetH / size.y);
     const b2 = new THREE.Box3().setFromObject(obj); const c = b2.getCenter(new THREE.Vector3());
     obj.position.set(-c.x, -b2.min.y, -c.z);

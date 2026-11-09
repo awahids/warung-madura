@@ -9,7 +9,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "lint": "eslint src tests"
+    "lint": "eslint src tests",
+    "models:check": "node scripts/check-models.mjs"
   },
   "dependencies": {
     "react": "^19.3.1",
