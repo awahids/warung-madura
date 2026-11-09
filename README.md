@@ -2,7 +2,7 @@
 
 Simulasi warung Madura 2D yang berjalan di browser. Dibangun dengan **React + Vite**, render game memakai **HTML5 Canvas**; semua sprite berasal dari satu sprite sheet.
 
-**Main online:** https://awahids.github.io/warung/
+**Main online:** https://awahids.github.io/warung-madura/
 
 ## Cara main
 1. Tarik pintu besi ke atas untuk membuka warung (drag atau klik berkali-kali).
@@ -41,4 +41,4 @@ tests/game.test.js
 
 ## Deploy
 Push ke `main` → GitHub Actions (`.github/workflows/deploy.yml`) menjalankan lint, test, build, lalu publish ke GitHub Pages.
-Aktifkan sekali di **Settings → Pages → Source: GitHub Actions**.
+Aktifkan sekali di **Settings → Pages → Source: GitHub Actions**. Catatan: GitHub Pages untuk repo *private* hanya tersedia di paket Pro/Team; di paket gratis repo harus *public*.

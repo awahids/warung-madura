@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-const REPO = 'https://github.com/awahids/warung';
+const REPO = 'https://github.com/awahids/warung-madura';
 
 export default function Toolbar() {
   const [full, setFull] = useState(false);
