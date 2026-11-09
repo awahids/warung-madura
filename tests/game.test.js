@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { G, setG, ui } from '../src/game/state';
 import { freshState } from '../src/game/persist';
 import { ITEMS } from '../src/game/data';
@@ -30,7 +30,9 @@ describe('transaksi', () => {
     expect(trayMatches(c)).toBe(true);
     const before = G.money, stock = G.stock.rokok;
     doHitung(); expect(c.stage).toBe('pay');
-    giveBill(2000, c); giveBill(2000, c); confirmChange();
+    giveBill(2000, c); giveBill(2000, c);
+    const rand = vi.spyOn(Math, 'random').mockReturnValue(.99); // tanpa tip acak
+    confirmChange(); rand.mockRestore();
     expect(G.money - before).toBe(6000);
     expect(G.stock.rokok).toBe(stock);          // stok sudah dikurangi saat diambil
     expect(G.stats.served).toBe(1);
