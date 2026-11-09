@@ -18,6 +18,11 @@ Game ini PWA: bisa dipasang ke layar utama dan dimainkan **offline** setelah dib
 - **iPhone/iPad (Safari):** ketuk **Bagikan → Tambah ke Layar Utama**.
 Berkas terkait: `public/manifest.webmanifest`, `public/sw.js` (daftar precache & versi disuntik saat build oleh `vite.config.js`), `public/icons/`.
 
+## Uji coba prop 3D
+Buka `#/props` (mis. https://awahids.github.io/warung-madura/#/props, atau tautan **Uji coba 3D** di bawah game).
+7 prop dibuat prosedural dengan Three.js (galon, gas melon, toples kerupuk, botol & rak bensin, kardus, karung beras), dibandingkan dengan sprite 2D-nya.
+Untuk mengganti dengan model hasil Meshy/Blender, taruh GLB di `public/models/<id>.glb` (lihat `public/models/README.md`).
+
 ## Pengembangan
 ```bash
 npm install

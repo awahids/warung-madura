@@ -62,6 +62,7 @@ export default function Toolbar() {
       <div className="toolbar">
         <span>Juragan Warung · simulasi warung Madura</span>
         <span className="spacer" />
+        <a href="#/props">Uji coba 3D</a>
         <a href={REPO} target="_blank" rel="noreferrer">GitHub</a>
         <InstallButton />
         <button type="button" onClick={toggle}>Layar penuh</button>
