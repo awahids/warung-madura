@@ -4,7 +4,7 @@ import { freshState } from '../src/game/persist';
 import { startDay, openShop } from '../src/game/logic/day';
 import { spawnCustomer, active, addToTray, doHitung, giveBill, confirmChange, carryKind } from '../src/game/logic/customers';
 import { update } from '../src/game/update';
-import { toWorldX, crowdFromGame, runAct } from '../src/game/engine3d';
+import { toWorldX, crowdFromGame, runAct, moodOf } from '../src/game/engine3d';
 
 function begin() { setG(freshState(G)); ui.modal = null; startDay(); G.door = 1; openShop(); G.firstCust = false; G.spawnCd = 1e9; }
 
@@ -29,6 +29,17 @@ describe('jembatan logika → 3D', () => {
     expect(again.map(p => p.key)).toEqual(first.map(p => p.key)); // kunci tidak berubah antar-frame
     for (let i = 0; i < 200 && !active(); i++) update(1 / 30);
     expect(crowdFromGame(next)[0].moving).toBe(false);       // sudah sampai di loket
+  });
+
+  it('ekspresi wajah mengikuti kesabaran dan hasil transaksi', () => {
+    const c = { patience: 30, max: 30 };
+    expect(moodOf(c, false)).toBe('happy');
+    c.patience = 12; expect(moodOf(c, false)).toBe('flat');
+    c.patience = 5; expect(moodOf(c, false)).toBe('angry');
+    expect(moodOf({ ...c, took: true }, true)).toBe('joy');
+    expect(moodOf({ ...c, took: false }, true)).toBe('angry');
+    spawnCustomer('ibu');
+    expect(crowdFromGame(() => 1)[0].mood).toBe('happy');
   });
 
   it('klik barang 3D memanggil logika yang sama dengan versi 2D', () => {

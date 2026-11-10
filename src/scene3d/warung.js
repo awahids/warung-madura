@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { galon, gas, toples, rakBensin, kardus, beras, aqua, cola, redbull, mie, gelas, bensin } from '../props3d/props';
 import { woodTex, roofTex, slatTex, asphaltTex, concreteTex, bannerTex, signTex } from './textures';
-import { person, personFor, makeBag, makeBill } from './people';
+import { person, personFor, makeBag, makeBill, ARM } from './people';
+import { createAmbience } from './ambience';
 import { fillEtalase, fillWallShelf, hangingStrips, pouchGeometry, kopiTex, snackTex, cigTex } from './products';
 
 /* Adegan warung Madura 3D prosedural. Satuan meter: x kanan, y atas, z ke arah jalan. Warung: x∈[-2.2,2.2], z∈[-3.2,0]. */
@@ -50,8 +51,6 @@ export function createWarung(canvas, opts = {}) {
   const sidewalk = box(24, .12, 1.5, new THREE.MeshStandardMaterial({ map: concreteTex(), roughness: .9 }), 0, -.06, .75); sidewalk.castShadow = false; scene.add(sidewalk);
   const curb = box(24, .16, .14, std('#bdbab0'), 0, -.06, 1.55); scene.add(curb);
   const road = new THREE.Mesh(new THREE.PlaneGeometry(60, 12), new THREE.MeshStandardMaterial({ map: asphaltTex(), roughness: .95 })); road.rotation.x = -Math.PI / 2; road.position.set(0, -.12, 7.6); road.receiveShadow = true; scene.add(road);
-  const dash = new THREE.InstancedMesh(new THREE.BoxGeometry(1.3, .01, .14), new THREE.MeshBasicMaterial({ color: '#e8d9a0' }), 24);
-  for (let i = 0; i < 24; i++) dash.setMatrixAt(i, new THREE.Matrix4().makeTranslation(-14 + i * 2.4, -.11, 7.4)); scene.add(dash);
 
   /* ---------- bangunan warung ---------- */
   const wood = new THREE.MeshStandardMaterial({ map: woodTex('#b97a3e', [3, 2]), roughness: .85 });
@@ -151,7 +150,7 @@ export function createWarung(canvas, opts = {}) {
   const promoSign = new THREE.Group(); promoSign.position.set(-2.55, 1.7, .55); promoSign.rotation.y = Math.PI / 2;
   promoSign.add(new THREE.Mesh(new THREE.PlaneGeometry(.55, .4), new THREE.MeshStandardMaterial({ map: signTex('PROMO', '#c0281a', '#ffe9a0') })));
   scene.add(promoSign); reg({ type: 'promo' }, promoSign, { proxy: { size: [.6, .45, .2] } });
-  const paket = new THREE.Group(); paket.position.set(-1.0, 0, .95); paket.visible = false;
+  const paket = new THREE.Group(); paket.position.set(-1.7, 0, .95); paket.visible = false;
   const pk = kardus(); pk.scale.setScalar(1.3); paket.add(pk); scene.add(paket); reg({ type: 'paket' }, paket);
 
   /* ---------- area luar ---------- */
@@ -248,7 +247,9 @@ export function createWarung(canvas, opts = {}) {
     const ibu = person({ shirt: '#d9729a', pants: '#8a5a8a', skin: '#b87a50', hair: '#222' }); ibu.scale.setScalar(.93); ibu.position.set(-.75, 0, 1.0); ibu.rotation.y = -.25; scene.add(ibu);
     demo.push(ojol, ibu);
   }
-  const penjaga = personFor('penjaga'); penjaga.position.set(.2, 0, -1.3); penjaga.rotation.y = Math.PI; scene.add(penjaga);
+  const PJ_Y = .3;   // penjaga chibi berdiri di atas dingklik supaya bahunya setinggi meja kasir
+  scene.add(box(.6, PJ_Y, .85, std('#8a5a32', { roughness: .85 }), .2, PJ_Y / 2, -1.15));
+  const penjaga = personFor('penjaga'); penjaga.position.set(.2, PJ_Y, -1.3); penjaga.rotation.y = Math.PI; scene.add(penjaga);
   const people = [...demo, penjaga];
 
   /* ---------- mesin kasir + laci uang (di meja, menghadap penjaga) ---------- */
@@ -270,14 +271,14 @@ export function createWarung(canvas, opts = {}) {
   const pjHand = penjaga.userData.hands[1]; let pjGrip = .28;
   const pjArm = penjaga.userData.arms[1], pjElbow = penjaga.userData.elbows[1], pjTorso = penjaga.userData.torso, pjHead = penjaga.userData.head;
   const restQ = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, -.1)), downV = new THREE.Vector3(0, -1, 0), tmpQ = new THREE.Quaternion();
-  const L1 = .29, L2 = .29, clampN = (v, a, b) => Math.max(a, Math.min(b, v));
+  const L1 = ARM, L2 = ARM, HOLD = ARM + .01, clampN = (v, a, b) => Math.max(a, Math.min(b, v));
   const _pv = new THREE.Vector3(), _n = new THREE.Vector3(), _u = new THREE.Vector3(), _y = new THREE.Vector3(), _z = new THREE.Vector3(), _m = new THREE.Matrix4();
   const _qa = new THREE.Quaternion(), _qb = new THREE.Quaternion();
   /** Pegangan di tangan (menempel pada siku, tetap tegak): kantong, gelas, HP. */
   const holds = { bag: makeBag('#d63b2f'), mug: gelas(), phone: new THREE.Group() };
-  holds.bag.position.set(0, -.3, 0);
-  const mugIn = holds.mug; holds.mug = new THREE.Group(); mugIn.scale.setScalar(1.6); mugIn.position.set(0, -.04, 0); holds.mug.add(mugIn); holds.mug.position.set(0, -.34, -.04);
-  const phoneIn = box(.075, .01, .15, std('#16181c'), 0, 0, 0); phoneIn.rotation.x = 1.0; holds.phone.add(phoneIn); holds.phone.position.set(0, -.3, -.06);
+  holds.bag.position.set(0, -HOLD, 0);
+  const mugIn = holds.mug; holds.mug = new THREE.Group(); mugIn.scale.setScalar(1.6); mugIn.position.set(0, -.04, 0); holds.mug.add(mugIn); holds.mug.position.set(0, -HOLD - .04, -.04);
+  const phoneIn = box(.075, .01, .15, std('#16181c'), 0, 0, 0); phoneIn.rotation.x = 1.0; holds.phone.add(phoneIn); holds.phone.position.set(0, -HOLD, -.06);
   Object.values(holds).forEach(h => { h.visible = false; pjElbow.add(h); });
   const keepUpright = (obj, root) => { root.getWorldQuaternion(_qa); obj.parent.getWorldQuaternion(_qb); obj.quaternion.copy(_qb.invert().multiply(_qa)); };
   const DUR = { reach: 420, drink: 1400, phone: 600 };
@@ -304,8 +305,8 @@ export function createWarung(canvas, opts = {}) {
     if (act) {
       mode = act.kind;
       if (mode === 'reach') target = (now - act.t0) / act.dur < .5 ? act.a : act.b;
-      else if (mode === 'drink') target = penjaga.localToWorld(new THREE.Vector3(0, 1.5, -.1));
-      else target = penjaga.localToWorld(new THREE.Vector3(0, 1.3, -.3));
+      else if (mode === 'drink') target = penjaga.localToWorld(new THREE.Vector3(0, 1.02, -.46));
+      else target = penjaga.localToWorld(new THREE.Vector3(0, .8, -.4));
     } else if (pj.cont) {
       mode = pj.cont.kind; target = pj.cont.target;
       // menerima uang: ambil dari tangan pelanggan, lalu masukkan ke laci & ambil kembalian
@@ -423,21 +424,47 @@ export function createWarung(canvas, opts = {}) {
   /** Pegangan di tangan kanan: kantong/galon/gas/karung sesuai belanjaan, plus lembar uang. */
   const makeHolder = (kind, key) => {
     const h = new THREE.Group();
-    if (kind === 'bag') { const bg = makeBag(BAG_COLORS[key.length * 7 % BAG_COLORS.length]); bg.position.y = -.3; h.add(bg); }
-    else if (kind === 'galon') { const o = galon(); o.scale.setScalar(.78); o.position.y = -.3 - .43 * .78 + .02; h.add(o); }
-    else if (kind === 'gas') { const o = gas(); o.scale.setScalar(.95); o.position.y = -.3 - .34 * .95 + .04; h.add(o); }
-    else { const o = beras(); o.scale.setScalar(.8); o.position.set(0, -.3 - .4, -.03); h.add(o); }
+    if (kind === 'bag') { const bg = makeBag(BAG_COLORS[key.length * 7 % BAG_COLORS.length]); bg.position.y = -HOLD; h.add(bg); }
+    else if (kind === 'galon') { const o = galon(); o.scale.setScalar(.78); o.position.y = -HOLD - .43 * .78 + .02; h.add(o); }
+    else if (kind === 'gas') { const o = gas(); o.scale.setScalar(.95); o.position.y = -HOLD - .34 * .95 + .04; h.add(o); }
+    else { const o = beras(); o.scale.setScalar(.8); o.position.set(0, -HOLD - .4, -.03); h.add(o); }
     return h;
   };
+  /* serah-terima: uang/kantong terbang dari tangan ke tangan (lengan chibi terlalu pendek untuk bertemu di atas meja) */
+  let handoffs = []; const _hv = new THREE.Vector3();
+  const handoff = (obj, fromObj, toObj, dur) => { const a = fromObj.getWorldPosition(new THREE.Vector3()); obj.position.copy(a); scene.add(obj); handoffs.push({ obj, a, toObj, t0: performance.now(), dur }); };
+  const stepHandoffs = () => {
+    const now = performance.now();
+    handoffs = handoffs.filter(f => {
+      const p = Math.min(1, (now - f.t0) / f.dur), e = p * p * (3 - 2 * p);
+      f.obj.position.lerpVectors(f.a, f.toObj.getWorldPosition(_hv), e); f.obj.position.y += Math.sin(Math.PI * p) * .22 + (f.lift || 0);
+      if (p >= 1) { scene.remove(f.obj); return false; }
+      return true;
+    });
+  };
+  /** Kurir: berjalan masuk saat kiriman tiba, menunggu di samping kardus, pergi setelah barang diterima. */
+  const kurir = personFor('kurir'); kurir.visible = false; scene.add(kurir);
+  const KUR = { x: -6.5, on: false, home: -2.35, away: -6.5, z: 1.7 };
+  const stepKurir = (t, dt) => {
+    const tx = KUR.on ? KUR.home : KUR.away, dx = tx - KUR.x, moving = Math.abs(dx) > .03;
+    if (moving) KUR.x += Math.sign(dx) * Math.min(Math.abs(dx), 2.4 * dt);
+    kurir.visible = KUR.on || KUR.x > KUR.away + .05; if (!kurir.visible) return;
+    const { legs, arms, head } = kurir.userData, ph = t * 9;
+    kurir.position.set(KUR.x, moving ? Math.abs(Math.sin(ph)) * .03 : 0, KUR.z);
+    kurir.rotation.y += angDiff(kurir.rotation.y, moving ? (dx > 0 ? -Math.PI / 2 : Math.PI / 2) : -.5) * kdt(.18, dt);
+    const sw = moving ? Math.sin(ph) : 0; legs[0].rotation.x = sw * .55; legs[1].rotation.x = -sw * .55; arms[0].rotation.x = -sw * .4; arms[1].rotation.x = sw * .4;
+    head.rotation.y = moving ? 0 : Math.sin(t * .7) * .25;
+  };
+  const ambience = createAmbience({ scene, addGlow });
   /** list: [{ key, type, x, z, moving, dir, pose: 'idle'|'pay'|'take', pt, carry }] — buat/hapus/gerakkan orang sesuai logika game. */
   const syncPeople = (list, t, dt = 1 / 60) => {
     const seen = new Set(); pj.cont = null;
     for (const it of list) {
       let e = crowd.get(it.key);
       if (!e) {
-        const g = personFor(it.type); g.position.set(it.x, 0, it.z); scene.add(g);
-        const bill = makeBill(); bill.position.set(0, -.33, -.05); bill.rotation.x = Math.PI / 2; bill.visible = false; g.userData.elbows[1].add(bill);
-        e = { g, bill, ang: it.moving ? (it.dir > 0 ? -Math.PI / 2 : Math.PI / 2) : 0, lean: 0, a0: 0, a1: 0, b0: 0, b1: 0, g0: .28, g1: .28, holder: null, holderKind: null }; crowd.set(it.key, e);
+        const g = personFor(it.type, parseInt(it.key.slice(1), 10) || 0); g.position.set(it.x, 0, it.z); scene.add(g);
+        const bill = makeBill(); bill.position.set(0, -HOLD - .03, -.05); bill.rotation.x = Math.PI / 2; bill.visible = false; g.userData.elbows[1].add(bill);
+        e = { g, bill, ang: it.moving ? (it.dir > 0 ? -Math.PI / 2 : Math.PI / 2) : 0, lean: 0, a0: 0, a1: 0, b0: 0, b1: 0, s0: 0, s1: 0, g0: .28, g1: .28, holder: null, holderKind: null }; crowd.set(it.key, e);
       }
       seen.add(it.key);
       const want = it.moving ? (it.dir > 0 ? -Math.PI / 2 : Math.PI / 2) : (it.turn ?? 0);
@@ -453,14 +480,19 @@ export function createWarung(canvas, opts = {}) {
         showHold = it.pose === 'take' ? it.pt > .45 : it.moving;
       }
       if (e.holder) e.holder.visible = showHold;
-      e.bill.visible = it.pose === 'pay';
+      // uang terbang ke tangan penjaga begitu tangan terangkat; kantong/barang terbang balik saat diserahkan
+      const hand1 = e.g.userData.hands[1];
+      if (it.pose === 'pay') { e.payT = (e.payT || 0) + dt; if (!e.billSent && e.payT > .55) { e.billSent = true; handoff(makeBill(), hand1, pjHand, 420); } } else { e.payT = 0; e.billSent = false; }
+      if (it.pose === 'take' && it.carry) { if (!e.bagSent && it.pt > .2) { e.bagSent = true; handoff(makeHolder(it.carry, it.key), pjHand, hand1, 280); handoffs[handoffs.length - 1].lift = HOLD; } } else e.bagSent = false;
+      e.bill.visible = it.pose === 'pay' && !e.billSent;
+      if (it.mood !== e.mood) { e.mood = it.mood; e.g.userData.setMood(it.mood); }
       // target sudut bahu (a) & siku (b); rotation.x positif = terulur/menekuk ke depan (−z)
-      let t0 = 0, t1 = 0, u0 = .1, u1 = .1;
-      if (it.pose === 'pay') { t1 = 1.15; u1 = .35; t0 = .15; u0 = .15; }
-      else if (it.pose === 'take') { const p = it.pt / 1.1; if (p < .45) { t0 = 1.2; u0 = .3; t1 = 1.25; u1 = .3; } else if (p < .8) { t0 = .1; u0 = .2; t1 = .5; u1 = .9; } else { t0 = .05; u0 = .15; t1 = .35; u1 = 1.0; } }
+      let t0 = 0, t1 = 0, u0 = .1, u1 = .1, s0 = 0, s1 = 0;   // s = lengan membuka ke samping agar tidak menembus kepala besar
+      if (it.pose === 'pay') { if (e.billSent && e.payT > 1) { t1 = .9; u1 = .6; s1 = .15; } else { t1 = 2.6; u1 = .1; s1 = .48; } t0 = .15; u0 = .15; }
+      else if (it.pose === 'take') { const p = it.pt / 1.1; if (p < .45) { t0 = 2.6; u0 = .1; t1 = 2.6; u1 = .1; s0 = s1 = .48; } else if (p < .8) { t0 = .1; u0 = .2; t1 = .5; u1 = .9; } else { t0 = .05; u0 = .15; t1 = .35; u1 = 1.0; } }
       else if (it.moving) { const sw = Math.sin(ph); t0 = -sw * .4; u0 = .2 + Math.max(0, sw) * .2; if (it.carry) { t1 = .35; u1 = 1.05 + sw * .05; } else { t1 = sw * .4; u1 = .2 + Math.max(0, -sw) * .2; } }
-      const ka = kdt(.22, dt); e.a0 += (t0 - e.a0) * ka; e.a1 += (t1 - e.a1) * ka; e.b0 += (u0 - e.b0) * ka; e.b1 += (u1 - e.b1) * ka;
-      arms[0].rotation.x = e.a0; arms[1].rotation.x = e.a1; elbows[0].rotation.x = e.b0; elbows[1].rotation.x = e.b1;
+      const ka = kdt(.22, dt); e.a0 += (t0 - e.a0) * ka; e.a1 += (t1 - e.a1) * ka; e.b0 += (u0 - e.b0) * ka; e.b1 += (u1 - e.b1) * ka; e.s0 += (s0 - e.s0) * ka; e.s1 += (s1 - e.s1) * ka;
+      arms[0].rotation.x = e.a0; arms[1].rotation.x = e.a1; arms[0].rotation.z = .1 - e.s0; arms[1].rotation.z = e.s1 - .1; elbows[0].rotation.x = e.b0; elbows[1].rotation.x = e.b1;
       if (e.holder) e.holder.rotation.x = -(e.a1 + e.b1);   // bawaan tetap menggantung tegak
       // jari: menggenggam bawaan, memegang uang saat membayar, terbuka saat menjulur mengambil
       const reach = it.pose === 'take' && it.pt / 1.1 < .45;
@@ -470,8 +502,8 @@ export function createWarung(canvas, opts = {}) {
       else { legs[0].rotation.x *= 1 - kdt(.2, dt); legs[1].rotation.x *= 1 - kdt(.2, dt); e.g.position.y = Math.abs(Math.sin(t * 1.6 + it.key.length)) * .004; head.rotation.y = near ? head.rotation.y * (1 - kdt(.2, dt)) : Math.sin(t * .7 + it.key.length) * .25; }
       e.g.userData.torso.rotation.x = -e.lean * .5;
       if (it.pose === 'pay') pj.cont = { kind: 'receive', target: new THREE.Vector3(it.x + .08, 1.12, it.z - e.lean - .5) };
-      else if (it.pose === 'take' && it.pt < .8) pj.cont = { kind: 'give', bag: it.pt < .45, target: new THREE.Vector3(it.x + .08, 1.1, it.z - e.lean - .42) };
-      e.head = new THREE.Vector3(it.x, 1.95, it.z - e.lean);
+      else if (it.pose === 'take' && it.pt < .8) pj.cont = { kind: 'give', bag: it.pt < .2, target: new THREE.Vector3(it.x + .08, 1.1, it.z - e.lean - .42) };
+      e.head = new THREE.Vector3(it.x, 2.06, it.z - e.lean);
       // LOD: detail halus (jari, wajah) hanya untuk orang yang dekat kamera
       const near2 = camera.position.distanceToSquared(e.g.position) < 30;   // ≈ 5,5 m
       if (near2 !== e.detail) { e.detail = near2; for (const m of e.g.userData.fine) m.visible = near2; }
@@ -492,8 +524,9 @@ export function createWarung(canvas, opts = {}) {
       camera.position.lerpVectors(tween.from.p, tween.to.p, e); controls.target.lerpVectors(tween.from.t, tween.to.t, e);
       if (tween.t >= 1) { applyLimits(tween.fp); tween = null; }
     }
-    people.forEach((p, i) => { p.position.y = Math.abs(Math.sin(t * 1.6 + i)) * .004; if (p !== penjaga) p.userData.head.rotation.y = Math.sin(t * .7 + i * 2) * .25; });
-    stepPenjaga(t, dt);
+    people.forEach((p, i) => { p.position.y = (p === penjaga ? PJ_Y : 0) + Math.abs(Math.sin(t * 1.6 + i)) * .004; if (p !== penjaga) p.userData.head.rotation.y = Math.sin(t * .7 + i * 2) * .25; });
+    stepPenjaga(t, dt); stepKurir(t, dt); ambience.step(t, dt);
+    if (handoffs.length) stepHandoffs();
     if (rainLines.visible) stepRain(dt);
     if (flights.length) stepFlights();
     controls.update(); renderer.render(scene, camera);
@@ -509,7 +542,12 @@ export function createWarung(canvas, opts = {}) {
     get doorOpen() { return doorTarget > .5; },
     setView, get view() { return view; },
     setAutoRotate(v) { controls.autoRotate = v; },
-    setPaket(v) { paket.visible = v; },
+    setPaket(v) { paket.visible = v; KUR.on = v; },
+    /** Diagnostik: posisi benda yang sedang terbang dari tangan ke tangan. */
+    ambience: () => ambience.state(),
+    /** Diagnostik: tempatkan kamera bebas (posisi, sasaran) untuk memeriksa sudut di luar tiga tampilan baku. */
+    lookFrom(p, t) { tween = null; controls.minDistance = 0; controls.maxDistance = Infinity; camera.position.set(...p); controls.target.set(...t); },
+    handoffs: () => handoffs.map(f => f.obj.position.toArray().map(v => +v.toFixed(2))),
     get drawerOpen() { return drawerOpen; },   // 0..1 (untuk tes)
     /** Diagnostik: apakah tiap barang terlihat dari kamera saat ini (tidak tertutup benda lain & ada di layar). */
     reachability() {

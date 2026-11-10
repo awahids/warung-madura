@@ -28,16 +28,29 @@ hanya tampilannya yang diganti adegan 3D, dengan HUD/balon pesanan/nampan/modal 
 - Lengan dua ruas dengan siku (bahu→siku→tangan); lengan penjaga memakai IK sehingga tangan tepat sampai ke sasaran. Mesin kasir dengan laci uang di meja: laci terbuka saat penjaga menerima uang/mengambil kembalian dan menutup saat menyerahkan belanjaan. Pembayaran pas juga membuka laci (fase "terima uang" ~1,7 dtk khusus tampilan 3D; mode 2D tidak berubah).
 - Animasi penjaga (terlihat dari kamera Luar/Pembeli): tangan menjangkau barang yang diklik, menerima uang saat pelanggan membayar, menyerahkan kantong saat transaksi selesai, mengangkat gelas saat minum kopi, memegang HP; badan menoleh dan maju ke meja.
 - Semua 12 barang dagangan terlihat & bisa diklik dari sudut Penjaga: galon, gas, beras, dan rak bensin berada di meja display teras setinggi dada (di atas barang di meja kasir). Diagnostik dev: `scene.reachability()` menembakkan sinar dari kamera ke tiap barang; `scene.heavy()` mencantumkan mesh terberat.
-- Anggaran: ≈80 ribu segitiga per frame (termasuk lintasan bayangan); LOD menyembunyikan detail halus orang yang jauh dari kamera.
+- LOD menyembunyikan detail terkecil orang yang jauh dari kamera.
 - Kamera: Luar / Pembeli / Penjaga (tombol atau tombol keyboard `1` `2` `3`); di layar sentuh tekan-tahan barang menampilkan info.
 - Kode: `src/game/engine3d.js` (jembatan), `src/game/render/overlay3d.js` (UI), `src/scene3d/warung.js` (adegan).
 
 ## Karakter 3D
 Buka `#/orang` (tautan **Karakter 3D**) untuk galeri semua tokoh: Pak Haji (koko putih, sarung, peci), Bu Sri (daster bunga, sanggul), Bang Ojol (helm hijau, jaket hijau berpita reflektif, celana hitam, sneakers, tas boks pengantar makanan di punggung; ada sudut kamera khusus depan/belakang),
 Mas Dimas (kaos, ransel, celana pendek), Bang Rizky (hoodie, topi), tamu misterius (hoodie hitam, masker), dan penjaga (batik kawung, sarung, peci).
-Dibuat prosedural (`src/scene3d/people.js`): proporsi dewasa ≈1,7 m, wajah (mata, alis, hidung, bibir, telinga, kumis), rambut, kain bertekstur (batik, bunga, kotak-kotak sarung, denim), alas kaki.
-Detail: tangan berjari (telapak, 4 jari × 3 ruas, ibu jari; bisa menggenggam kantong/uang), wajah (rahang & dagu, kelopak, bulu mata, iris bersorot, alis melengkung, hidung bersayap, bibir atas/bawah, kerutan & kacamata untuk Pak Haji, cambang/kumis/janggut tipis), rambut dari helai bertekstur (poni, cambang, belahan, sanggul bertali).
-Rangka animasi: pinggul/bahu/siku/leher berporos. Untuk model foto-realistis, taruh GLB sendiri atau gunakan layanan AI berbayar.
+Dibuat prosedural (`src/scene3d/people.js`) dengan gaya **chibi 3D**: proporsi dua kepala seperti karakter kantor noskill (kepala ≈ setengah tinggi badan, tinggi total ≈1,8 m), mata besar berkilau yang berkedip, pipi merona, mulut tersenyum, badan dan kaki pendek-gempal, tangan bulat.
+Ciri tiap tokoh tetap: kain bertekstur (batik, bunga, kotak-kotak sarung, jaket berpita reflektif), peci, helm, topi, tudung + masker, kacamata, kumis, sanggul, ransel, tas boks.
+Rangka animasi tidak berubah: pinggul/bahu/siku/leher berporos, tangan mengepal saat menggenggam kantong/uang.
+Karena badannya pendek, pelanggan mengangkat tangan ke samping kepala saat membayar/mengambil belanjaan, dan penjaga berdiri di atas dingklik di balik meja kasir.
+- **Ekspresi wajah** mengikuti kesabaran pelanggan: senyum → datar → cemberut dengan alis marah; girang (mulut terbuka, mata `^ ^`) saat pulang membawa belanjaan, marah saat pergi kecewa (`moodOf` di `src/game/engine3d.js`).
+- **Variasi penampilan** (dipilih per pelanggan, logika game tetap enam tipe): Bu berhijab, bapak sarungan dengan rokok di telinga, mas berkacamata, bang berambut keriting. Semuanya ada di galeri; tombol **Baru** menyorotnya, dan ekspresi diperagakan bergiliran.
+- **Kurir** berjalan masuk saat kiriman tiba, menunggu di samping kardus, lalu pergi setelah barang diterima.
+- **Serah-terima**: uang terbang dari tangan pelanggan ke penjaga, kantong/barang terbang balik ke pelanggan. Slot antrean berjarak ≈1 m supaya kepala tidak saling menutupi.
+
+## Suasana jalan
+Murni visual, tidak menyentuh logika game (`src/scene3d/ambience.js`):
+- Mobil, angkot, dan motor melintas di dua lajur berlawanan arah. Lajurnya di paruh jauh jalan supaya tidak lewat di antara kamera Luar/Pembeli dan warung; lampu depannya menyala saat malam.
+- Di seberang jalan: trotoar, gerobak bakso dengan penjualnya, pangkalan ojek dengan pengemudi yang duduk menunggu, dan dua pejalan kaki.
+- Warga nongkrong di bangku teras, sesekali menyeruput kopi.
+- Kucing warung tidur di teras, lalu sesekali bangun, berjalan menyusuri tepi trotoar, dan pindah tempat tidur.
+- Diagnostik dev: `scene.ambience()` (keadaan kucing, jumlah kendaraan), `scene.lookFrom(posisi, sasaran)` (kamera bebas).
 
 ## Warung 3D (prosedural)
 Buka `#/warung` (tautan **Warung 3D** di bawah game): bangunan warung Madura lengkap dibuat lewat kode Three.js, tanpa model eksternal.

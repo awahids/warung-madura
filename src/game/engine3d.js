@@ -24,7 +24,10 @@ import { createWarung } from '../scene3d/warung.js';
    memanggil fungsi yang sama seperti versi 2D, dan UI 2D digambar sebagai lapisan transparan. */
 
 /** Peta koordinat x layar 2D (slot antrean 450/640/835) → x dunia 3D (meter). */
-export const toWorldX = x2d => (x2d - 640) / 190 * .75;
+export const toWorldX = x2d => (x2d - 640) / 190;   // slot berjarak ≈1 m agar kepala chibi yang besar tidak saling menutupi
+
+/** Ekspresi wajah pelanggan 3D dari sisa kesabaran: senang → datar → marah; girang saat pulang membawa belanjaan. */
+export const moodOf = (c, leaving) => leaving ? (c.took ? 'joy' : 'angry') : (c.patience / c.max > .55 ? 'happy' : c.patience / c.max > .28 ? 'flat' : 'angry');
 
 const describe = act => {
   switch (act.type) {
@@ -66,7 +69,7 @@ export function crowdFromGame(nextId) {
     out.push({
       key: c.k3, type: c.type, x: toWorldX(c.x), z: !leaving && c.idx > 0 ? 1.15 : .55,
       moving: entering || leavingMove, dir: leaving ? (c.x < W / 2 ? -1 : 1) : Math.sign((c.tx ?? c.x) - c.x) || 1, turn: 0,
-      pose, pt, carry: leaving && c.took ? c.carry : null,
+      pose, pt, carry: leaving && c.took ? c.carry : null, mood: moodOf(c, leaving),
     });
   };
   G.cust.forEach(c => add(c, false)); G.leaving.forEach(c => add(c, true));
