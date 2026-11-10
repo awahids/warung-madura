@@ -31,7 +31,7 @@ hanya tampilannya yang diganti adegan 3D, dengan HUD/balon pesanan/nampan/modal 
 - Kode: `src/game/engine3d.js` (jembatan), `src/game/render/overlay3d.js` (UI), `src/scene3d/warung.js` (adegan).
 
 ## Karakter 3D
-Buka `#/orang` (tautan **Karakter 3D**) untuk galeri semua tokoh: Pak Haji (koko putih, sarung, peci), Bu Sri (daster bunga, sanggul), Bang Ojol (helm, jaket hijau),
+Buka `#/orang` (tautan **Karakter 3D**) untuk galeri semua tokoh: Pak Haji (koko putih, sarung, peci), Bu Sri (daster bunga, sanggul), Bang Ojol (helm hijau, jaket hijau berpita reflektif, celana hitam, sneakers, tas boks pengantar makanan di punggung; ada sudut kamera khusus depan/belakang),
 Mas Dimas (kaos, ransel, celana pendek), Bang Rizky (hoodie, topi), tamu misterius (hoodie hitam, masker), dan penjaga (batik kawung, sarung, peci).
 Dibuat prosedural (`src/scene3d/people.js`): proporsi dewasa ≈1,7 m, wajah (mata, alis, hidung, bibir, telinga, kumis), rambut, kain bertekstur (batik, bunga, kotak-kotak sarung, denim), alas kaki.
 Rangka animasi: pinggul/bahu/siku/leher berporos. Untuk model foto-realistis, taruh GLB sendiri atau gunakan layanan AI berbayar.

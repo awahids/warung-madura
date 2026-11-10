@@ -49,6 +49,8 @@ const T = {
     g.fillStyle = '#12301a'; g.fillRect(w * .22, 0, 14, h); g.fillRect(w * .78 - 14, 0, 14, h);          // garis samping hitam
     g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(w * .5 - 2, 0, 4, h);                                      // ritsleting depan
     g.fillStyle = '#e8e8e8'; g.fillRect(w * .5 - 22, h * .3, 12, 6);                                         // label kecil
+    g.fillStyle = '#cfd6da'; g.fillRect(0, h * .43, w, 7); g.fillRect(0, h * .55, w, 7);                       // pita reflektif melingkar (dada/lengan)
+    g.fillStyle = 'rgba(255,255,255,.55)'; g.fillRect(0, h * .43, w, 2); g.fillRect(0, h * .55, w, 2);
   }),
   tee: () => tex('tee', 256, 128, (g, w, h) => {
     g.fillStyle = '#d8c9a8'; g.fillRect(0, 0, w, h);
@@ -157,6 +159,18 @@ function buildHuman(o) {
     const back = sh(new THREE.Mesh(new THREE.SphereGeometry(1, 28, 10, Math.PI / 2 - Math.PI * .72, Math.PI * 1.44, Math.PI * .62, Math.PI * .3), std(o.hood))); back.scale.set(.122, .142, .132); back.position.set(0, .016, .018); headG.add(back);
   }
   if (o.mask) headG.add(place(sh(new THREE.Mesh(new THREE.BoxGeometry(.15, .07, .06), std('#0c0c0e', { roughness: .9 }))), 0, -.04, -.085));
+  if (o.deliveryBox) {   // tas boks pengantar makanan (insulated), persegi, di punggung
+    const bx = new THREE.Group(), body = std(o.deliveryBox, { roughness: .55 });
+    bx.add(sh(new THREE.Mesh(new THREE.BoxGeometry(.4, .4, .38), body)));
+    bx.add(place(sh(new THREE.Mesh(new THREE.BoxGeometry(.412, .035, .392), std('#1f8a3c', { roughness: .5 }))), 0, .13, 0));            // tutup (garis sambungan)
+    bx.add(place(sh(new THREE.Mesh(new THREE.BoxGeometry(.412, .018, .392), std('#16161a'))), 0, .2, 0));                              // pinggir atas hitam
+    bx.add(place(new THREE.Mesh(new THREE.BoxGeometry(.3, .012, .012), std('#d8dde0', { metalness: .4, roughness: .25 })), 0, -.05, .192));   // pita reflektif
+    bx.add(place(new THREE.Mesh(new THREE.BoxGeometry(.012, .3, .012), std('#d8dde0', { metalness: .4, roughness: .25 })), .15, 0, .192));
+    const badge = new THREE.Mesh(new THREE.CircleGeometry(.07, 24), std('#f4f4f4', { roughness: .4 })); badge.position.set(0, .03, .1925); bx.add(badge);          // lambang generik
+    bx.add(place(new THREE.Mesh(new THREE.CircleGeometry(.035, 24), std(o.deliveryBox)), 0, .03, .1935));
+    bx.position.set(0, .4, .3); torso.add(bx);
+    [-1, 1].forEach(sx => torso.add(place(sh(new THREE.Mesh(new THREE.BoxGeometry(.04, .42, .02), std('#16161a'))), sx * .11, .4, -.115)));   // tali bahu
+  }
   if (o.backpack) {
     const bp = new THREE.Group(); bp.add(sh(new THREE.Mesh(new THREE.BoxGeometry(.28, .36, .13), std(o.backpack, { roughness: .7 }))));
     bp.add(place(sh(new THREE.Mesh(new THREE.BoxGeometry(.2, .14, .03), std('#1c1c20'))), 0, -.05, .08));
@@ -170,7 +184,7 @@ function buildHuman(o) {
 
 /* ---------- tipe orang di game ---------- */
 const LOOK = {
-  ojol: { skin: '#c58b5a', topTex: T.jacket, sleeveTex: T.jacket, legs: 'pants', botTex: T.denim, shoe: 'sneaker', shoeColor: '#2a2a30', helmet: '#2fa84f', gloves: '#16161a', hair: 'short', collar: '#16161a' },
+  ojol: { skin: '#c58b5a', topTex: T.jacket, sleeveTex: T.jacket, legs: 'pants', bottom: '#1b1b20', shoe: 'sneaker', shoeColor: '#2a2a30', helmet: '#2fa84f', gloves: '#16161a', hair: 'short', collar: '#16161a', deliveryBox: '#2fa84f' },
   pemuda: { skin: '#c98e62', topTex: T.tee, sleeves: 'short', legs: 'shorts', bottom: '#34343c', shoe: 'sandal', shoeColor: '#3a2a1c', hair: 'short', hairColor: '#171210', backpack: '#2b2d35' },
   cowok: { skin: '#c58b5a', topTex: T.hoodie, sleeveTex: null, top: '#6b7280', legs: 'pants', bottom: '#4b5240', shoe: 'sneaker', shoeColor: '#8a8a82', cap: '#2f6b3a', hair: 'short', mustache: true },
   ibu: { skin: '#b87a50', topTex: T.floral, sleeves: 'short', legs: 'skirt', botTex: T.floral, shoe: 'sandal', shoeColor: '#6a3a2a', hair: 'bun', hairColor: '#241812', scale: .94, build: .95 },

@@ -13,7 +13,7 @@ export default function Orang3D() {
       {err && <div className="overlay"><h1>3D tidak tersedia</h1><p>{String(err.message || err)}</p></div>}
       <div className="w3-bar">
         <a href="#/" className="w3-back">← Game</a>
-        <div className="w3-group">{['depan', 'dekat', 'samping'].map(v => <button key={v} type="button" onClick={() => api.current.setView(v)}>{v[0].toUpperCase() + v.slice(1)}</button>)}</div>
+        <div className="w3-group">{['depan', 'dekat', 'samping', 'ojol depan', 'ojol belakang'].map(v => <button key={v} type="button" onClick={() => api.current.setView(v)}>{v[0].toUpperCase() + v.slice(1)}</button>)}</div>
         <span className="w3-info">{CAST.map(c => c[1]).join(' · ')}</span>
       </div>
     </div>
