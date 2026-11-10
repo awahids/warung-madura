@@ -44,6 +44,14 @@ Karena badannya pendek, pelanggan mengangkat tangan ke samping kepala saat memba
 - **Kurir** berjalan masuk saat kiriman tiba, menunggu di samping kardus, lalu pergi setelah barang diterima.
 - **Serah-terima**: uang terbang dari tangan pelanggan ke penjaga, kantong/barang terbang balik ke pelanggan. Slot antrean berjarak ≈1 m supaya kepala tidak saling menutupi.
 
+## Suasana jalan
+Murni visual, tidak menyentuh logika game (`src/scene3d/ambience.js`):
+- Mobil, angkot, dan motor melintas di dua lajur berlawanan arah. Lajurnya di paruh jauh jalan supaya tidak lewat di antara kamera Luar/Pembeli dan warung; lampu depannya menyala saat malam.
+- Di seberang jalan: trotoar, gerobak bakso dengan penjualnya, pangkalan ojek dengan pengemudi yang duduk menunggu, dan dua pejalan kaki.
+- Warga nongkrong di bangku teras, sesekali menyeruput kopi.
+- Kucing warung tidur di teras, lalu sesekali bangun, berjalan menyusuri tepi trotoar, dan pindah tempat tidur.
+- Diagnostik dev: `scene.ambience()` (keadaan kucing, jumlah kendaraan), `scene.lookFrom(posisi, sasaran)` (kamera bebas).
+
 ## Warung 3D (prosedural)
 Buka `#/warung` (tautan **Warung 3D** di bawah game): bangunan warung Madura lengkap dibuat lewat kode Three.js, tanpa model eksternal.
 Isi: rolling door yang bisa dibuka/tutup (klik pintu atau tombol), spanduk, meja kasir + etalase kaca, rak dinding, renteng gantung,

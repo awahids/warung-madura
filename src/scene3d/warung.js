@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { galon, gas, toples, rakBensin, kardus, beras, aqua, cola, redbull, mie, gelas, bensin } from '../props3d/props';
 import { woodTex, roofTex, slatTex, asphaltTex, concreteTex, bannerTex, signTex } from './textures';
 import { person, personFor, makeBag, makeBill, ARM } from './people';
+import { createAmbience } from './ambience';
 import { fillEtalase, fillWallShelf, hangingStrips, pouchGeometry, kopiTex, snackTex, cigTex } from './products';
 
 /* Adegan warung Madura 3D prosedural. Satuan meter: x kanan, y atas, z ke arah jalan. Warung: x∈[-2.2,2.2], z∈[-3.2,0]. */
@@ -50,8 +51,6 @@ export function createWarung(canvas, opts = {}) {
   const sidewalk = box(24, .12, 1.5, new THREE.MeshStandardMaterial({ map: concreteTex(), roughness: .9 }), 0, -.06, .75); sidewalk.castShadow = false; scene.add(sidewalk);
   const curb = box(24, .16, .14, std('#bdbab0'), 0, -.06, 1.55); scene.add(curb);
   const road = new THREE.Mesh(new THREE.PlaneGeometry(60, 12), new THREE.MeshStandardMaterial({ map: asphaltTex(), roughness: .95 })); road.rotation.x = -Math.PI / 2; road.position.set(0, -.12, 7.6); road.receiveShadow = true; scene.add(road);
-  const dash = new THREE.InstancedMesh(new THREE.BoxGeometry(1.3, .01, .14), new THREE.MeshBasicMaterial({ color: '#e8d9a0' }), 24);
-  for (let i = 0; i < 24; i++) dash.setMatrixAt(i, new THREE.Matrix4().makeTranslation(-14 + i * 2.4, -.11, 7.4)); scene.add(dash);
 
   /* ---------- bangunan warung ---------- */
   const wood = new THREE.MeshStandardMaterial({ map: woodTex('#b97a3e', [3, 2]), roughness: .85 });
@@ -456,6 +455,7 @@ export function createWarung(canvas, opts = {}) {
     const sw = moving ? Math.sin(ph) : 0; legs[0].rotation.x = sw * .55; legs[1].rotation.x = -sw * .55; arms[0].rotation.x = -sw * .4; arms[1].rotation.x = sw * .4;
     head.rotation.y = moving ? 0 : Math.sin(t * .7) * .25;
   };
+  const ambience = createAmbience({ scene, addGlow });
   /** list: [{ key, type, x, z, moving, dir, pose: 'idle'|'pay'|'take', pt, carry }] — buat/hapus/gerakkan orang sesuai logika game. */
   const syncPeople = (list, t, dt = 1 / 60) => {
     const seen = new Set(); pj.cont = null;
@@ -525,7 +525,7 @@ export function createWarung(canvas, opts = {}) {
       if (tween.t >= 1) { applyLimits(tween.fp); tween = null; }
     }
     people.forEach((p, i) => { p.position.y = (p === penjaga ? PJ_Y : 0) + Math.abs(Math.sin(t * 1.6 + i)) * .004; if (p !== penjaga) p.userData.head.rotation.y = Math.sin(t * .7 + i * 2) * .25; });
-    stepPenjaga(t, dt); stepKurir(t, dt);
+    stepPenjaga(t, dt); stepKurir(t, dt); ambience.step(t, dt);
     if (handoffs.length) stepHandoffs();
     if (rainLines.visible) stepRain(dt);
     if (flights.length) stepFlights();
@@ -544,6 +544,9 @@ export function createWarung(canvas, opts = {}) {
     setAutoRotate(v) { controls.autoRotate = v; },
     setPaket(v) { paket.visible = v; KUR.on = v; },
     /** Diagnostik: posisi benda yang sedang terbang dari tangan ke tangan. */
+    ambience: () => ambience.state(),
+    /** Diagnostik: tempatkan kamera bebas (posisi, sasaran) untuk memeriksa sudut di luar tiga tampilan baku. */
+    lookFrom(p, t) { tween = null; controls.minDistance = 0; controls.maxDistance = Infinity; camera.position.set(...p); controls.target.set(...t); },
     handoffs: () => handoffs.map(f => f.obj.position.toArray().map(v => +v.toFixed(2))),
     get drawerOpen() { return drawerOpen; },   // 0..1 (untuk tes)
     /** Diagnostik: apakah tiap barang terlihat dari kamera saat ini (tidak tertutup benda lain & ada di layar). */
