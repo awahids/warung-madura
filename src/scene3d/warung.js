@@ -222,7 +222,7 @@ export function createWarung(canvas, opts = {}) {
       for (let n = have.length; n < need; n++) {
         const used = new Set(trayItems.map(t => t.slot)); let slot = 0; while (used.has(slot) && slot < SLOTS - 1) slot++;
         const obj = miniFor(id); const from = centerOf(id); obj.position.copy(from); obj.scale.setScalar(1.6); scene.add(obj);
-        const rec = { id, obj, slot, landed: false }; trayItems.push(rec); flights.push({ rec, from, to: slotPos(slot), t0: performance.now(), dur: 380 });
+        const rec = { id, obj, slot, landed: false }; trayItems.push(rec); penjagaAct('reach', from, slotPos(slot)); flights.push({ rec, from, to: slotPos(slot), t0: performance.now(), dur: 380 });
       }
       for (let n = have.length; n > need; n--) { const r = have[n - 1]; scene.remove(r.obj); trayItems.splice(trayItems.indexOf(r), 1); flights = flights.filter(f => f.rec !== r); }
     }
@@ -245,9 +245,46 @@ export function createWarung(canvas, opts = {}) {
     const ibu = person({ shirt: '#d9729a', pants: '#8a5a8a', skin: '#b87a50', hair: '#222' }); ibu.scale.setScalar(.93); ibu.position.set(-.75, 0, 1.0); ibu.rotation.y = -.25; scene.add(ibu);
     demo.push(ojol, ibu);
   }
-  const penjaga = person({ shirt: '#a4262c', pants: '#3a3a4a', skin: '#b98258' }); penjaga.position.set(.55, 0, -1.55); penjaga.rotation.y = Math.PI; scene.add(penjaga);
+  const penjaga = person({ shirt: '#a4262c', pants: '#3a3a4a', skin: '#b98258' }); penjaga.position.set(.2, 0, -1.3); penjaga.rotation.y = Math.PI; scene.add(penjaga);
   const peci = sh(new THREE.Mesh(new THREE.CylinderGeometry(.1, .11, .09, 16), std('#151515'))); peci.position.y = 1.67; penjaga.add(peci);
   const people = [...demo, penjaga];
+
+  /* ---------- animasi penjaga: menjangkau barang, menerima uang, menyerahkan kantong, minum, main HP ---------- */
+  const angDiff = (a, b) => Math.atan2(Math.sin(b - a), Math.cos(b - a));
+  const PJ_Z = -1.3, pj = { cont: null, timed: null, yaw: Math.PI, lean: 0 };
+  const pjArm = penjaga.userData.arms[1], pjTorso = penjaga.userData.torso, pjHead = penjaga.userData.head;
+  const restQ = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, -.1)), downV = new THREE.Vector3(0, -1, 0), tmpQ = new THREE.Quaternion();
+  const holds = { bag: makeBag('#d63b2f'), mug: gelas(), phone: new THREE.Group() };
+  holds.bag.position.set(0, -.56, 0); holds.mug.scale.setScalar(1.6); holds.mug.position.set(0, -.62, -.05);
+  holds.phone.add(box(.075, .01, .15, std('#16181c'), 0, 0, 0)); holds.phone.position.set(0, -.6, -.06); holds.phone.rotation.x = 1.2;
+  Object.values(holds).forEach(h => { h.visible = false; pjArm.add(h); });
+  const DUR = { reach: 420, drink: 1400, phone: 600 };
+  /** Aksi singkat penjaga: 'reach' (a=barang, b=nampan), 'drink', 'phone'. */
+  const penjagaAct = (kind, a, b) => { pj.timed = { kind, a: a ? a.clone() : null, b: (b || a) ? (b || a).clone() : null, t0: performance.now(), dur: DUR[kind] }; };
+  const aimArm = (worldT, rate) => {
+    const lt = penjaga.worldToLocal(worldT.clone()).sub(pjArm.position).normalize();
+    tmpQ.setFromUnitVectors(downV, lt); pjArm.quaternion.slerp(tmpQ, rate);
+  };
+  const stepPenjaga = t => {
+    const now = performance.now(); penjaga.updateWorldMatrix(true, false);
+    let act = pj.timed && now - pj.timed.t0 < pj.timed.dur ? pj.timed : null; if (!act) pj.timed = null;
+    let mode = 'idle', target = null;
+    if (act) {
+      mode = act.kind;
+      if (mode === 'reach') target = (now - act.t0) / act.dur < .5 ? act.a : act.b;
+      else if (mode === 'drink') target = penjaga.localToWorld(new THREE.Vector3(0, 1.5, -.1));
+      else target = penjaga.localToWorld(new THREE.Vector3(0, 1.3, -.3));
+    } else if (pj.cont) { mode = pj.cont.kind; target = pj.cont.target; }
+    holds.bag.visible = mode === 'give' && !!pj.cont && pj.cont.bag; holds.mug.visible = mode === 'drink'; holds.phone.visible = mode === 'phone';
+    if (target) aimArm(target, .22); else pjArm.quaternion.slerp(restQ, .15);
+    // badan: menoleh ke sasaran, maju ke meja saat transaksi
+    let yawT = Math.PI;
+    if (target && (mode === 'reach' || mode === 'receive' || mode === 'give')) { const dx = target.x - penjaga.position.x, dz = target.z - penjaga.position.z; yawT = Math.PI + Math.max(-.8, Math.min(.8, angDiff(Math.PI, Math.atan2(-dx, -dz)))) * .6; }
+    pj.yaw += angDiff(pj.yaw, yawT) * .15; penjaga.rotation.y = pj.yaw;
+    const leanT = mode === 'receive' || mode === 'give' ? 1 : mode === 'reach' ? .4 : 0;
+    pj.lean += (leanT - pj.lean) * .15; penjaga.position.z = PJ_Z + pj.lean * .35; pjTorso.rotation.x = -pj.lean * .25;
+    pjHead.rotation.y += ((mode === 'idle' ? Math.sin(t * .6) * .22 : 0) - pjHead.rotation.y) * .08;
+  };
   scene.traverse(o => { if (o.isMesh && o.geometry && o.geometry.type === 'PlaneGeometry') o.castShadow = false; });
 
   /* ---------- siang / malam / hujan ---------- */
@@ -336,7 +373,6 @@ export function createWarung(canvas, opts = {}) {
   const badges = () => items.filter(i => i.badge && i.act.type === 'item').map(i => ({ id: i.act.id, ...project(anchorOf(i)) })).filter(b => b.z < 1 && b.x > 0 && b.x < 1280 && b.y > 0 && b.y < 720);
 
   const crowd = new Map();
-  const angDiff = (a, b) => Math.atan2(Math.sin(b - a), Math.cos(b - a));
   const BAG_COLORS = ['#d63b2f', '#e8e8e8', '#2d2d33', '#f6c744'];
   /** Pegangan di tangan kanan: kantong/galon/gas/karung sesuai belanjaan, plus lembar uang. */
   const makeHolder = (kind, key) => {
@@ -349,7 +385,7 @@ export function createWarung(canvas, opts = {}) {
   };
   /** list: [{ key, type, x, z, moving, dir, pose: 'idle'|'pay'|'take', pt, carry }] — buat/hapus/gerakkan orang sesuai logika game. */
   const syncPeople = (list, t) => {
-    const seen = new Set();
+    const seen = new Set(); pj.cont = null;
     for (const it of list) {
       let e = crowd.get(it.key);
       if (!e) {
@@ -380,7 +416,9 @@ export function createWarung(canvas, opts = {}) {
       e.a0 += (t0 - e.a0) * .22; e.a1 += (t1 - e.a1) * .22; arms[0].rotation.x = e.a0; arms[1].rotation.x = e.a1;
       if (it.moving) { legs[0].rotation.x = Math.sin(ph) * .55; legs[1].rotation.x = -Math.sin(ph) * .55; e.g.position.y = Math.abs(Math.sin(ph)) * .03; }
       else { legs[0].rotation.x *= .8; legs[1].rotation.x *= .8; e.g.position.y = Math.abs(Math.sin(t * 1.6 + it.key.length)) * .004; head.rotation.y = near ? head.rotation.y * .8 : Math.sin(t * .7 + it.key.length) * .25; }
-      e.g.userData.torso.rotation.x = e.lean * .5;
+      e.g.userData.torso.rotation.x = -e.lean * .5;
+      if (it.pose === 'pay') pj.cont = { kind: 'receive', target: new THREE.Vector3(it.x + .08, 1.12, it.z - e.lean - .5) };
+      else if (it.pose === 'take' && it.pt < .8) pj.cont = { kind: 'give', bag: it.pt < .45, target: new THREE.Vector3(it.x + .08, 1.1, it.z - e.lean - .42) };
       e.head = new THREE.Vector3(it.x, 1.95, it.z - e.lean);
     }
     for (const [k, e] of crowd) if (!seen.has(k)) { scene.remove(e.g); crowd.delete(k); }
@@ -399,7 +437,8 @@ export function createWarung(canvas, opts = {}) {
       camera.position.lerpVectors(tween.from.p, tween.to.p, e); controls.target.lerpVectors(tween.from.t, tween.to.t, e);
       if (tween.t >= 1) { applyLimits(tween.fp); tween = null; }
     }
-    people.forEach((p, i) => { p.position.y = Math.abs(Math.sin(t * 1.6 + i)) * .004; p.userData.head.rotation.y = Math.sin(t * .7 + i * 2) * .25; });
+    people.forEach((p, i) => { p.position.y = Math.abs(Math.sin(t * 1.6 + i)) * .004; if (p !== penjaga) p.userData.head.rotation.y = Math.sin(t * .7 + i * 2) * .25; });
+    stepPenjaga(t);
     if (rainLines.visible) stepRain(dt);
     if (flights.length) stepFlights();
     controls.update(); renderer.render(scene, camera);
@@ -416,7 +455,7 @@ export function createWarung(canvas, opts = {}) {
     setView, get view() { return view; },
     setAutoRotate(v) { controls.autoRotate = v; },
     setPaket(v) { paket.visible = v; },
-    controls, items, pick: pickItem, highlight, project, badges, syncPeople, syncTray, headPos, resize: resizeTo, frame: step,
+    controls, items, pick: pickItem, penjagaAct, highlight, project, badges, syncPeople, syncTray, headPos, resize: resizeTo, frame: step,
     triangles: () => renderer.info.render.triangles,
     rakBensin: rak,
     dispose() { alive = false; cancelAnimationFrame(raf); ro && ro.disconnect(); controls.dispose(); scene.traverse(o => { o.geometry && o.geometry.dispose(); }); renderer.dispose(); },

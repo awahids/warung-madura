@@ -39,14 +39,14 @@ const describe = act => {
   }
 };
 /** Jalankan aksi game untuk objek 3D yang diklik. */
-export function runAct(act) {
+export function runAct(act, scene) {
   if (act.type === 'buku') { ui.modal = 'notebook'; SFX.click(); return; }
   if (!canAct()) return;
   switch (act.type) {
     case 'item': addToTray(act.id); break;
     case 'hitung': doHitung(); break;
-    case 'hp': tapPhone(); break;
-    case 'kopi-minum': drinkKopi(); break;
+    case 'hp': tapPhone(); scene && scene.penjagaAct('phone'); break;
+    case 'kopi-minum': { const cd = G.drinkCd; drinkKopi(); if (G.drinkCd > cd) scene && scene.penjagaAct('drink'); break; }
     case 'promo': tapPromo(); break;
     case 'paket': receiveDelivery(); break;
     default: break;
@@ -137,7 +137,7 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
 
   const start = () => {
     scene = createWarung(glCanvas, { game: true, controlsEl: overlay });
-    if (import.meta.env.DEV) window.__game3d = { G, ui, scene, ...customersApi, ...dayApi }; // hanya debug/tes UI
+    if (import.meta.env.DEV) window.__game3d = { G, ui, scene, runAct, ...customersApi, ...dayApi }; // hanya debug/tes UI
     scene.controls.enablePan = false;
     makeIcons(); ui.hasSave = !!loadSave();
     resize(); ro = new ResizeObserver(resize); ro.observe(stack.parentElement);
@@ -159,7 +159,7 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
       if (pending) {
         const { act, o, x, y, long } = pending; pending = null;
         const moved = Math.hypot(e.clientX - x, e.clientY - y) > 8;
-        if (!long && !moved && (!ui.modal)) { const now = scene.pick(...ndcOf()); if (now === o) runAct(act); }
+        if (!long && !moved && (!ui.modal)) { const now = scene.pick(...ndcOf()); if (now === o) runAct(act, scene); }
       }
       ui.longTip = '';
     };
