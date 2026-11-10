@@ -53,14 +53,20 @@ export function runAct(act) {
   }
 }
 
-/** Daftar orang 3D dari state game (pelanggan antre + yang sedang pergi). */
+/** Daftar orang 3D dari state game (pelanggan antre + yang sedang pergi), lengkap dengan pose & bawaan. */
 export function crowdFromGame(nextId) {
   const out = [];
   const add = (c, leaving) => {
     if (!c.k3) c.k3 = 'c' + nextId();
-    const entering = !leaving && c.state === 'in';
-    const leavingMove = leaving && c.leaveT > 1.1;
-    out.push({ key: c.k3, type: c.type, x: toWorldX(c.x), z: !leaving && c.idx > 0 ? 1.05 : .9, moving: entering || leavingMove, dir: leaving ? (c.x < W / 2 ? -1 : 1) : Math.sign((c.tx ?? c.x) - c.x) || 1, turn: 0 });
+    const entering = !leaving && c.state === 'in', leavingMove = leaving && c.leaveT > 1.1;
+    let pose = 'idle';
+    if (!leaving && c.stage === 'pay' && c.state === 'wait') pose = 'pay';          // mengulurkan uang
+    else if (leaving && c.took && c.leaveT <= 1.1) pose = 'take';                  // mengambil belanjaan
+    out.push({
+      key: c.k3, type: c.type, x: toWorldX(c.x), z: !leaving && c.idx > 0 ? 1.15 : .55,
+      moving: entering || leavingMove, dir: leaving ? (c.x < W / 2 ? -1 : 1) : Math.sign((c.tx ?? c.x) - c.x) || 1, turn: 0,
+      pose, pt: leaving ? c.leaveT : 0, carry: leaving && c.took ? c.carry : null,
+    });
   };
   G.cust.forEach(c => add(c, false)); G.leaving.forEach(c => add(c, true));
   return out;
@@ -99,6 +105,8 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
       if (G.screen === 'title') { scene.setView('luar'); scene.setAutoRotate(true); } else { scene.setAutoRotate(false); scene.setView('penjaga'); api.view = 'penjaga'; api.onView && api.onView('penjaga'); }
     }
     scene.syncPeople(playing ? crowdFromGame(() => ++idN) : [], t);
+    // nampan: tahan isi saat pelanggan mengulurkan tangan mengambil belanjaan
+    scene.syncTray(playing ? G.tray : {}, playing && G.leaving.some(c => c.took && c.leaveT < .55));
   };
 
   const hover = () => {

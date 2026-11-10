@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { galon, gas, toples, rakBensin, kardus, beras, aqua, cola, redbull, mie, gelas } from '../props3d/props';
+import { galon, gas, toples, rakBensin, kardus, beras, aqua, cola, redbull, mie, gelas, bensin } from '../props3d/props';
 import { woodTex, roofTex, slatTex, asphaltTex, concreteTex, bannerTex, signTex } from './textures';
-import { person, personFor } from './people';
-import { fillEtalase, fillWallShelf, hangingStrips } from './products';
+import { person, personFor, makeBag, makeBill } from './people';
+import { fillEtalase, fillWallShelf, hangingStrips, pouchGeometry, kopiTex, snackTex, cigTex } from './products';
 
 /* Adegan warung Madura 3D prosedural. Satuan meter: x kanan, y atas, z ke arah jalan. Warung: x∈[-2.2,2.2], z∈[-3.2,0]. */
 
@@ -165,9 +165,9 @@ export function createWarung(canvas, opts = {}) {
   reg({ type: 'item', id: 'gas' }, place(gas(), 2.0, .625, .5, 1.3), { badge: true });
   reg({ type: 'item', id: 'beras' }, place(beras(), -1.2, .625, .5, 1.2, .2), { badge: true });
   reg({ type: 'item', id: 'beras' }, place(beras(), -.7, .625, .5, 1.2, -.2));
-  const bench = new THREE.Group(); bench.position.set(.45, 0, .7); scene.add(bench);
+  const bench = new THREE.Group(); bench.position.set(3.1, 0, .9); scene.add(bench);
   bench.add(box(1.4, .05, .36, wood, 0, .45, 0)); [-.6, .6].forEach(x => bench.add(box(.06, .45, .3, woodDark, x, .225, 0))); bench.add(box(1.4, .3, .04, wood, 0, .72, -.16));
-  const stool = new THREE.Group(); stool.position.set(2.45, 0, .85); scene.add(stool);
+  const stool = new THREE.Group(); stool.position.set(-2.3, 0, .95); scene.add(stool);
   stool.add(at(sh(new THREE.Mesh(new THREE.CylinderGeometry(.16, .15, .04, 20), std('#d63b2f', { roughness: .4 }))), 0, .42, 0));
   [[1, 1], [-1, 1], [1, -1], [-1, -1]].forEach(([a, b]) => stool.add(box(.03, .4, .03, std('#d63b2f', { roughness: .4 }), a * .09, .2, b * .09)));
   const bin = sh(new THREE.Mesh(new THREE.CylinderGeometry(.2, .17, .6, 16), std('#2f9e44', { roughness: .5 }))); bin.position.set(-2.7, .3, .55); scene.add(bin);
@@ -179,7 +179,7 @@ export function createWarung(canvas, opts = {}) {
   building(-4.4, -1.6, 3.2, 3.4, 3.6, '#b9a58a'); building(4.5, -1.6, 3.2, 3.0, 3.6, '#a8b3a2');
   for (let i = 0; i < 9; i++) building(-26 + i * 6.5, 20 + (i % 2) * 2, rnd(4, 6), rnd(5, 11), 5, pick(bColors));
   const wins = new THREE.InstancedMesh(new THREE.PlaneGeometry(.7, .9), winMat, 90); { const m = new THREE.Matrix4(); for (let i = 0; i < 90; i++) { m.makeTranslation(-26 + (i % 30) * 1.7, 2 + Math.floor(i / 30) * 2.6, 17.4); wins.setMatrixAt(i, m); } } scene.add(wins);
-  const tree = new THREE.Group(); tree.position.set(3.6, 0, .9); scene.add(tree);
+  const tree = new THREE.Group(); tree.position.set(4.4, 0, 1.0); scene.add(tree);
   tree.add(at(sh(new THREE.Mesh(new THREE.CylinderGeometry(.09, .12, 1.6, 10), std('#6b4a2a'))), 0, .8, 0));
   [[0, 2.1, 0, .7], [.4, 1.8, .1, .5], [-.35, 1.85, -.1, .5]].forEach(([x, y, z, r]) => { const f = sh(new THREE.Mesh(new THREE.IcosahedronGeometry(r, 1), std('#3f8a3a', { flatShading: true }))); f.position.set(x, y, z); tree.add(f); });
   // lampu jalan
@@ -188,6 +188,55 @@ export function createWarung(canvas, opts = {}) {
   lamp.add(box(.9, .06, .06, std('#6d747a', { metalness: .5 }), .4, 4.4, 0));
   const bulb = new THREE.Mesh(new THREE.SphereGeometry(.1, 12, 10), addGlow(new THREE.MeshBasicMaterial({ color: '#9a9a9a' }), '#ffe2a0', '#9a9a9a')); bulb.position.set(.8, 4.32, 0); lamp.add(bulb);
   const lampLight = new THREE.PointLight('#ffd9a0', 0, 12, 2); lampLight.position.set(-2.4, 4.2, 1.25); scene.add(lampLight); lampsNight.push({ light: lampLight, on: 30 });
+
+  /* ---------- nampan di meja: barang pilihan pemain terbang dari rak lalu mendarat ---------- */
+  const trayPlate = box(.84, .018, .2, new THREE.MeshStandardMaterial({ color: '#d8a15d', roughness: .6 }), .14, 1.012, -.5); scene.add(trayPlate);
+  const trayRim = box(.86, .03, .02, woodDark, .14, 1.02, -.405); scene.add(trayRim);
+  const SLOTS = 8, slotPos = i => new THREE.Vector3(-.2 + i * .1, 1.022, -.5);
+  const miniCache = {};
+  const tex = (k, f) => miniCache[k] || (miniCache[k] = f());
+  const pouchMini = map => new THREE.Mesh(pouchGeometry(.09, .13, .03), new THREE.MeshStandardMaterial({ map, roughness: .45, side: THREE.DoubleSide }));
+  /** Model mini sebuah barang (untuk nampan/di tangan), alas di y=0, tinggi ≈ .15 m. */
+  const miniFor = id => {
+    let o;
+    switch (id) {
+      case 'kopi': o = pouchMini(tex('kopi', () => kopiTex('HITAM', '#4a2a12', '#2a1608'))); break;
+      case 'snack': o = pouchMini(tex('snack', () => snackTex('KERIPIK', '#d63b2f', '#8a1f18', '#f6c744'))); break;
+      case 'rokok': o = new THREE.Mesh(new THREE.BoxGeometry(.058, .088, .024), new THREE.MeshStandardMaterial({ map: tex('cig', () => cigTex(0)), roughness: .6 })); break;
+      case 'bensin': o = bensin(); break; case 'aqua': o = aqua(); break; case 'cola': o = cola(); break; case 'redbull': o = redbull(); break;
+      case 'mie': o = mie(); break; case 'kerupuk': o = toples(); break; case 'galon': o = galon(); break; case 'gas': o = gas(); break; default: o = beras();
+    }
+    const holder = new THREE.Group(); holder.add(o);
+    const b = new THREE.Box3().setFromObject(o), h = Math.max(.01, b.max.y - b.min.y), k = Math.min(2.4, Math.max(.4, .15 / h));
+    o.scale.setScalar(k); o.position.y = -b.min.y * k; o.traverse(m => { if (m.isMesh) m.castShadow = true; });
+    return holder;
+  };
+  const centerOf = id => { const it = items.find(i => i.act.id === id); if (!it) return new THREE.Vector3(0, 1.2, -1); return new THREE.Box3().setFromObject(it.obj).getCenter(new THREE.Vector3()); };
+  const trayItems = []; let flights = [];
+  /** counts = G.tray; hold = tahan tampilan (pelanggan sedang mengambil barang). */
+  const syncTray = (counts, hold = false) => {
+    if (hold) return;
+    const ids = new Set([...Object.keys(counts), ...trayItems.map(t => t.id)]);
+    for (const id of ids) {
+      const need = Math.min(counts[id] || 0, 4), have = trayItems.filter(t => t.id === id);
+      for (let n = have.length; n < need; n++) {
+        const used = new Set(trayItems.map(t => t.slot)); let slot = 0; while (used.has(slot) && slot < SLOTS - 1) slot++;
+        const obj = miniFor(id); const from = centerOf(id); obj.position.copy(from); obj.scale.setScalar(1.6); scene.add(obj);
+        const rec = { id, obj, slot, landed: false }; trayItems.push(rec); flights.push({ rec, from, to: slotPos(slot), t0: performance.now(), dur: 380 });
+      }
+      for (let n = have.length; n > need; n--) { const r = have[n - 1]; scene.remove(r.obj); trayItems.splice(trayItems.indexOf(r), 1); flights = flights.filter(f => f.rec !== r); }
+    }
+  };
+  const stepFlights = () => {
+    const now = performance.now();
+    flights = flights.filter(f => {
+      const p = Math.min(1, (now - f.t0) / f.dur), e = p * p * (3 - 2 * p);
+      f.rec.obj.position.lerpVectors(f.from, f.to, e); f.rec.obj.position.y += Math.sin(Math.PI * p) * .3;
+      f.rec.obj.scale.setScalar(1.6 - .6 * e); f.rec.obj.rotation.y += .25;
+      if (p >= 1) { f.rec.obj.position.copy(f.to); f.rec.obj.scale.setScalar(1); f.rec.obj.rotation.y = 0; f.rec.landed = true; return false; }
+      return true;
+    });
+  };
 
   /* ---------- orang ---------- */
   const demo = [];
@@ -288,20 +337,51 @@ export function createWarung(canvas, opts = {}) {
 
   const crowd = new Map();
   const angDiff = (a, b) => Math.atan2(Math.sin(b - a), Math.cos(b - a));
-  /** list: [{ key, type, x, z, moving, dir }] — buat/hapus/gerakkan orang sesuai logika game. */
+  const BAG_COLORS = ['#d63b2f', '#e8e8e8', '#2d2d33', '#f6c744'];
+  /** Pegangan di tangan kanan: kantong/galon/gas/karung sesuai belanjaan, plus lembar uang. */
+  const makeHolder = (kind, key) => {
+    const h = new THREE.Group();
+    if (kind === 'bag') { const bg = makeBag(BAG_COLORS[key.length * 7 % BAG_COLORS.length]); bg.position.y = -.56; h.add(bg); }
+    else if (kind === 'galon') { const o = galon(); o.scale.setScalar(.78); o.position.y = -.56 - .43 * .78 + .02; h.add(o); }
+    else if (kind === 'gas') { const o = gas(); o.scale.setScalar(.95); o.position.y = -.56 - .34 * .95 + .04; h.add(o); }
+    else { const o = beras(); o.scale.setScalar(.8); o.position.set(0, -.56 - .4, -.03); h.add(o); }
+    return h;
+  };
+  /** list: [{ key, type, x, z, moving, dir, pose: 'idle'|'pay'|'take', pt, carry }] — buat/hapus/gerakkan orang sesuai logika game. */
   const syncPeople = (list, t) => {
     const seen = new Set();
     for (const it of list) {
       let e = crowd.get(it.key);
-      if (!e) { const g = personFor(it.type); g.position.set(it.x, 0, it.z); scene.add(g); e = { g, ang: it.moving ? (it.dir > 0 ? -Math.PI / 2 : Math.PI / 2) : 0 }; crowd.set(it.key, e); }
+      if (!e) {
+        const g = personFor(it.type); g.position.set(it.x, 0, it.z); scene.add(g);
+        const bill = makeBill(); bill.position.set(0, -.6, -.05); bill.rotation.x = Math.PI / 2; bill.visible = false; g.userData.arms[1].add(bill);
+        e = { g, bill, ang: it.moving ? (it.dir > 0 ? -Math.PI / 2 : Math.PI / 2) : 0, lean: 0, a0: 0, a1: 0, holder: null, holderKind: null }; crowd.set(it.key, e);
+      }
       seen.add(it.key);
       const want = it.moving ? (it.dir > 0 ? -Math.PI / 2 : Math.PI / 2) : (it.turn ?? 0);
       e.ang += angDiff(e.ang, want) * .18; e.g.rotation.y = e.ang;
-      e.g.position.x = it.x; e.g.position.z = it.z;
+      const near = it.pose === 'pay' || it.pose === 'take';
+      e.lean += ((near ? .32 : 0) - e.lean) * .12;
+      e.g.position.x = it.x; e.g.position.z = it.z - e.lean;
       const { legs, arms, head } = e.g.userData, ph = t * 9 + it.key.length;
-      if (it.moving) { legs[0].rotation.x = Math.sin(ph) * .55; legs[1].rotation.x = -Math.sin(ph) * .55; arms[0].rotation.x = -Math.sin(ph) * .4; arms[1].rotation.x = Math.sin(ph) * .4; e.g.position.y = Math.abs(Math.sin(ph)) * .03; }
-      else { legs[0].rotation.x = legs[1].rotation.x = arms[0].rotation.x = arms[1].rotation.x = 0; e.g.position.y = Math.abs(Math.sin(t * 1.6 + it.key.length)) * .004; head.rotation.y = Math.sin(t * .7 + it.key.length) * .25; }
-      e.head = new THREE.Vector3(it.x, 1.95, it.z);
+      // bawaan di tangan kanan
+      let showHold = false;
+      if (it.carry) {
+        if (e.holderKind !== it.carry) { if (e.holder) arms[1].remove(e.holder); e.holder = makeHolder(it.carry, it.key); e.holderKind = it.carry; arms[1].add(e.holder); }
+        showHold = it.pose === 'take' ? it.pt > .45 : it.moving;
+      }
+      if (e.holder) e.holder.visible = showHold;
+      e.bill.visible = it.pose === 'pay';
+      // target sudut lengan (rotation.x positif = terulur ke depan/−z)
+      let t0 = 0, t1 = 0;
+      if (it.pose === 'pay') { t1 = 1.4; t0 = .15; }
+      else if (it.pose === 'take') { const p = it.pt / 1.1; if (p < .45) { t0 = 1.4; t1 = 1.45; } else if (p < .8) { t0 = .1; t1 = .55; } else { t0 = .05; t1 = .3; } }
+      else if (it.moving) { t0 = -Math.sin(ph) * .4; t1 = it.carry ? .3 + Math.sin(ph) * .06 : Math.sin(ph) * .4; }
+      e.a0 += (t0 - e.a0) * .22; e.a1 += (t1 - e.a1) * .22; arms[0].rotation.x = e.a0; arms[1].rotation.x = e.a1;
+      if (it.moving) { legs[0].rotation.x = Math.sin(ph) * .55; legs[1].rotation.x = -Math.sin(ph) * .55; e.g.position.y = Math.abs(Math.sin(ph)) * .03; }
+      else { legs[0].rotation.x *= .8; legs[1].rotation.x *= .8; e.g.position.y = Math.abs(Math.sin(t * 1.6 + it.key.length)) * .004; head.rotation.y = near ? head.rotation.y * .8 : Math.sin(t * .7 + it.key.length) * .25; }
+      e.g.userData.torso.rotation.x = e.lean * .5;
+      e.head = new THREE.Vector3(it.x, 1.95, it.z - e.lean);
     }
     for (const [k, e] of crowd) if (!seen.has(k)) { scene.remove(e.g); crowd.delete(k); }
   };
@@ -321,6 +401,7 @@ export function createWarung(canvas, opts = {}) {
     }
     people.forEach((p, i) => { p.position.y = Math.abs(Math.sin(t * 1.6 + i)) * .004; p.userData.head.rotation.y = Math.sin(t * .7 + i * 2) * .25; });
     if (rainLines.visible) stepRain(dt);
+    if (flights.length) stepFlights();
     controls.update(); renderer.render(scene, camera);
   };
   const loop = () => { if (!alive) return; const dt = Math.min(clock.getDelta(), .05); step(dt, clock.elapsedTime); raf = requestAnimationFrame(loop); };
@@ -335,7 +416,7 @@ export function createWarung(canvas, opts = {}) {
     setView, get view() { return view; },
     setAutoRotate(v) { controls.autoRotate = v; },
     setPaket(v) { paket.visible = v; },
-    controls, items, pick: pickItem, highlight, project, badges, syncPeople, headPos, resize: resizeTo, frame: step,
+    controls, items, pick: pickItem, highlight, project, badges, syncPeople, syncTray, headPos, resize: resizeTo, frame: step,
     triangles: () => renderer.info.render.triangles,
     rakBensin: rak,
     dispose() { alive = false; cancelAnimationFrame(raf); ro && ro.disconnect(); controls.dispose(); scene.traverse(o => { o.geometry && o.geometry.dispose(); }); renderer.dispose(); },

@@ -81,6 +81,7 @@ export function completeSale(c, given) {
   G.stats.served++; G.energy = Math.max(0, G.energy - .8);
   const fast = c.patience / c.max > .5;
   G.rep = clamp(G.rep + (fast ? 1 : .4), 0, 100);
+  c.took = true; c.carry = carryKind(c.order);
   G.tray = {}; SFX.coin();
   flt('+' + rp(c.total), 640, 380, '#9dff8c');
   let tip = 0;
@@ -91,6 +92,12 @@ export function completeSale(c, given) {
   sendAway(c);
   checkMissions(); checkWin();
 }
+/** Jenis bawaan pelanggan saat pulang (untuk animasi 3D): barang besar dibawa langsung, selain itu kantong kresek. */
+export function carryKind(order) {
+  for (const id of ['galon', 'gas', 'beras']) if (order.some(l => l.id === id)) return id;
+  return 'bag';
+}
+
 export function sendAway(c) {
   c.state = 'leave'; c.leaveT = 0;
   G.cust = G.cust.filter(x => x !== c); G.leaving.push(c);
@@ -104,6 +111,7 @@ export function doKasbon(yes) {
   if (yes) {
     G.debts.push({ who: c.name, amount: c.total, day: G.day }); G.stats.kasbonNew += c.total; G.stats.served++;
     for (const l of c.order) G.stats.sold[l.id] = (G.stats.sold[l.id] || 0) + l.qty;
+    c.took = true; c.carry = carryKind(c.order);
     G.tray = {}; G.rep = clamp(G.rep + 2, 0, 100); c.bye = 'Makasih, Bang! Besok pasti dibayar.'; SFX.good();
     toast(`Kasbon ${rp(c.total)} dicatat di buku.`, '#cfe8ff'); sendAway(c); checkMissions();
   } else {
