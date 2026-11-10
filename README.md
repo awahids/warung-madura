@@ -18,6 +18,15 @@ Game ini PWA: bisa dipasang ke layar utama dan dimainkan **offline** setelah dib
 - **iPhone/iPad (Safari):** ketuk **Bagikan → Tambah ke Layar Utama**.
 Berkas terkait: `public/manifest.webmanifest`, `public/sw.js` (daftar precache & versi disuntik saat build oleh `vite.config.js`), `public/icons/`.
 
+## Main versi 3D
+Buka `#/3d` (tautan **Main 3D** di bawah game). Logika game **sama persis** dengan versi 2D (`src/game/logic`, `update.js`);
+hanya tampilannya yang diganti adegan 3D, dengan HUD/balon pesanan/nampan/modal sebagai lapisan transparan di atasnya.
+- Pelanggan 3D berjalan mengikuti posisi dari logika game (masuk → antre → dilayani → pergi), tipe-nya (ojol, ibu, juragan, dst.) punya penampilan sendiri.
+- Klik barang 3D: renteng (kopi, keripik), etalase (rokok), rak bensin, minuman & mie & toples di meja, galon/gas/beras di meja teras; kalkulator = HITUNG, HP, gelas kopi, buku catatan, spanduk promo, kardus kurir.
+- Pintu besi 3D mengikuti `G.door` (tarik/klik); langit, lampu neon, lampu jalan, jendela gedung, dan hujan mengikuti jam game & cuaca.
+- Kamera: Luar / Pembeli / Penjaga (tombol atau tombol keyboard `1` `2` `3`); di layar sentuh tekan-tahan barang menampilkan info.
+- Kode: `src/game/engine3d.js` (jembatan), `src/game/render/overlay3d.js` (UI), `src/scene3d/warung.js` (adegan).
+
 ## Warung 3D (prosedural)
 Buka `#/warung` (tautan **Warung 3D** di bawah game): bangunan warung Madura lengkap dibuat lewat kode Three.js, tanpa model eksternal.
 Isi: rolling door yang bisa dibuka/tutup (klik pintu atau tombol), spanduk, meja kasir + etalase kaca, rak dinding, renteng gantung,

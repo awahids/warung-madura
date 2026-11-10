@@ -20,18 +20,19 @@ export function attachInput(cv) {
     }
   };
   const onDown = e => {
-    audio(); const p = toLogical(e); mouse.x = p.x; mouse.y = p.y; mouse.down = true;
+    audio(); ui.consumed = false; const p = toLogical(e); mouse.x = p.x; mouse.y = p.y; mouse.down = true;
     if (e.pointerType === 'touch') ui.touch = true;
     if (G.screen === 'play' && G.doorState === 'closed' && !ui.modal) {
       const onBtn = ui.hits.some(h => h.h < 400 && inRect(p.x, p.y, h.x, h.y, h.w, h.h));
       if (!onBtn) {
-        ui.dragDoor = true; ui.dragY = p.y; ui.dragDoor0 = G.door;
+        ui.dragDoor = true; ui.consumed = true; ui.dragY = p.y; ui.dragDoor0 = G.door;
         try { cv.setPointerCapture(e.pointerId); } catch { /* abaikan */ }
       }
     }
     for (let i = ui.hits.length - 1; i >= 0; i--) {
       const h = ui.hits[i];
       if (inRect(p.x, p.y, h.x, h.y, h.w, h.h)) {
+        ui.consumed = true;
         if (ui.touch && h.tip && h.fn) {
           // sentuh: ketuk = aksi; tekan-tahan = tampilkan info barang (aksi dibatalkan)
           clearPress(); pending = { h, long: false };

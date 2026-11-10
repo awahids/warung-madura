@@ -51,10 +51,11 @@ export const signTex = (text, bg = '#c0281a', fg = '#fff') => canvasTex(256, 96,
 });
 
 /** Untaian sachet (renteng): kolom persegi panjang warna-warni, latar transparan. */
-export const rentengTex = () => canvasTex(64, 256, (g, w, h) => {
+/** Untaian sachet (renteng): kolom persegi panjang warna-warni, latar transparan. variant: 'snack' | 'kopi'. */
+export const rentengTex = (variant = 'snack') => canvasTex(64, 256, (g, w, h) => {
   g.clearRect(0, 0, w, h);
   g.strokeStyle = '#6b6b6b'; g.lineWidth = 2; g.beginPath(); g.moveTo(w / 2, 0); g.lineTo(w / 2, h); g.stroke();
-  const cols = ['#d63b2f', '#f6c744', '#2f80d6', '#3f9e58', '#8a55b8', '#f08a2c', '#e8e8e8'];
+  const cols = variant === 'kopi' ? ['#4a2a12', '#6b3f1d', '#e8d9b8', '#3a2412', '#8a5a2a'] : ['#d63b2f', '#f6c744', '#2f80d6', '#3f9e58', '#8a55b8', '#f08a2c', '#e8e8e8'];
   for (let y = 4; y < h - 10; y += 34) {
     const c = cols[Math.floor(rnd(0, cols.length))]; g.fillStyle = c; g.fillRect(8, y, w - 16, 30);
     g.fillStyle = 'rgba(255,255,255,.5)'; g.fillRect(14, y + 6, w - 28, 8); g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(8, y + 26, w - 16, 4);

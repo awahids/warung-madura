@@ -107,6 +107,37 @@ export function beras() {
   return g;
 }
 
+
+/* ---- barang dagangan kecil (dipakai di adegan game) ---- */
+export function aqua() {
+  const g = new THREE.Group();
+  g.add(lathe([[0, 0], [.03, 0], [.033, .01], [.033, .15], [.028, .17], [.015, .19], [.013, .21]], glass('#9fd3ff', .6), 20));
+  g.add(cyl(.015, .016, std('#2f80d6'), .208, 12));
+  const band = new THREE.Mesh(new THREE.CylinderGeometry(.0335, .0335, .07, 20, 1, true), new THREE.MeshStandardMaterial({ map: textTexture([['AIR', 56, -14], ['MINERAL', 34, 18]], { w: 256, h: 128, bg: '#e8f3fb', fg: '#1c5fb4', accent: '#2f80d6' }), side: THREE.DoubleSide }));
+  band.position.y = .075; g.add(band);
+  return g;
+}
+const can = (r, h, tex, topColor = '#c9ced3') => {
+  const g = new THREE.Group();
+  const body = shadowed(new THREE.Mesh(new THREE.CylinderGeometry(r, r * .97, h, 24), new THREE.MeshStandardMaterial({ map: tex, metalness: .5, roughness: .35 }))); body.position.y = h / 2; g.add(body);
+  g.add(cyl(r * .9, .006, std(topColor, { metalness: .8, roughness: .3 }), h, 20));
+  return g;
+};
+export function cola() { return can(.033, .122, textTexture([['COLA', 62, 0]], { w: 256, h: 128, bg: '#c0281a', fg: '#fff' })); }
+export function redbull() { return can(.027, .135, textTexture([['ENERGI', 46, 0]], { w: 256, h: 128, bg: '#2d4f8e', fg: '#e7edf5', accent: '#c9ced3' })); }
+export function mie() {
+  const g = new THREE.Group();
+  const cup = shadowed(new THREE.Mesh(new THREE.CylinderGeometry(.046, .032, .09, 24, 1, true), new THREE.MeshStandardMaterial({ map: textTexture([['MIE', 60, -12], ['INSTAN', 36, 28]], { w: 256, h: 128, bg: '#f6c744', fg: '#c0281a', accent: '#c0281a' }), side: THREE.DoubleSide, roughness: .6 })));
+  cup.position.y = .045; g.add(cup); g.add(cyl(.032, .004, std('#f6c744'), 0, 20)); g.add(cyl(.048, .008, std('#e9e9e9'), .09, 24));
+  return g;
+}
+export function gelas() {
+  const g = new THREE.Group(), m = std('#3fa84f', { roughness: .4 });
+  g.add(cyl(.04, .09, m, 0, 20)); const h = torus(.026, .007, m, .05); h.rotation.x = 0; h.position.x = .052; g.add(h);
+  g.add(cyl(.034, .004, std('#4a2a12'), .084, 18));
+  return g;
+}
+
 /** id → { nama, builder, sprite (padanan 2D di atlas), tinggi target (m) untuk model GLB } */
 export const PROPS = [
   { id: 'galon', name: 'Galon 19 L', build: galon, sprite: 'galon', h: .43 },

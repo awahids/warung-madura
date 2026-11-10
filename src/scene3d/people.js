@@ -20,3 +20,27 @@ export function person({ shirt = '#2f9e44', pants = '#2d5fa8', skin = '#c58b5a',
   g.userData = { legs, shoes, arms, hands, torso, head };
   return g;
 }
+
+/** Figur sesuai tipe pelanggan di logika game (ojol, pemuda, cowok, ibu, juragan, hoodie). */
+export function personFor(type) {
+  switch (type) {
+    case 'ojol': return person({ shirt: '#2fa84f', pants: '#2d5fa8', helmet: '#2fa84f' });
+    case 'pemuda': { const p = person({ shirt: '#d8c9a8', pants: '#34343c', skin: '#c98e62' }); p.userData.legs.forEach(l => { l.scale.y = .75; l.position.y = .3; }); return p; }
+    case 'cowok': { const p = person({ shirt: '#6b7280', pants: '#4b5240', skin: '#c58b5a' }); const cap = new THREE.Mesh(new THREE.SphereGeometry(.13, 18, 12, 0, Math.PI * 2, 0, Math.PI * .5), std('#2f6b3a')); cap.position.y = 1.6; cap.castShadow = true; p.add(cap); return p; }
+    case 'ibu': {
+      const p = person({ shirt: '#d9729a', pants: '#b45a82', skin: '#b87a50', hair: '#222' }); p.scale.setScalar(.93);
+      const skirt = new THREE.Mesh(new THREE.CylinderGeometry(.2, .27, .62, 18), std('#b45a82')); skirt.position.y = .6; skirt.castShadow = true; p.add(skirt); return p;
+    }
+    case 'juragan': {
+      const p = person({ shirt: '#a4262c', pants: '#6b4a2a', skin: '#b98258' });
+      const peci = new THREE.Mesh(new THREE.CylinderGeometry(.1, .11, .09, 16), std('#151515')); peci.position.y = 1.67; peci.castShadow = true; p.add(peci);
+      const sarong = new THREE.Mesh(new THREE.CylinderGeometry(.2, .24, .7, 18), std('#6b4a2a')); sarong.position.y = .55; sarong.castShadow = true; p.add(sarong); return p;
+    }
+    case 'hoodie': {
+      const p = person({ shirt: '#2b2d35', pants: '#3a3a40', skin: '#b98258' });
+      const hood = new THREE.Mesh(new THREE.SphereGeometry(.15, 18, 14, 0, Math.PI * 2, 0, Math.PI * .72), std('#2b2d35')); hood.position.y = 1.6; hood.castShadow = true; p.add(hood);
+      const mask = new THREE.Mesh(new THREE.BoxGeometry(.17, .08, .06), std('#0c0c0c')); mask.position.set(0, 1.54, -.09); p.add(mask); return p;
+    }
+    default: return person();
+  }
+}

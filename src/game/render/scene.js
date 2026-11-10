@@ -22,8 +22,8 @@ export function drawCustomer(c) {
   return hgt;
 }
 
-export function drawBubble(c) {
-  const x = 722, y = 128, w = 296;
+export function drawBubble(c, at) {
+  const x = at ? at.x : 722, y = at ? at.y : 128, w = 296;
   const sayL = wrapText(c.say, w - 28, 14, '600');
   const isPay = c.stage === 'pay';
   const lines = c.order.length;

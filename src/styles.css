@@ -56,3 +56,8 @@ html, body, #root { margin: 0; height: 100%; height: 100dvh; background: var(--b
 .w3-bar button { background: #3a2410; color: var(--fg); border: 1px solid #6b4020; border-radius: 6px; padding: 6px 12px; cursor: pointer; font: inherit; }
 .w3-bar button.on { background: var(--accent); color: #3a2410; border-color: var(--accent); }
 .w3-info { opacity: .7; font-size: 12px; margin-left: auto; }
+
+.stack3d { position: relative; background: #070d24; box-shadow: 0 0 40px #000a; }
+.stack3d canvas { position: absolute; left: 0; top: 0; display: block; }
+.stack3d .ov3d { touch-action: none; -webkit-touch-callout: none; }
+.toolbar button.on { background: var(--accent); color: #3a2410; border-color: var(--accent); }
