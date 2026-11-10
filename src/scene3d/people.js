@@ -110,6 +110,7 @@ function makeHair(style, color, parent, front = true) {
     list.forEach(a => tuft(...a));
     if (style === 'swept') tuft(-.03, .3, -.14, -.9, .25, 1.25);                                   // jambul
   }
+  if (style === 'curly') [[-.16, .256, -.077], [0, .307, -.064], [.16, .256, -.077], [-.09, .288, .115], [.09, .288, .115], [-.25, .13, -.02], [.25, .13, -.02]].forEach(([x, y, z]) => parent.add(place(ell(.09, .09, .09, m), x * k, y * k, z * k)));   // ikal
   if (style === 'bun') {
     parent.add(place(ell(.11, .105, .1, m), 0, .22, .29));                                        // sanggul
     const tie = sh(new THREE.Mesh(new THREE.TorusGeometry(.062, .011, 6, 16), mat('#c0281a', .5))); tie.position.set(0, .19, .245); tie.rotation.x = Math.PI / 2 - .7; parent.add(tie);
@@ -120,11 +121,13 @@ function makeHair(style, color, parent, front = true) {
 function makeHead(o) {
   const g = new THREE.Group(), skin = mat(o.skin, .62);
   const skull = sh(new THREE.Mesh(new THREE.SphereGeometry(1, 22, 16), skin)); skull.scale.set(...HEAD); g.add(skull);
-  const eyes = [], ey = -.012;
+  const eyes = [], arcs = [], brows = [], ey = -.012;
   [-1, 1].forEach(sx => {
-    g.add(place(ell(.05, .055, .03, skin), sx * R * .98, -.02, .01));                              // telinga
+    if (!o.hijab) g.add(place(ell(.05, .055, .03, skin), sx * R * .98, -.02, .01));                // telinga
     const x = sx * .105, e = new THREE.Group(); e.position.set(x, ey, faceZ(x, ey) + .004); g.add(e); eyes.push(e);
     const ball = new THREE.Mesh(sphere(10), ink); ball.scale.set(.037, .053, .02); e.add(ball);
+    const arc = new THREE.Mesh(new THREE.TorusGeometry(.034, .01, 5, 10, Math.PI), ink); arc.position.set(x, ey - .012, faceZ(x, ey) - .004); arc.visible = false; g.add(arc); arcs.push(arc);   // mata tersenyum (^ ^)
+    const brow = new THREE.Mesh(new THREE.BoxGeometry(.075, .016, .012), ink); brow.position.set(x, ey + .082, faceZ(x, ey + .082) - .004); brow.rotation.z = sx * .38; brow.visible = false; g.add(brow); brows.push(brow);   // alis marah
     const sp = place(new THREE.Mesh(sphere(6), shine), .012, .02, -.016); sp.scale.setScalar(.012); e.add(sp);    // kilau mata
     const bx = sx * .178, by = -.082;
     if (!o.mask) { const b = new THREE.Mesh(sphere(8), mat('#f59aa6')); b.scale.set(.04, .024, .012); b.position.set(bx, by, faceZ(bx, by) + .004); g.add(b); }   // pipi merona
@@ -132,7 +135,18 @@ function makeHead(o) {
     if (o.mustache) { const m = ell(.036, .013, .014, mat(o.browColor || o.hairColor || '#1a1410', .8)); m.position.set(sx * .032, -.066, faceZ(sx * .032, -.066) - .004); m.rotation.z = sx * -.3; g.add(m); }
   });
   if (o.glasses) g.add(place(new THREE.Mesh(new THREE.BoxGeometry(.07, .009, .009), mat('#3a3030', .4)), 0, ey, faceZ(0, ey) - .03));
-  const my = -.1, mouth = new THREE.Mesh(new THREE.TorusGeometry(.032, .009, 5, 10, Math.PI), mat('#b4435a')); mouth.position.set(0, my, faceZ(0, my) - .003); mouth.rotation.z = Math.PI; if (!o.mask) g.add(mouth);
+  const my = -.1, mouth = new THREE.Mesh(new THREE.TorusGeometry(.032, .009, 5, 10, Math.PI), mat('#b4435a')); mouth.position.set(0, my, faceZ(0, my) - .003); mouth.rotation.z = Math.PI;
+  // ekspresi: senang (senyum), datar, marah (cemberut + alis), girang (mulut terbuka + mata ^ ^)
+  const lipM = mat('#b4435a'), mz = faceZ(0, my) - .004;
+  const mouths = { happy: mouth, flat: place(new THREE.Mesh(new THREE.BoxGeometry(.06, .012, .012), lipM), 0, my - .012, mz), angry: place(new THREE.Mesh(new THREE.TorusGeometry(.032, .009, 5, 10, Math.PI), lipM), 0, my - .034, mz), joy: place(new THREE.Mesh(new THREE.CircleGeometry(.045, 14, Math.PI, Math.PI), new THREE.MeshStandardMaterial({ color: '#7a1f33', roughness: .6, side: THREE.DoubleSide })), 0, my + .012, mz - .004) };
+  if (!o.mask) Object.values(mouths).forEach(m => g.add(m));
+  [...Object.values(mouths), ...arcs, ...brows].forEach(m => { m.userData.noLod = true; });
+  g.userData.setMood = mood => {
+    const k = mouths[mood] ? mood : 'happy';
+    for (const n in mouths) mouths[n].visible = n === k;
+    eyes.forEach(e => { e.visible = k !== 'joy'; }); arcs.forEach(a => { a.visible = k === 'joy'; }); brows.forEach(b => { b.visible = k === 'angry'; });
+  };
+  g.userData.setMood('happy');
   if (o.stubble) { const st = shell(R * 1.012, true, 1.5, 2.05, .75, new THREE.MeshStandardMaterial({ color: '#1a1410', transparent: true, opacity: .16, roughness: 1 })); st.scale.set(1, .95, .95); g.add(st); }
   if (o.hair) makeHair(o.hair, o.hairColor || '#1a1410', g, o.hairFront !== false);
   // kedipan: digerakkan saat kepala dirender, jadi tidak perlu dipanggil dari adegan
@@ -192,8 +206,16 @@ function buildHuman(o) {
   // kepala besar
   const headG = new THREE.Group(); headG.position.y = .45 + R * .95 * HS; torso.add(headG);
   const hs = new THREE.Group(); hs.scale.setScalar(HS); headG.add(hs);   // semua bagian kepala dibuat pada ukuran R lalu diperbesar
-  hs.add(makeHead(o));
+  const face = makeHead(o); hs.add(face);
   if (o.peci) { const p = taper(.22, .25, .17, mat(o.peci, .95), 20); p.position.set(0, .335, .025); p.rotation.x = .1; hs.add(p); const band = taper(.253, .253, .024, std('#c9a640', { metalness: .3 }), 20); band.position.set(0, .265, .018); band.rotation.x = .1; hs.add(band); }
+  if (o.hijab) {
+    const hm = mat(o.hijab, .8), hr = R * 1.13, at = m => { m.position.set(0, .012, .03); hs.add(m); return m; };
+    at(dome(hr, Math.PI * .6, hm, 22)).rotation.x = .42;                                              // tudung: tepi rapi di atas mata
+    at(shell(hr, false, Math.PI * 1.36, Math.PI * .5, Math.PI * .36, hm));                              // sisi & belakang
+    at(sh(new THREE.Mesh(new THREE.SphereGeometry(hr, 22, 6, 0, Math.PI * 2, 2.08, Math.PI - 2.08), hm)));   // lilitan di bawah dagu
+    const drape = taper(.17, .33, .2, hm, 18); drape.position.y = .37; drape.scale.z = .86; torso.add(drape);                                    // kain menjuntai di bahu
+  }
+  if (o.earCig) { const c = sh(new THREE.Mesh(new THREE.CylinderGeometry(.011, .011, .13, 6), mat('#f4f1e6', .6))); c.rotation.x = Math.PI / 2 - .25; c.position.set(R * 1.02, .05, -.03); hs.add(c); hs.add(place(ell(.012, .012, .016, mat('#c98a4a')), R * 1.02, .034, .03)); }   // rokok di telinga
   if (o.cap) {
     const cr = R * 1.13, d = dome(cr, Math.PI * .5, mat(o.cap)); d.position.set(0, .03, .012); d.rotation.x = .25; hs.add(d);
     const brim = sh(new THREE.Mesh(new THREE.CylinderGeometry(.2, .2, .018, 16, 1, false, Math.PI * .5, Math.PI), mat(o.cap))); brim.position.set(0, .03 + cr * .25, .03 - cr * .93); brim.rotation.x = .2; brim.scale.z = 1.1; hs.add(brim);
@@ -230,11 +252,11 @@ function buildHuman(o) {
     bp.scale.setScalar(.85); bp.position.set(0, .2, .2); torso.add(bp);
     [-1, 1].forEach(sx => torso.add(place(sh(new THREE.Mesh(new THREE.BoxGeometry(.03, .2, .02), mat('#1c1c20'))), sx * .095, .27, -.15)));
   }
-  g.userData = { legs, arms, elbows, hands, torso, head: headG };
+  g.userData = { legs, arms, elbows, hands, torso, head: headG, setMood: face.userData.setMood };
   g.scale.setScalar((o.scale || 1) * SIZE);
   // hemat biaya bayangan: bagian kecil tidak melempar/menerima bayangan; yang sangat kecil disembunyikan saat jauh (LOD)
   const fine = [];
-  g.traverse(m => { if (m.isMesh) { m.geometry.computeBoundingSphere(); const r = m.geometry.boundingSphere.radius * Math.max(m.scale.x, m.scale.y, m.scale.z); if (r < .055) { m.castShadow = false; m.receiveShadow = false; } if (r < .02) fine.push(m); } });
+  g.traverse(m => { if (m.isMesh) { m.geometry.computeBoundingSphere(); const r = m.geometry.boundingSphere.radius * Math.max(m.scale.x, m.scale.y, m.scale.z); if (r < .055) { m.castShadow = false; m.receiveShadow = false; } if (r < .02 && !m.userData.noLod) fine.push(m); } });
   g.userData.fine = fine;
   return g;
 }
@@ -247,14 +269,22 @@ const LOOK = {
   ibu: { skin: '#b87a50', topTex: T.floral, sleeves: 'short', legs: 'skirt', botTex: T.floral, shoe: 'sandal', shoeColor: '#6a3a2a', hair: 'bun', hairColor: '#241812', scale: .94, build: .95 },
   juragan: { skin: '#b98258', top: '#f2efe6', legs: 'sarong', botTex: T.sarong, shoe: 'sandal', shoeColor: '#4a3220', peci: '#f4f4f0', hair: 'short', hairFront: false, hairColor: '#b9b9b4', browColor: '#e4e4e0', mustache: true, wrinkles: true, glasses: true, brow: .006, belly: .025, vneck: '#ddd8cc', collar: '#e8e4d8', eye: '#4a3322' },
   hoodie: { skin: '#b98258', topTex: T.dark, sleeveTex: T.dark, legs: 'pants', bottom: '#2a2b33', shoe: 'sneaker', shoeColor: '#1c1c20', hood: '#26272d', mask: true, hair: null, scale: 1.02 },
+  // variasi penampilan (logika game tetap memakai enam tipe di atas)
+  ibuHijab: { skin: '#c58b5a', top: '#7d6a9c', legs: 'skirt', shoe: 'sandal', shoeColor: '#6a3a2a', hijab: '#e9b9c3', hair: null, scale: .94, build: .95 },
+  bapak: { skin: '#a8734a', top: '#f1efe8', sleeves: 'short', legs: 'sarong', botTex: T.sarong, shoe: 'sandal', shoeColor: '#4a3220', hair: 'short', hairColor: '#2a2420', mustache: true, belly: .035, earCig: true },
+  pemuda2: { skin: '#d09a70', top: '#3f78c4', sleeves: 'short', legs: 'pants', botTex: T.denim, shoe: 'sneaker', shoeColor: '#e8e8e8', hair: 'short', hairColor: '#171210', glasses: true },
+  cowok2: { skin: '#b07a4e', top: '#8a3b3b', legs: 'pants', bottom: '#2f3440', shoe: 'sneaker', shoeColor: '#d8d8d2', hair: 'curly', hairColor: '#1c1612' },
+  kurir: { skin: '#c58b5a', top: '#e07b2a', legs: 'pants', bottom: '#2a2b33', shoe: 'sneaker', shoeColor: '#2a2a30', cap: '#e07b2a', hair: 'short', hairColor: '#1c1612', collar: '#16161a' },
   penjaga: { skin: '#b98258', topTex: T.batik, sleeveTex: T.batik, legs: 'sarong', botTex: T.sarong, shoe: 'sandal', shoeColor: '#4a3220', peci: '#151515', hair: 'short', hairFront: false, hairColor: '#17120f', mustache: true, wrinkles: true, brow: .0058, belly: .02, collar: '#7a1219' },
 };
 /** Figur umum untuk halaman demo (kompatibel dengan versi lama). */
 export function person({ shirt = '#2f9e44', pants = '#2d5fa8', skin = '#c58b5a', helmet = null, hair = '#1a1410' } = {}) {
   return buildHuman({ skin, top: shirt, legs: 'pants', bottom: pants, shoe: 'sneaker', shoeColor: '#222', helmet, hair: helmet ? null : 'short', hairColor: hair });
 }
-/** Figur sesuai tipe pelanggan di logika game (ojol, pemuda, cowok, ibu, juragan, hoodie) atau 'penjaga'. */
-export function personFor(type) { return buildHuman(LOOK[type] || LOOK.pemuda); }
+/** Figur sesuai tipe pelanggan di logika game (ojol, pemuda, cowok, ibu, juragan, hoodie), 'penjaga', 'kurir', atau nama variasi. */
+export const VARIANTS = { ibu: ['ibu', 'ibuHijab'], juragan: ['juragan', 'bapak'], pemuda: ['pemuda', 'pemuda2'], cowok: ['cowok', 'cowok2'] };
+/** n memilih variasi penampilan tipe itu (stabil per pelanggan). */
+export function personFor(type, n = 0) { const v = VARIANTS[type]; return buildHuman(LOOK[v ? v[Math.abs(n) % v.length] : type] || LOOK.pemuda); }
 
 /** Kantong kresek berisi belanjaan (tergantung dari tangan; titik asal = gagang di atas). */
 export function makeBag(color = '#d63b2f') {

@@ -39,6 +39,10 @@ Dibuat prosedural (`src/scene3d/people.js`) dengan gaya **chibi 3D**: proporsi d
 Ciri tiap tokoh tetap: kain bertekstur (batik, bunga, kotak-kotak sarung, jaket berpita reflektif), peci, helm, topi, tudung + masker, kacamata, kumis, sanggul, ransel, tas boks.
 Rangka animasi tidak berubah: pinggul/bahu/siku/leher berporos, tangan mengepal saat menggenggam kantong/uang.
 Karena badannya pendek, pelanggan mengangkat tangan ke samping kepala saat membayar/mengambil belanjaan, dan penjaga berdiri di atas dingklik di balik meja kasir.
+- **Ekspresi wajah** mengikuti kesabaran pelanggan: senyum → datar → cemberut dengan alis marah; girang (mulut terbuka, mata `^ ^`) saat pulang membawa belanjaan, marah saat pergi kecewa (`moodOf` di `src/game/engine3d.js`).
+- **Variasi penampilan** (dipilih per pelanggan, logika game tetap enam tipe): Bu berhijab, bapak sarungan dengan rokok di telinga, mas berkacamata, bang berambut keriting. Semuanya ada di galeri; tombol **Baru** menyorotnya, dan ekspresi diperagakan bergiliran.
+- **Kurir** berjalan masuk saat kiriman tiba, menunggu di samping kardus, lalu pergi setelah barang diterima.
+- **Serah-terima**: uang terbang dari tangan pelanggan ke penjaga, kantong/barang terbang balik ke pelanggan. Slot antrean berjarak ≈1 m supaya kepala tidak saling menutupi.
 
 ## Warung 3D (prosedural)
 Buka `#/warung` (tautan **Warung 3D** di bawah game): bangunan warung Madura lengkap dibuat lewat kode Three.js, tanpa model eksternal.
