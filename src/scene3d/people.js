@@ -14,10 +14,14 @@ export function person({ shirt = '#2f9e44', pants = '#2d5fa8', skin = '#c58b5a',
     g.add(piv); return piv;
   });
   const torso = sh(new THREE.Mesh(new THREE.CapsuleGeometry(.19, .36, 6, 14), std(shirt))); torso.position.y = 1.12; torso.scale.z = .7; g.add(torso);
-  const hands = [], arms = [-.27, .27].map(x => {
+  // lengan dua ruas: bahu (arms[i]) → siku (elbows[i]) → tangan; panjang 0,29 + 0,29
+  const hands = [], elbows = [], arms = [-.27, .27].map(x => {
     const piv = new THREE.Group(); piv.position.set(x, 1.4, 0); piv.rotation.z = x < 0 ? .1 : -.1;
-    const a = sh(new THREE.Mesh(new THREE.CapsuleGeometry(.055, .38, 5, 10), std(shirt))); a.position.y = -.26; piv.add(a);
-    const h = sh(new THREE.Mesh(new THREE.SphereGeometry(.05, 10, 8), std(skin))); h.position.y = -.56; piv.add(h); hands.push(h);
+    const up = sh(new THREE.Mesh(new THREE.CapsuleGeometry(.056, .2, 5, 10), std(shirt))); up.position.y = -.15; piv.add(up);
+    const elbow = new THREE.Group(); elbow.position.y = -.29; piv.add(elbow); elbows.push(elbow);
+    const joint = sh(new THREE.Mesh(new THREE.SphereGeometry(.058, 10, 8), std(shirt))); elbow.add(joint);
+    const fore = sh(new THREE.Mesh(new THREE.CapsuleGeometry(.05, .2, 5, 10), std(skin))); fore.position.y = -.15; elbow.add(fore);
+    const h = sh(new THREE.Mesh(new THREE.SphereGeometry(.05, 10, 8), std(skin))); h.position.y = -.3; elbow.add(h); hands.push(h);
     g.add(piv); return piv;
   });
   const head = sh(new THREE.Mesh(new THREE.SphereGeometry(.12, 20, 16), std(skin))); head.position.y = 1.58; g.add(head);
@@ -26,7 +30,7 @@ export function person({ shirt = '#2f9e44', pants = '#2d5fa8', skin = '#c58b5a',
     const hm = sh(new THREE.Mesh(new THREE.SphereGeometry(.14, 20, 14, 0, Math.PI * 2, 0, Math.PI * .62), std(helmet, { roughness: .35 }))); hm.position.y = 1.59; g.add(hm);
     const v = new THREE.Mesh(new THREE.BoxGeometry(.2, .05, .1), std('#111', { roughness: .2 })); v.position.set(0, 1.57, -.09); g.add(v);
   } else { const hr = sh(new THREE.Mesh(new THREE.SphereGeometry(.125, 18, 12, 0, Math.PI * 2, 0, Math.PI * .5), std(hair))); hr.position.y = 1.6; g.add(hr); }
-  g.userData = { legs, arms, hands, torso, head };
+  g.userData = { legs, arms, elbows, hands, torso, head };
   return g;
 }
 
