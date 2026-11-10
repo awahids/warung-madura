@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { galon, gas, toples, rakBensin, kardus, beras, aqua, cola, redbull, mie, gelas } from '../props3d/props';
-import { woodTex, roofTex, slatTex, asphaltTex, concreteTex, bannerTex, signTex, rentengTex } from './textures';
+import { woodTex, roofTex, slatTex, asphaltTex, concreteTex, bannerTex, signTex } from './textures';
 import { person, personFor } from './people';
+import { fillEtalase, fillWallShelf, hangingStrips } from './products';
 
 /* Adegan warung Madura 3D prosedural. Satuan meter: x kanan, y atas, z ke arah jalan. Warung: x∈[-2.2,2.2], z∈[-3.2,0]. */
 
@@ -12,15 +13,6 @@ const box = (w, h, d, mat, x = 0, y = 0, z = 0) => { const m = sh(new THREE.Mesh
 const at = (m, x, y, z) => { m.position.set(x, y, z); return m; };
 const rnd = (a, b) => a + Math.random() * (b - a);
 const pick = a => a[Math.floor(Math.random() * a.length)];
-
-/** Kumpulan kotak berwarna dalam satu InstancedMesh (barang dagangan di rak). */
-function instancedBoxes(items) {
-  const inst = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), std('#ffffff', { roughness: .55 }), items.length);
-  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), c = new THREE.Color();
-  items.forEach((it, i) => { m.compose(p.set(it.x, it.y + it.h / 2, it.z), q, s.set(it.w, it.h, it.d)); inst.setMatrixAt(i, m); inst.setColorAt(i, c.set(it.c)); });
-  inst.castShadow = true; inst.receiveShadow = true; return inst;
-}
-const PACK = ['#d63b2f', '#f6c744', '#2f80d6', '#3f9e58', '#8a55b8', '#f08a2c', '#e9e9e9', '#e5528a'];
 
 export function createWarung(canvas, opts = {}) {
   const game = !!opts.game;
@@ -96,8 +88,7 @@ export function createWarung(canvas, opts = {}) {
   const gl = new THREE.Mesh(new THREE.BoxGeometry(cw, ch, cd), glass); gl.position.y = ch / 2; caseG.add(gl);
   const frame = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(cw, ch, cd)), new THREE.LineBasicMaterial({ color: '#7d878f' })); frame.position.y = ch / 2; caseG.add(frame);
   [.01, .27].forEach(y => caseG.add(box(cw - .02, .012, cd - .02, new THREE.MeshStandardMaterial({ color: '#dfeaf0', transparent: true, opacity: .5 }), 0, y, 0)));
-  const caseItems = []; [.012, .272].forEach(y => { for (let i = 0; i < 14; i++) for (let j = 0; j < 2; j++) caseItems.push({ x: -cw / 2 + .07 + i * .081, y, z: -.1 + j * .2, w: .06, h: rnd(.05, .09), d: .09, c: pick(PACK) }); });
-  const caseInst = instancedBoxes(caseItems); caseG.add(caseInst);
+  fillEtalase(caseG, cw);
   // barang & peralatan di meja (koordinat lokal meja; permukaan y=1.0)
   const onCounter = (obj, x, z, sc = 1) => { obj.scale.setScalar(sc); obj.position.set(x, 1.0, z); counter.add(obj); return obj; };
   reg({ type: 'item', id: 'rokok' }, caseG, { badge: true });
@@ -118,18 +109,15 @@ export function createWarung(canvas, opts = {}) {
   book.rotation.y = .2; onCounter(book, 1.2, .1, 1.3); reg({ type: 'buku' }, book, { proxy: { size: [.3, .1, .4], at: [0, .03, 0] } });
 
   /* ---------- rak dinding belakang ---------- */
-  const shelfItems = [];
+  const BOARDS = [.3, .82, 1.34, 1.86];
   const shelfUnit = x => {
     const g = new THREE.Group(); g.position.set(x, 0, -3.02); scene.add(g);
     const W = 1.25;
     [-W / 2, W / 2].forEach(px => g.add(box(.05, 2.3, .34, woodDark, px, 1.15, 0)));
-    [.3, .82, 1.34, 1.86].forEach(y => {
-      g.add(box(W + .04, .035, .36, wood, 0, y, 0));
-      for (let r = 0; r < 2; r++) for (let i = 0; i < 9; i++) shelfItems.push({ x: x - W / 2 + .1 + i * .125, y: y + .0175, z: -3.02 - .06 + r * .13, w: .1, h: rnd(.15, .27), d: .1, c: pick(PACK) });
-    });
+    BOARDS.forEach(y => g.add(box(W + .04, .035, .36, wood, 0, y, 0)));
+    fillWallShelf(scene, x, BOARDS, W);
   };
   shelfUnit(-1.45); shelfUnit(-.1);
-  scene.add(instancedBoxes(shelfItems));
 
   // kulkas minuman (biru)
   const fridge = new THREE.Group(); fridge.position.set(1.7, 0, -2.7); scene.add(fridge);
@@ -151,12 +139,10 @@ export function createWarung(canvas, opts = {}) {
   [[-.5, -2.45], [-.2, -2.5], [-.35, -2.2]].forEach(([x, z]) => place(gas(), x, 0, z, 1.3));
   place(kardus(), 1.0, 0, -1.9, 1.1, .2); place(kardus(), 1.0, .31, -1.9, 1.1, -.1);
 
-  // renteng gantung di balok depan: kiri = kopi sachet, kanan = keripik/snack
-  const rGeo = new THREE.PlaneGeometry(.13, .62), rMat = v => new THREE.MeshStandardMaterial({ map: rentengTex(v), transparent: true, alphaTest: .3, side: THREE.DoubleSide, roughness: .6 });
-  const mkRenteng = (id, variant, x0) => {
-    const g = new THREE.Group(), mat = rMat(variant);
-    for (let i = 0; i < 8; i++) { const m = new THREE.Mesh(rGeo, mat); m.position.set(x0 + i * .21, 2.02, -.14 - (i % 2) * .08); m.rotation.y = (i % 3 - 1) * .15; g.add(m); }
-    scene.add(g); return reg({ type: 'item', id }, g, { badge: true, proxy: { size: [1.6, .7, .3], at: [x0 + .73, 2.02, -.18] } });
+  // renteng gantung di balok depan: kiri = kopi sachet, kanan = keripik/snack (sachet 3D menggembung)
+  const mkRenteng = (id, kind, x0) => {
+    const g = hangingStrips(kind, x0); scene.add(g);
+    return reg({ type: 'item', id }, g, { badge: true, proxy: { size: [1.6, .85, .3], at: [x0 + .73, 1.95, -.18] } });
   };
   mkRenteng('kopi', 'kopi', -1.95); mkRenteng('snack', 'snack', .45);
   // spanduk promo di tiang kiri + kardus kiriman kurir (muncul saat barang tiba)
