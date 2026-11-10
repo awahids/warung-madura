@@ -46,7 +46,7 @@ export function toples() {
   g.add(lathe([[0, 0], [.1, 0], [.105, .02], [.105, .2], [.095, .225], [.07, .235]], glass('#dfeaf0', .32)));
   g.add(cyl(.075, .03, std('#c0281a', { roughness: .4 }), .235));
   g.add(torus(.03, .008, std('#c0281a'), .27));
-  const n = 46, geo = new THREE.CylinderGeometry(.03, .03, .008, 14), inst = new THREE.InstancedMesh(geo, std('#fff'), n);
+  const n = 26, geo = new THREE.CylinderGeometry(.03, .03, .008, 9), inst = new THREE.InstancedMesh(geo, std('#fff'), n);
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), col = new THREE.Color();
   for (let i = 0; i < n; i++) {
     const a = Math.random() * 6.28, r = Math.sqrt(Math.random()) * .075;
@@ -60,10 +60,10 @@ export function toples() {
 
 export function bensin() {
   const g = new THREE.Group();
-  g.add(lathe([[0, 0], [.04, 0], [.045, .02], [.045, .17], [.04, .2], [.021, .225], [.018, .25]], glass('#f2c230', .78), 24));
-  g.add(lathe([[0, .01], [.037, .02], [.038, .17]], std('#f5c542', { transparent: true, opacity: .6 }), 16));
+  g.add(lathe([[0, 0], [.04, 0], [.045, .02], [.045, .17], [.04, .2], [.021, .225], [.018, .25]], glass('#f2c230', .78), 12));
+  g.add(lathe([[0, .01], [.037, .02], [.038, .17]], std('#f5c542', { transparent: true, opacity: .6 }), 10));
   g.add(cyl(.021, .016, std('#c0281a'), .25, 16));
-  const label = shadowed(new THREE.Mesh(new THREE.CylinderGeometry(.0455, .0455, .06, 24, 1, true, -Math.PI / 2.6, Math.PI / 1.3), new THREE.MeshStandardMaterial({ map: textTexture([['BENSIN', 40]], { w: 256, h: 64, bg: '#fff6d8', fg: '#b8431f' }), roughness: .5, side: THREE.DoubleSide })));
+  const label = shadowed(new THREE.Mesh(new THREE.CylinderGeometry(.0455, .0455, .06, 12, 1, true, -Math.PI / 2.6, Math.PI / 1.3), new THREE.MeshStandardMaterial({ map: textTexture([['BENSIN', 40]], { w: 256, h: 64, bg: '#fff6d8', fg: '#b8431f' }), roughness: .5, side: THREE.DoubleSide })));
   label.position.y = .085; g.add(label);
   return g;
 }
@@ -90,7 +90,7 @@ export function kardus() {
 
 export function beras() {
   const g = new THREE.Group();
-  const geo = new THREE.BoxGeometry(.32, .5, .14, 10, 16, 6), p = geo.attributes.position;
+  const geo = new THREE.BoxGeometry(.32, .5, .14, 7, 10, 4), p = geo.attributes.position;
   const sstep = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
   for (let i = 0; i < p.count; i++) {
     let x = p.getX(i), y = p.getY(i), z = p.getZ(i); const nx = x / .16, ny = y / .25;

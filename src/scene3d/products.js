@@ -17,7 +17,7 @@ const center = (g, text, x, y, size, fill, stroke) => {
 
 /* ---------- geometri ---------- */
 /** Kantong bantal: dua sisi menggembung, tepi atas/bawah menyempit (bagian segel). */
-export function pouchGeometry(w, h, d, sx = 5, sy = 8) {
+export function pouchGeometry(w, h, d, sx = 3, sy = 5) {
   const front = new THREE.PlaneGeometry(w, h, sx, sy), p = front.attributes.position;
   for (let i = 0; i < p.count; i++) {
     const u = p.getX(i) / w + .5, v = p.getY(i) / h + .5;
@@ -164,7 +164,7 @@ export function hangingStrips(kind, x0, count = 8, top = 2.33, perStrip = 6) {
   const variants = kind === 'kopi'
     ? [kopiTex('HITAM', '#4a2a12', '#2a1608'), kopiTex('SUSU', '#c89b64', '#7a4a22'), kopiTex('GULA', '#8a5a2a', '#4a2a12', '#ffe9b0'), kopiTex('JAHE', '#d98a2c', '#8a4a10')]
     : [snackTex('KERIPIK', '#d63b2f', '#8a1f18', '#f6c744'), snackTex('JAGUNG', '#f6c744', '#c98a14', '#fff1a8'), snackTex('COKLAT', '#7a4a2a', '#3a1f10', '#f0c8a0'), snackTex('BALADO', '#e8662a', '#a03a10', '#ffd27a')];
-  const geo = pouchGeometry(.09, .13, .03, 4, 6), g = new THREE.Group();
+  const geo = pouchGeometry(.09, .13, .03), g = new THREE.Group();
   const mats = variants.map(map => new THREE.MeshStandardMaterial({ map, roughness: .45, side: THREE.DoubleSide }));
   const per = Math.ceil(count * perStrip / variants.length), insts = mats.map(m => { const i = new THREE.InstancedMesh(geo, m, per + 4); i.count = 0; i.castShadow = false; return i; });
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), one = new THREE.Vector3(1, 1, 1), p = new THREE.Vector3(), strings = [];

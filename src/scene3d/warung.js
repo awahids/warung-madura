@@ -88,28 +88,28 @@ export function createWarung(canvas, opts = {}) {
   const glass = new THREE.MeshPhysicalMaterial({ color: '#cfe8f5', transparent: true, opacity: .22, roughness: .05, clearcoat: 1, side: THREE.DoubleSide, depthWrite: false });
   const caseG = new THREE.Group(); caseG.position.set(-.75, 1.0, 0); counter.add(caseG);
   const cw = 1.2, ch = .55, cd = .5;
-  const gl = new THREE.Mesh(new THREE.BoxGeometry(cw, ch, cd), glass); gl.position.y = ch / 2; caseG.add(gl);
+  const gl = new THREE.Mesh(new THREE.BoxGeometry(cw, ch, cd), glass); gl.position.y = ch / 2; gl.raycast = () => {}; caseG.add(gl);   // kaca tidak menangkap klik
   const frame = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(cw, ch, cd)), new THREE.LineBasicMaterial({ color: '#7d878f' })); frame.position.y = ch / 2; caseG.add(frame);
   [.01, .27].forEach(y => caseG.add(box(cw - .02, .012, cd - .02, new THREE.MeshStandardMaterial({ color: '#dfeaf0', transparent: true, opacity: .5 }), 0, y, 0)));
   fillEtalase(caseG, cw);
   // barang & peralatan di meja (koordinat lokal meja; permukaan y=1.0)
   const onCounter = (obj, x, z, sc = 1) => { obj.scale.setScalar(sc); obj.position.set(x, 1.0, z); counter.add(obj); return obj; };
   reg({ type: 'item', id: 'rokok' }, caseG, { badge: true });
-  reg({ type: 'item', id: 'aqua' }, onCounter(aqua(), .08, -.16, 1.7), { badge: true, proxy: { size: [.14, .4, .14], at: [0, .2, 0] } });
-  reg({ type: 'item', id: 'cola' }, onCounter(cola(), .28, -.16, 1.8), { badge: true, proxy: { size: [.12, .24, .12], at: [0, .11, 0] } });
-  reg({ type: 'item', id: 'redbull' }, onCounter(redbull(), .45, -.16, 1.8), { badge: true, proxy: { size: [.11, .26, .11], at: [0, .12, 0] } });
-  reg({ type: 'item', id: 'mie' }, onCounter(mie(), .64, -.16, 1.9), { badge: true, proxy: { size: [.2, .2, .2], at: [0, .1, 0] } });
-  reg({ type: 'item', id: 'kerupuk' }, onCounter(toples(), 1.1, -.12, 1.3), { badge: true });
+  reg({ type: 'item', id: 'aqua' }, onCounter(aqua(), .52, -.16, 1.7), { badge: true, proxy: { size: [.08, .24, .08], at: [0, .11, 0] } });   // ukuran lokal (sebelum skala induk)
+  reg({ type: 'item', id: 'cola' }, onCounter(cola(), .68, -.16, 1.8), { badge: true, proxy: { size: [.075, .13, .075], at: [0, .065, 0] } });
+  reg({ type: 'item', id: 'redbull' }, onCounter(redbull(), .84, -.16, 1.8), { badge: true, proxy: { size: [.065, .14, .065], at: [0, .07, 0] } });
+  reg({ type: 'item', id: 'mie' }, onCounter(mie(), 1.02, -.16, 1.9), { badge: true, proxy: { size: [.11, .11, .11], at: [0, .05, 0] } });
+  reg({ type: 'item', id: 'kerupuk' }, onCounter(toples(), 1.3, -.1, 1.15), { badge: true });
   const calc = new THREE.Group(); calc.rotation.y = -.15;
   calc.add(box(.13, .03, .19, std('#3a3d42'), 0, .015, 0)); calc.add(box(.1, .005, .045, std('#9fd0a0'), 0, .032, -.055));
-  onCounter(calc, .3, .13, 1.5); reg({ type: 'hitung' }, calc, { proxy: { size: [.22, .1, .3], at: [0, .04, 0] } });
+  onCounter(calc, .3, .13, 1.5); reg({ type: 'hitung' }, calc, { proxy: { size: [.15, .06, .2], at: [0, .03, 0] } });
   const phoneScreen = addGlow(new THREE.MeshStandardMaterial({ color: '#111', emissive: '#2f80d6', emissiveIntensity: .4 }), 1.2, .4);
   const phone = new THREE.Group(); phone.add(box(.075, .01, .15, std('#16181c'), 0, .005, 0));
   const scr = new THREE.Mesh(new THREE.PlaneGeometry(.062, .13), phoneScreen); scr.rotation.x = -Math.PI / 2; scr.position.set(0, .0105, 0); phone.add(scr);
-  onCounter(phone, .62, .15, 1.6); reg({ type: 'hp' }, phone, { proxy: { size: [.14, .08, .24], at: [0, .03, 0] } });
-  reg({ type: 'kopi-minum' }, onCounter(gelas(), .92, .13, 1.7), { proxy: { size: [.14, .16, .14], at: [0, .06, 0] } });
+  onCounter(phone, .62, .15, 1.6); reg({ type: 'hp' }, phone, { proxy: { size: [.1, .05, .17], at: [0, .02, 0] } });
+  reg({ type: 'kopi-minum' }, onCounter(gelas(), .92, .13, 1.7), { proxy: { size: [.1, .1, .1], at: [0, .045, 0] } });
   const book = new THREE.Group(); book.add(box(.2, .025, .28, std('#efe2bd'), 0, .0125, 0)); book.add(box(.19, .006, .02, std('#7a4a22'), 0, .028, -.12));
-  book.rotation.y = .2; onCounter(book, 1.2, .1, 1.3); reg({ type: 'buku' }, book, { proxy: { size: [.3, .1, .4], at: [0, .03, 0] } });
+  book.rotation.y = .2; onCounter(book, 1.2, .1, 1.3); reg({ type: 'buku' }, book, { proxy: { size: [.22, .06, .3], at: [0, .02, 0] } });
 
   /* ---------- rak dinding belakang ---------- */
   const BOARDS = [.3, .82, 1.34, 1.86];
@@ -130,22 +130,21 @@ export function createWarung(canvas, opts = {}) {
   const fGlass = new THREE.Mesh(new THREE.PlaneGeometry(.8, 1.6), new THREE.MeshPhysicalMaterial({ color: '#dff0ff', transparent: true, opacity: .18, roughness: .05, clearcoat: 1 })); fGlass.position.set(0, .95, .365); fridge.add(fGlass);
   const fLight = addGlow(new THREE.MeshBasicMaterial({ color: '#c3cbd0' }), '#ffffff', '#c3cbd0');
   const fBack = new THREE.Mesh(new THREE.PlaneGeometry(.85, 1.8), fLight); fBack.position.set(0, .95, -.305); fridge.add(fBack);
-  const cans = new THREE.InstancedMesh(new THREE.CylinderGeometry(.033, .033, .12, 12), std('#ffffff', { metalness: .5, roughness: .35 }), 5 * 7 * 2);
-  { let n = 0; const m = new THREE.Matrix4(), c = new THREE.Color(); for (let r = 0; r < 5; r++) for (let i = 0; i < 7; i++) for (let j = 0; j < 2; j++) { m.makeTranslation(-.32 + i * .107, .62 + r * .3 - (r === 4 ? .0 : 0) + .06, -.18 + j * .12); cans.setMatrixAt(n, m); cans.setColorAt(n, c.set(pick(['#c0281a', '#e6e8ea', '#2f80d6', '#3f9e58']))); n++; } }
+  const cans = new THREE.InstancedMesh(new THREE.CylinderGeometry(.033, .033, .12, 8), std('#ffffff', { metalness: .5, roughness: .35 }), 5 * 7);
+  { let n = 0; const m = new THREE.Matrix4(), c = new THREE.Color(); for (let r = 0; r < 5; r++) for (let i = 0; i < 7; i++) for (let j = 0; j < 1; j++) { m.makeTranslation(-.32 + i * .107, .62 + r * .3 - (r === 4 ? .0 : 0) + .06, -.14 + j * .12); cans.setMatrixAt(n, m); cans.setColorAt(n, c.set(pick(['#c0281a', '#e6e8ea', '#2f80d6', '#3f9e58']))); n++; } }
   fridge.add(cans);
   fridge.add(box(.03, .5, .03, std('#bcc5cc', { metalness: .8 }), .38, .95, .39));
 
   // barang lantai: karung beras, galon, gas, kardus
   const place = (obj, x, y, z, s = 1, ry = 0) => { obj.scale.setScalar(s); obj.position.set(x, y, z); obj.rotation.y = ry; scene.add(obj); return obj; };
-  [[-1.9, 0, -2.4, .3], [-1.45, 0, -2.45, -.15], [-1.7, .62, -2.42, .1]].forEach(([x, y, z, ry]) => place(beras(), x, y, z, 1.25, ry));
-  [[.35, -2.45], [.7, -2.5], [.52, -2.2]].forEach(([x, z]) => place(galon(), x, 0, z, 1.2));
-  [[-.5, -2.45], [-.2, -2.5], [-.35, -2.2]].forEach(([x, z]) => place(gas(), x, 0, z, 1.3));
+  [[-1.9, 0, -2.4, .3], [-1.45, 0, -2.45, -.15]].forEach(([x, y, z, ry]) => place(beras(), x, y, z, 1.25, ry));
+  place(galon(), .6, 0, -2.45, 1.2); place(gas(), -.4, 0, -2.45, 1.3);
   place(kardus(), 1.0, 0, -1.9, 1.1, .2); place(kardus(), 1.0, .31, -1.9, 1.1, -.1);
 
   // renteng gantung di balok depan: kiri = kopi sachet, kanan = keripik/snack (sachet 3D menggembung)
   const mkRenteng = (id, kind, x0) => {
     const g = hangingStrips(kind, x0); scene.add(g);
-    return reg({ type: 'item', id }, g, { badge: true, proxy: { size: [1.6, .85, .3], at: [x0 + .73, 1.95, -.18] } });
+    return reg({ type: 'item', id }, g, { badge: true, proxy: { size: [1.6, .5, .3], at: [x0 + .73, 2.08, -.18] } });   // pelantara klik hanya di bagian atas (tidak menutupi barang di bawahnya)
   };
   mkRenteng('kopi', 'kopi', -1.95); mkRenteng('snack', 'snack', .45);
   // spanduk promo di tiang kiri + kardus kiriman kurir (muncul saat barang tiba)
@@ -156,18 +155,19 @@ export function createWarung(canvas, opts = {}) {
   const pk = kardus(); pk.scale.setScalar(1.3); paket.add(pk); scene.add(paket); reg({ type: 'paket' }, paket);
 
   /* ---------- area luar ---------- */
-  const rak = place(rakBensin(), -1.7, 0, .6, 1.15, .1); reg({ type: 'item', id: 'bensin' }, rak, { badge: true });
-  // meja display di teras (barang jualan galon/gas/beras: terlihat & bisa diklik dari balik meja kasir)
+  // meja display di teras, setinggi dada, supaya barang besar terlihat DI ATAS barang di meja kasir dari balik meja
+  const TH = .85;
   const displayTable = (x, z, w) => {
     const t = new THREE.Group(); t.position.set(x, 0, z); scene.add(t);
-    t.add(box(w, .05, .55, wood, 0, .6, 0)); [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => t.add(box(.05, .6, .05, woodDark, a * (w / 2 - .05), .3, b * .22)));
-    t.add(box(w - .1, .04, .5, woodDark, 0, .22, 0));
+    t.add(box(w, .05, .55, wood, 0, TH, 0)); [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => t.add(box(.05, TH, .05, woodDark, a * (w / 2 - .05), TH / 2, b * .22)));
+    t.add(box(w - .1, .04, .5, woodDark, 0, .3, 0));
   };
-  displayTable(1.75, .5, 1.1); displayTable(-.95, .5, 1.0);
-  reg({ type: 'item', id: 'galon' }, place(galon(), 1.55, .625, .5, 1.2), { badge: true });
-  reg({ type: 'item', id: 'gas' }, place(gas(), 2.0, .625, .5, 1.3), { badge: true });
-  reg({ type: 'item', id: 'beras' }, place(beras(), -1.2, .625, .5, 1.2, .2), { badge: true });
-  reg({ type: 'item', id: 'beras' }, place(beras(), -.7, .625, .5, 1.2, -.2));
+  displayTable(1.1, .05, 1.25); displayTable(2.0, .05, .85); displayTable(-1.75, .05, 1.0);
+  const rak = place(rakBensin(), -1.75, TH + .025, .05, 1.0, 0); reg({ type: 'item', id: 'bensin' }, rak, { badge: true });
+  reg({ type: 'item', id: 'galon' }, place(galon(), .82, TH + .025, .05, 1.2), { badge: true });
+  reg({ type: 'item', id: 'gas' }, place(gas(), 1.38, TH + .025, .05, 1.3), { badge: true });
+  reg({ type: 'item', id: 'beras' }, place(beras(), 1.76, TH + .025, .05, 1.2, .15), { badge: true });
+  reg({ type: 'item', id: 'beras' }, place(beras(), 2.07, TH + .025, .05, 1.2, -.15));
   const bench = new THREE.Group(); bench.position.set(3.1, 0, .9); scene.add(bench);
   bench.add(box(1.4, .05, .36, wood, 0, .45, 0)); [-.6, .6].forEach(x => bench.add(box(.06, .45, .3, woodDark, x, .225, 0))); bench.add(box(1.4, .3, .04, wood, 0, .72, -.16));
   const stool = new THREE.Group(); stool.position.set(-2.3, 0, .95); scene.add(stool);
@@ -329,6 +329,9 @@ export function createWarung(canvas, opts = {}) {
     pjHead.rotation.y += ((mode === 'idle' ? Math.sin(t * .6) * .22 : 0) - pjHead.rotation.y) * kdt(.08, dt);
   };
   scene.traverse(o => { if (o.isMesh && o.geometry && o.geometry.type === 'PlaneGeometry') o.castShadow = false; });
+  // hemat lintasan bayangan: benda kecil (< 10 cm radius, mis. botol, kaleng, kemasan) tidak melempar bayangan
+  scene.updateMatrixWorld(true);
+  { const ws = new THREE.Vector3(); scene.traverse(o => { if ((o.isMesh || o.isInstancedMesh) && o.castShadow) { o.geometry.boundingSphere || o.geometry.computeBoundingSphere(); o.getWorldScale(ws); if (o.geometry.boundingSphere.radius * Math.max(ws.x, ws.y, ws.z) < .1) o.castShadow = false; } }); }
 
   /* ---------- siang / malam / hujan ---------- */
   let night = false;
@@ -361,7 +364,7 @@ export function createWarung(canvas, opts = {}) {
   const VIEWS = {
     luar: { pos: [4.8, 1.9, 6.4], tgt: [0, 1.1, -.6], fp: false },
     pembeli: { pos: [0, 1.6, 4.6], tgt: [0, 1.3, -1.4], fp: false },
-    penjaga: { pos: [.1, 1.72, -2.25], tgt: [.1, 1.25, 1], fp: true },
+    penjaga: { pos: [.1, 2.0, -2.3], tgt: [.1, 1.05, 1], fp: true },
   };
   let tween = null, view = 'luar';
   const applyLimits = fp => {
@@ -469,6 +472,9 @@ export function createWarung(canvas, opts = {}) {
       if (it.pose === 'pay') pj.cont = { kind: 'receive', target: new THREE.Vector3(it.x + .08, 1.12, it.z - e.lean - .5) };
       else if (it.pose === 'take' && it.pt < .8) pj.cont = { kind: 'give', bag: it.pt < .45, target: new THREE.Vector3(it.x + .08, 1.1, it.z - e.lean - .42) };
       e.head = new THREE.Vector3(it.x, 1.95, it.z - e.lean);
+      // LOD: detail halus (jari, wajah) hanya untuk orang yang dekat kamera
+      const near2 = camera.position.distanceToSquared(e.g.position) < 30;   // ≈ 5,5 m
+      if (near2 !== e.detail) { e.detail = near2; for (const m of e.g.userData.fine) m.visible = near2; }
     }
     for (const [k, e] of crowd) if (!seen.has(k)) { scene.remove(e.g); crowd.delete(k); }
   };
@@ -505,6 +511,31 @@ export function createWarung(canvas, opts = {}) {
     setAutoRotate(v) { controls.autoRotate = v; },
     setPaket(v) { paket.visible = v; },
     get drawerOpen() { return drawerOpen; },   // 0..1 (untuk tes)
+    /** Diagnostik: apakah tiap barang terlihat dari kamera saat ini (tidak tertutup benda lain & ada di layar). */
+    reachability() {
+      scene.updateMatrixWorld(true);
+      const solid = [];
+      const shown = o => { for (let n = o; n; n = n.parent) if (!n.visible) return false; return true; };
+      scene.traverse(o => { if (o.isMesh && shown(o)) { const m = o.material; if (m && !(m.transparent && m.opacity < .5) && m.visible !== false && !(m.side === THREE.BackSide)) solid.push(o); } });
+      const rc = new THREE.Raycaster(), cam = camera.position, res = {}, mat = new THREE.Matrix4();
+      const isIn = (o, root) => { for (let n = o; n; n = n.parent) if (n === root) return true; return false; };
+      for (const it of items) {
+        if (it.act.type !== 'item') continue;
+        const pts = [];
+        it.obj.traverse(m => { if (!m.isMesh || !shown(m) || m.material.visible === false) return;
+          m.geometry.boundingBox || m.geometry.computeBoundingBox(); const c = m.geometry.boundingBox.getCenter(new THREE.Vector3());   // pusat badan, bukan titik asal (dasar)
+          if (m.isInstancedMesh) { const n = m.count; for (const i of [0, n >> 1, n - 1]) { m.getMatrixAt(i, mat); pts.push(c.clone().applyMatrix4(mat).applyMatrix4(m.matrixWorld)); } }
+          else pts.push(c.applyMatrix4(m.matrixWorld)); });
+        let seen = 0, ok = 0;
+        for (const t of pts.slice(0, 40)) {
+          const p = t.clone().project(camera); if (p.z > 1 || Math.abs(p.x) > 1 || Math.abs(p.y) > 1) continue;   // di luar layar
+          seen++; const d = t.clone().sub(cam); const dist = d.length(); rc.set(cam, d.normalize()); rc.far = dist + .02;
+          const hit = rc.intersectObjects(solid, false)[0]; if (hit && isIn(hit.object, it.obj)) ok++; else if (hit) { const q = res[it.act.id] || (res[it.act.id] = { samples: 0, visible: 0 }); q.by = `${hit.object.geometry.type}@${hit.point.x.toFixed(2)},${hit.point.y.toFixed(2)},${hit.point.z.toFixed(2)}`; }
+        }
+        const r = res[it.act.id] || (res[it.act.id] = { samples: 0, visible: 0 }); r.samples += pts.length ? Math.min(pts.length, 40) : 0; r.onScreen = (r.onScreen || 0) + seen; r.visible += ok;
+      }
+      return res;
+    },
     /** Diagnostik: 15 mesh terberat (segitiga × instans) — untuk memantau anggaran HP. */
     heavy() {
       const rows = [];

@@ -13,7 +13,7 @@ const taper = (rt, rb, len, mat, seg = 10) => sh(new THREE.Mesh(new THREE.Cylind
 const SPH = {};
 const sphere = n => SPH[n] || (SPH[n] = new THREE.SphereGeometry(1, n, Math.max(4, Math.round(n * .7))));
 const ell = (rx, ry, rz, mat, seg = 18) => {
-  const big = Math.max(rx, ry, rz), n = big < .016 ? 6 : big < .03 ? 8 : big < .06 ? 11 : Math.min(seg, 16);
+  const big = Math.max(rx, ry, rz), n = big < .016 ? 6 : big < .03 ? 7 : big < .06 ? 9 : Math.min(seg, 14);
   const m = sh(new THREE.Mesh(sphere(n), mat)); m.scale.set(rx, ry, rz); return m;
 };
 const lathe = (pts, mat, seg = 24) => sh(new THREE.Mesh(new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), seg), mat));
@@ -127,7 +127,7 @@ function makeHair(style, color, parent, opts = {}) {
   if (style === 'short' || style === 'swept') {
     cap(.4, 1.01);
     if (opts.front !== false) for (let i = 0; i < 9; i++) { const a = -1.1 + i * .275; tuft(.02, .008, .024, Math.sin(a) * .088, .066 - Math.abs(a) * .012, -.082 * Math.cos(a) - .006, .5, a * .6, a * .3); }   // poni/garis rambut depan (helai pipih)
-    for (let i = 0; i < 6; i++) tuft(.034, .02, .04, rnd(-.04, .04), .105 + rnd(-.004, .006), rnd(-.045, .03), rnd(-.3, .3), rnd(-1, 1), rnd(-.3, .3));  // volume atas
+    for (let i = 0; i < 4; i++) tuft(.034, .02, .04, rnd(-.04, .04), .105 + rnd(-.004, .006), rnd(-.045, .03), rnd(-.3, .3), rnd(-1, 1), rnd(-.3, .3));  // volume atas
     [-1, 1].forEach(sx => tuft(.011, .032, .017, sx * .092, -.004, -.034, 0, 0, sx * -.12));                                                          // cambang
     if (style === 'swept') { tuft(.045, .018, .03, -.02, .088, -.075, .3, 0, .35); tuft(.03, .014, .02, -.045, .072, -.092, .4, 0, .5); }              // jambul menyamping
     parent.add(place(sh(new THREE.Mesh(new THREE.BoxGeometry(.0018, .008, .09), std(shade(color, .6)))), style === 'swept' ? .03 : .018, .118, -.01));   // belahan
@@ -135,11 +135,11 @@ function makeHair(style, color, parent, opts = {}) {
     cap(.44, 1.012);
     [-1, 1].forEach(sx => { tuft(.009, .036, .03, sx * .089, .016, .004, 0, 0, sx * -.08); tuft(.0065, .03, .009, sx * .082, .028, -.07, 0, 0, sx * -.25); });   // rambut di sisi + helai di pelipis
     for (let i = 0; i < 7; i++) { const a = -.95 + i * .32; tuft(.017, .007, .02, Math.sin(a) * .085, .07 - Math.abs(a) * .014, -.084 * Math.cos(a) - .004, .5, a * .6, a * .25); }   // garis rambut depan
-    for (let i = 0; i < 6; i++) tuft(.028, .014, .036, rnd(-.03, .03), .112, rnd(-.04, .0), rnd(-.2, .2), rnd(-1, 1), 0);                              // ditarik rapi ke belakang
+    for (let i = 0; i < 3; i++) tuft(.028, .014, .036, rnd(-.03, .03), .112, rnd(-.04, .0), rnd(-.2, .2), rnd(-1, 1), 0);                              // ditarik rapi ke belakang
     parent.add(place(sh(new THREE.Mesh(new THREE.BoxGeometry(.0016, .006, .086), std('#c9a07c', { roughness: .6 }))), 0, .118, -.012));                 // belahan tengah (kulit kepala)
     const bun = ell(.052, .05, .046, mat(), 16); bun.position.set(0, .08, .104); parent.add(bun);
     const tie = sh(new THREE.Mesh(new THREE.TorusGeometry(.036, .0042, 6, 18), std('#c0281a', { roughness: .5 }))); tie.position.set(0, .066, .093); tie.rotation.x = Math.PI / 2 - .5; parent.add(tie);
-    for (let i = 0; i < 5; i++) tuft(.012, .02, .012, rnd(-.03, .03), .08 + rnd(-.02, .025), .1 + rnd(-.01, .03), rnd(-1, 1), rnd(-1, 1), rnd(-1, 1));
+    for (let i = 0; i < 3; i++) tuft(.012, .02, .012, rnd(-.03, .03), .08 + rnd(-.02, .025), .1 + rnd(-.01, .03), rnd(-1, 1), rnd(-1, 1), rnd(-1, 1));
   }
 }
 
@@ -285,7 +285,9 @@ function buildHuman(o) {
   g.userData = { legs, arms, elbows, hands, torso, head: headG };
   if (o.scale) g.scale.setScalar(o.scale);
   // hemat biaya bayangan: bagian sangat kecil (jari, kelopak, helai) tidak ikut melempar/menerima bayangan
-  g.traverse(m => { if (m.isMesh) { m.geometry.computeBoundingSphere(); const r = m.geometry.boundingSphere.radius * Math.max(m.scale.x, m.scale.y, m.scale.z); if (r < .03) { m.castShadow = false; m.receiveShadow = false; } } });
+  const fine = [];
+  g.traverse(m => { if (m.isMesh) { m.geometry.computeBoundingSphere(); const r = m.geometry.boundingSphere.radius * Math.max(m.scale.x, m.scale.y, m.scale.z); if (r < .055) { m.castShadow = false; m.receiveShadow = false; } if (r < .03) fine.push(m); } });
+  g.userData.fine = fine;   // bagian halus (jari, kelopak, helai): disembunyikan untuk orang yang jauh dari kamera (LOD)
   return g;
 }
 
