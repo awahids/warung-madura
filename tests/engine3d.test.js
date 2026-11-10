@@ -73,4 +73,29 @@ describe('jembatan logika → 3D', () => {
     const gone = crowdFromGame(() => 1).find(p => p.pose === 'take');
     expect(gone).toBeUndefined();
   });
+
+  it('pembayaran pas: ada fase terima uang (laci terbuka) sebelum mengambil belanjaan', () => {
+    ui.mode3d = true;
+    try {
+      spawnCustomer('cowok'); for (let i = 0; i < 300 && !active(); i++) update(1 / 30);
+      const c = active(); c.order = [{ id: 'aqua', qty: 1 }]; c.total = 4000; c.pay = 4000; c.change = 0;
+      addToTray('aqua'); doHitung();                       // pas → langsung selesai
+      expect(c.quick).toBe(true); expect(c.took).toBe(true); expect(c.walkAt).toBeGreaterThan(1.1);
+      let n = 0; const next = () => ++n;
+      expect(crowdFromGame(next)[0].pose).toBe('pay');     // awalnya: menyerahkan uang
+      c.leaveT = c.walkAt - 1.1 + .3;                      // setelah fase terima uang
+      const take = crowdFromGame(next)[0];
+      expect(take.pose).toBe('take'); expect(take.pt).toBeCloseTo(.3, 5);
+      c.leaveT = c.walkAt + .1;
+      expect(crowdFromGame(next)[0].moving).toBe(true);
+    } finally { ui.mode3d = false; }
+  });
+
+  it('di mode 2D pembayaran pas tidak menambah waktu berdiri', () => {
+    ui.mode3d = false;
+    spawnCustomer('cowok'); for (let i = 0; i < 300 && !active(); i++) update(1 / 30);
+    const c = active(); c.order = [{ id: 'aqua', qty: 1 }]; c.total = 4000; c.pay = 4000; c.change = 0;
+    addToTray('aqua'); doHitung();
+    expect(c.walkAt).toBeUndefined();
+  });
 });

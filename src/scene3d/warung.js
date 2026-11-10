@@ -14,6 +14,9 @@ const at = (m, x, y, z) => { m.position.set(x, y, z); return m; };
 const rnd = (a, b) => a + Math.random() * (b - a);
 const pick = a => a[Math.floor(Math.random() * a.length)];
 
+/** Faktor pelunakan per frame yang konsisten di FPS berapa pun (r = faktor pada 60 fps). */
+const kdt = (r, dt) => 1 - Math.pow(1 - r, Math.min(6, dt * 60));
+
 export function createWarung(canvas, opts = {}) {
   const game = !!opts.game;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -245,8 +248,7 @@ export function createWarung(canvas, opts = {}) {
     const ibu = person({ shirt: '#d9729a', pants: '#8a5a8a', skin: '#b87a50', hair: '#222' }); ibu.scale.setScalar(.93); ibu.position.set(-.75, 0, 1.0); ibu.rotation.y = -.25; scene.add(ibu);
     demo.push(ojol, ibu);
   }
-  const penjaga = person({ shirt: '#a4262c', pants: '#3a3a4a', skin: '#b98258' }); penjaga.position.set(.2, 0, -1.3); penjaga.rotation.y = Math.PI; scene.add(penjaga);
-  const peci = sh(new THREE.Mesh(new THREE.CylinderGeometry(.1, .11, .09, 16), std('#151515'))); peci.position.y = 1.67; penjaga.add(peci);
+  const penjaga = personFor('penjaga'); penjaga.position.set(.2, 0, -1.3); penjaga.rotation.y = Math.PI; scene.add(penjaga);
   const people = [...demo, penjaga];
 
   /* ---------- mesin kasir + laci uang (di meja, menghadap penjaga) ---------- */
@@ -282,7 +284,7 @@ export function createWarung(canvas, opts = {}) {
   const penjagaAct = (kind, a, b) => { pj.timed = { kind, a: a ? a.clone() : null, b: (b || a) ? (b || a).clone() : null, t0: performance.now(), dur: DUR[kind] }; };
   /** IK dua ruas: bahu+siku sehingga tangan sampai ke worldT (siku menekuk ke bawah). */
   const aimArm = (worldT, rate) => {
-    const lt = penjaga.worldToLocal(worldT.clone()).sub(pjArm.position);
+    const lt = pjArm.parent.worldToLocal(worldT.clone()).sub(pjArm.position);   // dalam bingkai induk lengan (badan atas)
     const d = clampN(lt.length(), .15, L1 + L2 - .005);
     _pv.copy(lt).normalize();
     _n.crossVectors(_pv, downV); if (_n.lengthSq() < 1e-4) _n.set(1, 0, 0); _n.normalize();       // sumbu engsel siku
@@ -292,7 +294,7 @@ export function createWarung(canvas, opts = {}) {
     _y.copy(_u).negate(); _z.crossVectors(_n, _y); _m.makeBasis(_n, _y, _z); tmpQ.setFromRotationMatrix(_m);
     pjArm.quaternion.slerp(tmpQ, rate); pjElbow.rotation.x += (-theta - pjElbow.rotation.x) * rate;
   };
-  const stepPenjaga = t => {
+  const stepPenjaga = (t, dt) => {
     const now = performance.now(); penjaga.updateWorldMatrix(true, true);
     let act = pj.timed && now - pj.timed.t0 < pj.timed.dur ? pj.timed : null; if (!act) pj.timed = null;
     const kind = pj.cont ? pj.cont.kind : null; if (kind !== pj.lastKind) { pj.lastKind = kind; pj.contT0 = now; }
@@ -310,17 +312,17 @@ export function createWarung(canvas, opts = {}) {
     }
     // laci terbuka selama penjaga mengurus uang/kembalian
     const drawerT = !act && mode === 'receive' && since > .7 ? 1 : 0;
-    drawerOpen += (drawerT - drawerOpen) * .14; drawer.position.z = -drawerOpen * .2;
+    drawerOpen += (drawerT - drawerOpen) * kdt(.14, dt); drawer.position.z = -drawerOpen * .2;
     holds.bag.visible = mode === 'give' && !!pj.cont && pj.cont.bag; holds.mug.visible = mode === 'drink'; holds.phone.visible = mode === 'phone';
-    if (target) aimArm(target, .22); else { pjArm.quaternion.slerp(restQ, .15); pjElbow.rotation.x += (.18 - pjElbow.rotation.x) * .15; }
+    if (target) aimArm(target, kdt(.22, dt)); else { pjArm.quaternion.slerp(restQ, kdt(.15, dt)); pjElbow.rotation.x += (.18 - pjElbow.rotation.x) * kdt(.15, dt); }
     Object.values(holds).forEach(h => { if (h.visible) keepUpright(h, penjaga); });
     // badan: menoleh ke sasaran, maju ke meja saat transaksi
     let yawT = Math.PI;
     if (target && (mode === 'reach' || mode === 'receive' || mode === 'give')) { const dx = target.x - penjaga.position.x, dz = target.z - penjaga.position.z; yawT = Math.PI + Math.max(-.8, Math.min(.8, angDiff(Math.PI, Math.atan2(-dx, -dz)))) * .6; }
-    pj.yaw += angDiff(pj.yaw, yawT) * .15; penjaga.rotation.y = pj.yaw;
+    pj.yaw += angDiff(pj.yaw, yawT) * kdt(.15, dt); penjaga.rotation.y = pj.yaw;
     const leanT = mode === 'receive' || mode === 'give' ? 1 : mode === 'reach' ? .4 : 0;
-    pj.lean += (leanT - pj.lean) * .15; penjaga.position.z = PJ_Z + pj.lean * .35; pjTorso.rotation.x = -pj.lean * .25;
-    pjHead.rotation.y += ((mode === 'idle' ? Math.sin(t * .6) * .22 : 0) - pjHead.rotation.y) * .08;
+    pj.lean += (leanT - pj.lean) * kdt(.15, dt); penjaga.position.z = PJ_Z + pj.lean * .35; pjTorso.rotation.x = -pj.lean * .25;
+    pjHead.rotation.y += ((mode === 'idle' ? Math.sin(t * .6) * .22 : 0) - pjHead.rotation.y) * kdt(.08, dt);
   };
   scene.traverse(o => { if (o.isMesh && o.geometry && o.geometry.type === 'PlaneGeometry') o.castShadow = false; });
 
@@ -421,7 +423,7 @@ export function createWarung(canvas, opts = {}) {
     return h;
   };
   /** list: [{ key, type, x, z, moving, dir, pose: 'idle'|'pay'|'take', pt, carry }] — buat/hapus/gerakkan orang sesuai logika game. */
-  const syncPeople = (list, t) => {
+  const syncPeople = (list, t, dt = 1 / 60) => {
     const seen = new Set(); pj.cont = null;
     for (const it of list) {
       let e = crowd.get(it.key);
@@ -432,9 +434,9 @@ export function createWarung(canvas, opts = {}) {
       }
       seen.add(it.key);
       const want = it.moving ? (it.dir > 0 ? -Math.PI / 2 : Math.PI / 2) : (it.turn ?? 0);
-      e.ang += angDiff(e.ang, want) * .18; e.g.rotation.y = e.ang;
+      e.ang += angDiff(e.ang, want) * kdt(.18, dt); e.g.rotation.y = e.ang;
       const near = it.pose === 'pay' || it.pose === 'take';
-      e.lean += ((near ? .32 : 0) - e.lean) * .12;
+      e.lean += ((near ? .32 : 0) - e.lean) * kdt(.12, dt);
       e.g.position.x = it.x; e.g.position.z = it.z - e.lean;
       const { legs, arms, elbows, head } = e.g.userData, ph = t * 9 + it.key.length;
       // bawaan di tangan kanan
@@ -450,11 +452,11 @@ export function createWarung(canvas, opts = {}) {
       if (it.pose === 'pay') { t1 = 1.15; u1 = .35; t0 = .15; u0 = .15; }
       else if (it.pose === 'take') { const p = it.pt / 1.1; if (p < .45) { t0 = 1.2; u0 = .3; t1 = 1.25; u1 = .3; } else if (p < .8) { t0 = .1; u0 = .2; t1 = .5; u1 = .9; } else { t0 = .05; u0 = .15; t1 = .35; u1 = 1.0; } }
       else if (it.moving) { const sw = Math.sin(ph); t0 = -sw * .4; u0 = .2 + Math.max(0, sw) * .2; if (it.carry) { t1 = .35; u1 = 1.05 + sw * .05; } else { t1 = sw * .4; u1 = .2 + Math.max(0, -sw) * .2; } }
-      e.a0 += (t0 - e.a0) * .22; e.a1 += (t1 - e.a1) * .22; e.b0 += (u0 - e.b0) * .22; e.b1 += (u1 - e.b1) * .22;
+      const ka = kdt(.22, dt); e.a0 += (t0 - e.a0) * ka; e.a1 += (t1 - e.a1) * ka; e.b0 += (u0 - e.b0) * ka; e.b1 += (u1 - e.b1) * ka;
       arms[0].rotation.x = e.a0; arms[1].rotation.x = e.a1; elbows[0].rotation.x = e.b0; elbows[1].rotation.x = e.b1;
       if (e.holder) e.holder.rotation.x = -(e.a1 + e.b1);   // bawaan tetap menggantung tegak
       if (it.moving) { legs[0].rotation.x = Math.sin(ph) * .55; legs[1].rotation.x = -Math.sin(ph) * .55; e.g.position.y = Math.abs(Math.sin(ph)) * .03; }
-      else { legs[0].rotation.x *= .8; legs[1].rotation.x *= .8; e.g.position.y = Math.abs(Math.sin(t * 1.6 + it.key.length)) * .004; head.rotation.y = near ? head.rotation.y * .8 : Math.sin(t * .7 + it.key.length) * .25; }
+      else { legs[0].rotation.x *= 1 - kdt(.2, dt); legs[1].rotation.x *= 1 - kdt(.2, dt); e.g.position.y = Math.abs(Math.sin(t * 1.6 + it.key.length)) * .004; head.rotation.y = near ? head.rotation.y * (1 - kdt(.2, dt)) : Math.sin(t * .7 + it.key.length) * .25; }
       e.g.userData.torso.rotation.x = -e.lean * .5;
       if (it.pose === 'pay') pj.cont = { kind: 'receive', target: new THREE.Vector3(it.x + .08, 1.12, it.z - e.lean - .5) };
       else if (it.pose === 'take' && it.pt < .8) pj.cont = { kind: 'give', bag: it.pt < .45, target: new THREE.Vector3(it.x + .08, 1.1, it.z - e.lean - .42) };
@@ -477,7 +479,7 @@ export function createWarung(canvas, opts = {}) {
       if (tween.t >= 1) { applyLimits(tween.fp); tween = null; }
     }
     people.forEach((p, i) => { p.position.y = Math.abs(Math.sin(t * 1.6 + i)) * .004; if (p !== penjaga) p.userData.head.rotation.y = Math.sin(t * .7 + i * 2) * .25; });
-    stepPenjaga(t);
+    stepPenjaga(t, dt);
     if (rainLines.visible) stepRain(dt);
     if (flights.length) stepFlights();
     controls.update(); renderer.render(scene, camera);
@@ -494,6 +496,7 @@ export function createWarung(canvas, opts = {}) {
     setView, get view() { return view; },
     setAutoRotate(v) { controls.autoRotate = v; },
     setPaket(v) { paket.visible = v; },
+    get drawerOpen() { return drawerOpen; },   // 0..1 (untuk tes)
     controls, items, pick: pickItem, penjagaAct, highlight, project, badges, syncPeople, syncTray, headPos, resize: resizeTo, frame: step,
     triangles: () => renderer.info.render.triangles,
     rakBensin: rak,

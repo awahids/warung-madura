@@ -72,7 +72,7 @@ export function doHitung() {
   SFX.click();
   if (c.event === 'kasbon') { c.stage = 'kasbon'; return; }
   c.stage = 'pay'; c.given = 0;
-  if (c.change === 0 || G.auto) { if (c.change > 0) toast('Kembalian otomatis dihitung.', '#cfe8ff'); completeSale(c, c.change); }
+  if (c.change === 0 || G.auto) { c.quick = true; if (c.change > 0) toast('Kembalian otomatis dihitung.', '#cfe8ff'); completeSale(c, c.change); }
 }
 export function completeSale(c, given) {
   const gain = c.pay - given;
@@ -82,6 +82,7 @@ export function completeSale(c, given) {
   const fast = c.patience / c.max > .5;
   G.rep = clamp(G.rep + (fast ? 1 : .4), 0, 100);
   c.took = true; c.carry = carryKind(c.order);
+  if (c.quick && ui.mode3d) c.walkAt = 1.1 + QUICK_PAY;   // 3D: sisipkan fase terima uang (laci terbuka) sebelum menyerahkan belanjaan
   G.tray = {}; SFX.coin();
   flt('+' + rp(c.total), 640, 380, '#9dff8c');
   let tip = 0;
@@ -92,6 +93,9 @@ export function completeSale(c, given) {
   sendAway(c);
   checkMissions(); checkWin();
 }
+/** Lama fase "terima uang" (detik) untuk pembayaran tanpa tahap kembalian manual — hanya animasi 3D. */
+export const QUICK_PAY = 1.7;
+
 /** Jenis bawaan pelanggan saat pulang (untuk animasi 3D): barang besar dibawa langsung, selain itu kantong kresek. */
 export function carryKind(order) {
   for (const id of ['galon', 'gas', 'beras']) if (order.some(l => l.id === id)) return id;

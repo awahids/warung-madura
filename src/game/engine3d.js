@@ -58,14 +58,15 @@ export function crowdFromGame(nextId) {
   const out = [];
   const add = (c, leaving) => {
     if (!c.k3) c.k3 = 'c' + nextId();
-    const entering = !leaving && c.state === 'in', leavingMove = leaving && c.leaveT > 1.1;
-    let pose = 'idle';
+    const walkAt = c.walkAt ?? 1.1, takeAt = walkAt - 1.1;           // pembayaran pas: fase "terima uang" dulu, lalu mengambil belanjaan
+    const entering = !leaving && c.state === 'in', leavingMove = leaving && c.leaveT > walkAt;
+    let pose = 'idle', pt = 0;
     if (!leaving && c.stage === 'pay' && c.state === 'wait') pose = 'pay';          // mengulurkan uang
-    else if (leaving && c.took && c.leaveT <= 1.1) pose = 'take';                  // mengambil belanjaan
+    else if (leaving && c.took) { if (c.leaveT < takeAt) pose = 'pay'; else { pose = c.leaveT - takeAt <= 1.1 ? 'take' : 'idle'; pt = c.leaveT - takeAt; } }
     out.push({
       key: c.k3, type: c.type, x: toWorldX(c.x), z: !leaving && c.idx > 0 ? 1.15 : .55,
       moving: entering || leavingMove, dir: leaving ? (c.x < W / 2 ? -1 : 1) : Math.sign((c.tx ?? c.x) - c.x) || 1, turn: 0,
-      pose, pt: leaving ? c.leaveT : 0, carry: leaving && c.took ? c.carry : null,
+      pose, pt, carry: leaving && c.took ? c.carry : null,
     });
   };
   G.cust.forEach(c => add(c, false)); G.leaving.forEach(c => add(c, true));
@@ -73,7 +74,7 @@ export function crowdFromGame(nextId) {
 }
 
 export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = {}) {
-  ui.cv = overlay; setCtx(overlay.getContext('2d'));
+  ui.cv = overlay; ui.mode3d = true; setCtx(overlay.getContext('2d'));
   ui.touch = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
   let scene = null, raf = 0, alive = true, last = 0, t = 0, ro = null, detach = () => { }, prevScreen = null, lookKey = '', idN = 0, pending = null, pressTimer = 0;
   const cleanups = [];
@@ -91,7 +92,7 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
   const ndcOf = () => [mouse.x / W * 2 - 1, -(mouse.y / H * 2 - 1)];
   const overHit = () => ui.hits.some(h => inRect(mouse.x, mouse.y, h.x, h.y, h.w, h.h));
 
-  const syncScene = () => {
+  const syncScene = dt => {
     // pintu, waktu, cuaca
     const playing = G.screen === 'play';
     scene.setDoorFraction(!playing || G.doorState === 'open' ? 1 : G.door);
@@ -104,9 +105,9 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
       prevScreen = G.screen;
       if (G.screen === 'title') { scene.setView('luar'); scene.setAutoRotate(true); } else { scene.setAutoRotate(false); scene.setView('penjaga'); api.view = 'penjaga'; api.onView && api.onView('penjaga'); }
     }
-    scene.syncPeople(playing ? crowdFromGame(() => ++idN) : [], t);
+    scene.syncPeople(playing ? crowdFromGame(() => ++idN) : [], t, dt);
     // nampan: tahan isi saat pelanggan mengulurkan tangan mengambil belanjaan
-    scene.syncTray(playing ? G.tray : {}, playing && G.leaving.some(c => c.took && c.leaveT < .55));
+    scene.syncTray(playing ? G.tray : {}, playing && G.leaving.some(c => c.took && c.leaveT < ((c.walkAt ?? 1.1) - 1.1) + .55));
   };
 
   const hover = () => {
@@ -122,10 +123,10 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
 
   const loop = now => {
     if (!alive) return;
-    const dt = Math.min(.05, (now - last) / 1000); last = now; t += dt;
-    update(dt); syncScene();
+    const raw = (now - last) / 1000, dt = Math.min(.05, raw), rdt = Math.min(.25, raw); last = now; t += dt;   // rdt: waktu nyata untuk pelunakan gerak
+    update(dt); syncScene(rdt);
     const prevHits = ui.hits; ui.hits = prevHits; hover();
-    scene.frame(dt, t);
+    scene.frame(rdt, t);
     ctx.clearRect(0, 0, W, H);
     ui.hits = []; const tip = ui.tooltip; ui.tooltip = tip;
     view.badges = G.screen === 'play' ? scene.badges() : [];
@@ -178,7 +179,7 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
   const api = {
     view: 'luar', onView: null,
     setView(name) { api.view = name; scene && scene.setView(name); api.onView && api.onView(name); },
-    destroy() { alive = false; cancelAnimationFrame(raf); detach(); cleanups.forEach(f => f()); ro && ro.disconnect(); scene && scene.dispose(); IMG.onload = IMG.onerror = null; fx.floats.length = 0; },
+    destroy() { ui.mode3d = false; alive = false; cancelAnimationFrame(raf); detach(); cleanups.forEach(f => f()); ro && ro.disconnect(); scene && scene.dispose(); IMG.onload = IMG.onerror = null; fx.floats.length = 0; },
     get scene() { return scene; },
   };
 

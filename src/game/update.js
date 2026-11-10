@@ -33,7 +33,7 @@ export function update(dt) {
     }
     for (const c of G.leaving) {
       c.leaveT += dt; c.sc = c.sc || 1; c.bob += dt * 5;
-      if (c.leaveT > 1.1) { c.x += (c.x < W / 2 ? -1 : 1) * 380 * dt; c.dir = c.x < W / 2 ? -1 : 1; }
+      if (c.leaveT > (c.walkAt ?? 1.1)) { c.x += (c.x < W / 2 ? -1 : 1) * 380 * dt; c.dir = c.x < W / 2 ? -1 : 1; }
     }
     G.leaving = G.leaving.filter(c => c.x > -160 && c.x < W + 160);
   }

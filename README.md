@@ -25,10 +25,16 @@ hanya tampilannya yang diganti adegan 3D, dengan HUD/balon pesanan/nampan/modal 
 - Klik barang 3D: renteng (kopi, keripik), etalase (rokok), rak bensin, minuman & mie & toples di meja, galon/gas/beras di meja teras; kalkulator = HITUNG, HP, gelas kopi, buku catatan, spanduk promo, kardus kurir.
 - Pintu besi 3D mengikuti `G.door` (tarik/klik); langit, lampu neon, lampu jalan, jendela gedung, dan hujan mengikuti jam game & cuaca.
 - Animasi pelanggan: melangkah ke meja → mengulurkan uang saat membayar → mengambil belanjaan → pergi menenteng kantong (atau membawa galon/gas/karung yang dibeli). Barang yang dipilih pemain terbang dari rak ke nampan di meja.
-- Lengan dua ruas dengan siku (bahu→siku→tangan); lengan penjaga memakai IK sehingga tangan tepat sampai ke sasaran. Mesin kasir dengan laci uang di meja: laci terbuka saat penjaga menerima uang/mengambil kembalian dan menutup saat menyerahkan belanjaan.
+- Lengan dua ruas dengan siku (bahu→siku→tangan); lengan penjaga memakai IK sehingga tangan tepat sampai ke sasaran. Mesin kasir dengan laci uang di meja: laci terbuka saat penjaga menerima uang/mengambil kembalian dan menutup saat menyerahkan belanjaan. Pembayaran pas juga membuka laci (fase "terima uang" ~1,7 dtk khusus tampilan 3D; mode 2D tidak berubah).
 - Animasi penjaga (terlihat dari kamera Luar/Pembeli): tangan menjangkau barang yang diklik, menerima uang saat pelanggan membayar, menyerahkan kantong saat transaksi selesai, mengangkat gelas saat minum kopi, memegang HP; badan menoleh dan maju ke meja.
 - Kamera: Luar / Pembeli / Penjaga (tombol atau tombol keyboard `1` `2` `3`); di layar sentuh tekan-tahan barang menampilkan info.
 - Kode: `src/game/engine3d.js` (jembatan), `src/game/render/overlay3d.js` (UI), `src/scene3d/warung.js` (adegan).
+
+## Karakter 3D
+Buka `#/orang` (tautan **Karakter 3D**) untuk galeri semua tokoh: Pak Haji (koko putih, sarung, peci), Bu Sri (daster bunga, sanggul), Bang Ojol (helm, jaket hijau),
+Mas Dimas (kaos, ransel, celana pendek), Bang Rizky (hoodie, topi), tamu misterius (hoodie hitam, masker), dan penjaga (batik kawung, sarung, peci).
+Dibuat prosedural (`src/scene3d/people.js`): proporsi dewasa ≈1,7 m, wajah (mata, alis, hidung, bibir, telinga, kumis), rambut, kain bertekstur (batik, bunga, kotak-kotak sarung, denim), alas kaki.
+Rangka animasi: pinggul/bahu/siku/leher berporos. Untuk model foto-realistis, taruh GLB sendiri atau gunakan layanan AI berbayar.
 
 ## Warung 3D (prosedural)
 Buka `#/warung` (tautan **Warung 3D** di bawah game): bangunan warung Madura lengkap dibuat lewat kode Three.js, tanpa model eksternal.
