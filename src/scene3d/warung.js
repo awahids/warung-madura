@@ -304,8 +304,8 @@ export function createWarung(canvas, opts = {}) {
     if (act) {
       mode = act.kind;
       if (mode === 'reach') target = (now - act.t0) / act.dur < .5 ? act.a : act.b;
-      else if (mode === 'drink') target = penjaga.localToWorld(new THREE.Vector3(0, 1.5, -.1));
-      else target = penjaga.localToWorld(new THREE.Vector3(0, 1.3, -.3));
+      else if (mode === 'drink') target = penjaga.localToWorld(new THREE.Vector3(0, 1.4, -.22));
+      else target = penjaga.localToWorld(new THREE.Vector3(0, 1.15, -.32));
     } else if (pj.cont) {
       mode = pj.cont.kind; target = pj.cont.target;
       // menerima uang: ambil dari tangan pelanggan, lalu masukkan ke laci & ambil kembalian
@@ -456,8 +456,8 @@ export function createWarung(canvas, opts = {}) {
       e.bill.visible = it.pose === 'pay';
       // target sudut bahu (a) & siku (b); rotation.x positif = terulur/menekuk ke depan (−z)
       let t0 = 0, t1 = 0, u0 = .1, u1 = .1;
-      if (it.pose === 'pay') { t1 = 1.15; u1 = .35; t0 = .15; u0 = .15; }
-      else if (it.pose === 'take') { const p = it.pt / 1.1; if (p < .45) { t0 = 1.2; u0 = .3; t1 = 1.25; u1 = .3; } else if (p < .8) { t0 = .1; u0 = .2; t1 = .5; u1 = .9; } else { t0 = .05; u0 = .15; t1 = .35; u1 = 1.0; } }
+      if (it.pose === 'pay') { t1 = 1.6; u1 = .3; t0 = .15; u0 = .15; }
+      else if (it.pose === 'take') { const p = it.pt / 1.1; if (p < .45) { t0 = 1.6; u0 = .3; t1 = 1.65; u1 = .3; } else if (p < .8) { t0 = .1; u0 = .2; t1 = .5; u1 = .9; } else { t0 = .05; u0 = .15; t1 = .35; u1 = 1.0; } }
       else if (it.moving) { const sw = Math.sin(ph); t0 = -sw * .4; u0 = .2 + Math.max(0, sw) * .2; if (it.carry) { t1 = .35; u1 = 1.05 + sw * .05; } else { t1 = sw * .4; u1 = .2 + Math.max(0, -sw) * .2; } }
       const ka = kdt(.22, dt); e.a0 += (t0 - e.a0) * ka; e.a1 += (t1 - e.a1) * ka; e.b0 += (u0 - e.b0) * ka; e.b1 += (u1 - e.b1) * ka;
       arms[0].rotation.x = e.a0; arms[1].rotation.x = e.a1; elbows[0].rotation.x = e.b0; elbows[1].rotation.x = e.b1;
@@ -471,7 +471,7 @@ export function createWarung(canvas, opts = {}) {
       e.g.userData.torso.rotation.x = -e.lean * .5;
       if (it.pose === 'pay') pj.cont = { kind: 'receive', target: new THREE.Vector3(it.x + .08, 1.12, it.z - e.lean - .5) };
       else if (it.pose === 'take' && it.pt < .8) pj.cont = { kind: 'give', bag: it.pt < .45, target: new THREE.Vector3(it.x + .08, 1.1, it.z - e.lean - .42) };
-      e.head = new THREE.Vector3(it.x, 1.95, it.z - e.lean);
+      e.head = new THREE.Vector3(it.x, 2.08, it.z - e.lean);
       // LOD: detail halus (jari, wajah) hanya untuk orang yang dekat kamera
       const near2 = camera.position.distanceToSquared(e.g.position) < 30;   // ≈ 5,5 m
       if (near2 !== e.detail) { e.detail = near2; for (const m of e.g.userData.fine) m.visible = near2; }
