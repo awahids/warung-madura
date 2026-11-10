@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { pouchGeometry } from './products';
 
-/* Karakter manusia prosedural bergaya chibi 3D (≈1,8 m dengan kepala besar): mata besar berkilau yang berkedip,
+/* Karakter manusia prosedural bergaya chibi 3D (tinggi ≈1,8 m, dua kepala): mata besar berkilau yang berkedip,
    pipi merona, pakaian bermotif (batik, daster bunga, jaket, sarung), alas kaki. Menghadap −z.
    Rangka untuk animasi: legs[] (pivot pinggul), arms[] (pivot bahu) → elbows[] → hands[], torso (pivot pinggang), head (pivot leher). */
 
@@ -73,6 +73,9 @@ const T = {
 };
 
 /* ---------- gaya chibi 3D: kepala besar, mata besar berkilau yang berkedip, pipi merona, badan mungil ---------- */
+export const ARM = .22;                                         // panjang satu ruas lengan (bahu→siku, siku→pergelangan)
+export const SIZE = 1.15;                                      // skala seluruh figur: tinggi ≈1,8 m agar kepala terlihat di atas barang dagangan
+const HS = 1.25;                                                // pembesaran kepala: tinggi badan ≈ dua kepala
 const R = .32;                                                  // jari-jari kepala (≈ sepertiga tinggi badan)
 const HEAD = [R, R * .95, R * .95];                             // setengah sumbu kepala
 const ink = new THREE.MeshBasicMaterial({ color: '#2a1f2e' });  // mata: tinta gelap, tidak terpengaruh cahaya
@@ -87,7 +90,7 @@ const faceZ = (x, y) => -HEAD[2] * Math.sqrt(Math.max(0, 1 - (x / HEAD[0]) ** 2 
 
 /** Tangan bulat ala chibi dengan ibu jari kecil. userData.setCurl(0..1): mengepal saat menggenggam. */
 function makeHand(skin, glove, sx) {
-  const m = mat(glove || skin, .6), h = new THREE.Group(); h.position.y = -.29;   // pergelangan
+  const m = mat(glove || skin, .6), h = new THREE.Group(); h.position.y = -ARM;   // pergelangan
   const palm = place(ell(.066, .068, .066, m), 0, -.025, 0); h.add(palm);
   const thumb = place(ell(.025, .033, .025, m), -sx * .045, -.02, -.042); h.add(thumb);
   h.userData.setCurl = c => { palm.scale.set(.066 - c * .006, .068 - c * .012, .066); thumb.position.y = -.02 - c * .02; };
@@ -148,65 +151,66 @@ function buildHuman(o) {
   const topMat = o.topTex ? new THREE.MeshStandardMaterial({ map: o.topTex(), roughness: .75 }) : mat(o.top);
   const sleeveMat = o.sleeveTex ? new THREE.MeshStandardMaterial({ map: o.sleeveTex(), roughness: .75 }) : topMat;
   const botMat = o.botTex ? new THREE.MeshStandardMaterial({ map: o.botTex(), roughness: .8 }) : mat(o.bottom || '#333');
-  const HIP = .56, belly = o.belly || 0, B = o.build || 1;
+  const HIP = .36, belly = o.belly || 0, B = o.build || 1;
 
   // kaki pendek (pivot pinggul)
   const cover = o.legs === 'skirt' || o.legs === 'sarong';
   const legs = [-.095, .095].map(x => {
     const piv = new THREE.Group(); piv.position.set(x, HIP, 0);
     const up = cover ? skin : botMat, low = o.legs === 'pants' ? botMat : skin;
-    piv.add(place(taper(.098 * B, .09, .24, up, 12), 0, -.11, 0));
-    piv.add(place(taper(.09, .08, .25, low, 12), 0, -.35, 0));
-    if (o.shoe === 'sneaker') { const s = ell(.096, .058, .14, mat(o.shoeColor || '#e8e8e8', .5)); s.position.set(0, -.503, -.04); piv.add(s); }
-    else { piv.add(place(ell(.084, .045, .12, skin), 0, -.5, -.04)); piv.add(place(sh(new THREE.Mesh(new THREE.BoxGeometry(.165, .024, .27), mat(o.shoeColor || '#3a2a1c'))), 0, -.547, -.04)); }
+    piv.add(place(taper(.098 * B, .092, .14, up, 12), 0, -.06, 0));
+    piv.add(place(taper(.092, .084, .16, low, 12), 0, -.21, 0));
+    if (o.shoe === 'sneaker') { const s = ell(.096, .058, .14, mat(o.shoeColor || '#e8e8e8', .5)); s.position.set(0, -.302, -.04); piv.add(s); }
+    else { piv.add(place(ell(.084, .045, .12, skin), 0, -.3, -.04)); piv.add(place(sh(new THREE.Mesh(new THREE.BoxGeometry(.165, .024, .27), mat(o.shoeColor || '#3a2a1c'))), 0, -.347, -.04)); }
     g.add(piv); return piv;
   });
   g.add(place(ell(.192 * B, .1, .15, botMat), 0, HIP, 0));                         // pinggul
 
   // badan atas mungil (pivot pinggang)
   const torso = new THREE.Group(); torso.position.y = HIP; g.add(torso);
-  const prof = [[0, -.03], [.205 * B, -.03], [(.212 + belly) * B, .08], [(.2 + belly) * B, .24], [.178 * B, .4], [.15 * B, .5], [.08, .575], [0, .585]];
-  if (o.legs === 'skirt') prof.splice(0, 2, [0, -.36], [.31, -.36], [.29, -.26], [.235, -.08]);
+  const prof = [[0, -.03], [.205 * B, -.03], [(.212 + belly) * B, .06], [(.2 + belly) * B, .17], [.178 * B, .29], [.15 * B, .36], [.08, .415], [0, .42]];
+  if (o.legs === 'skirt') prof.splice(0, 2, [0, -.24], [.3, -.24], [.28, -.17], [.235, -.06]);
   const tm = lathe(prof, topMat); tm.scale.z = .82; torso.add(tm);
-  if (o.legs === 'sarong') { const sg = lathe([[0, .1], [.214 * B, .1], [.222 * B, 0], [.232, -.2], [.24, -.44], [0, -.44]], botMat, 22); sg.scale.z = .82; sg.position.y = HIP; g.add(sg); }
-  torso.add(place(taper(.058, .066, .08, skin), 0, .6, 0));                              // leher
-  if (o.collar) { const c = sh(new THREE.Mesh(new THREE.TorusGeometry(.074, .017, 6, 18), mat(o.collar))); c.rotation.x = Math.PI / 2; c.position.y = .578; c.scale.y = .8; torso.add(c); }
-  if (o.vneck) [.44, .34, .24].forEach(y => torso.add(place(ell(.014, .014, .008, mat(o.vneck, .4)), 0, y, -(y > .4 ? .136 : y > .3 ? .152 : .166))));   // kancing koko
+  if (o.legs === 'sarong') { const sg = lathe([[0, .08], [.214 * B, .08], [.222 * B, 0], [.232, -.14], [.24, -.27], [0, -.27]], botMat, 22); sg.scale.z = .82; sg.position.y = HIP; g.add(sg); }
+  torso.add(place(taper(.062, .07, .06, skin), 0, .435, 0));                              // leher
+  if (o.collar) { const c = sh(new THREE.Mesh(new THREE.TorusGeometry(.074, .017, 6, 18), mat(o.collar))); c.rotation.x = Math.PI / 2; c.position.y = .418; c.scale.y = .8; torso.add(c); }
+  if (o.vneck) [.32, .25, .18].forEach(y => torso.add(place(ell(.014, .014, .008, mat(o.vneck, .4)), 0, y, -(y > .3 ? .139 : y > .2 ? .155 : .166))));   // kancing koko
 
   // lengan dua ruas
   const long = o.sleeves !== 'short', hands = [], elbows = [];
   const arms = [-1, 1].map(sx => {
-    const piv = new THREE.Group(); piv.position.set(sx * .215 * B, .49, 0); piv.rotation.z = sx * -.1; torso.add(piv);
+    const piv = new THREE.Group(); piv.position.set(sx * .215 * B, .355, 0); piv.rotation.z = sx * -.1; torso.add(piv);
     piv.add(ell(.074, .074, .074, sleeveMat));
-    piv.add(place(taper(.07, .064, .29, sleeveMat), 0, -.15, 0));
-    const el = new THREE.Group(); el.position.y = -.29; piv.add(el); elbows.push(el);
+    piv.add(place(taper(.07, .064, ARM, sleeveMat), 0, -ARM / 2, 0));
+    const el = new THREE.Group(); el.position.y = -ARM; piv.add(el); elbows.push(el);
     el.add(ell(.064, .064, .064, long ? sleeveMat : skin));
-    el.add(place(taper(.064, .056, .27, long ? sleeveMat : skin), 0, -.14, 0));
+    el.add(place(taper(.064, .056, ARM - .02, long ? sleeveMat : skin), 0, -ARM / 2, 0));
     const hd = makeHand(o.skin, o.gloves, sx); el.add(hd); hands.push(hd);
     return piv;
   });
 
   // kepala besar
-  const headG = new THREE.Group(); headG.position.y = .62 + R * .95; torso.add(headG);
-  headG.add(makeHead(o));
-  if (o.peci) { const p = taper(.22, .25, .17, mat(o.peci, .95), 20); p.position.set(0, .335, .025); p.rotation.x = .1; headG.add(p); const band = taper(.253, .253, .024, std('#c9a640', { metalness: .3 }), 20); band.position.set(0, .265, .018); band.rotation.x = .1; headG.add(band); }
+  const headG = new THREE.Group(); headG.position.y = .45 + R * .95 * HS; torso.add(headG);
+  const hs = new THREE.Group(); hs.scale.setScalar(HS); headG.add(hs);   // semua bagian kepala dibuat pada ukuran R lalu diperbesar
+  hs.add(makeHead(o));
+  if (o.peci) { const p = taper(.22, .25, .17, mat(o.peci, .95), 20); p.position.set(0, .335, .025); p.rotation.x = .1; hs.add(p); const band = taper(.253, .253, .024, std('#c9a640', { metalness: .3 }), 20); band.position.set(0, .265, .018); band.rotation.x = .1; hs.add(band); }
   if (o.cap) {
-    const cr = R * 1.13, d = dome(cr, Math.PI * .5, mat(o.cap)); d.position.set(0, .03, .012); d.rotation.x = .25; headG.add(d);
-    const brim = sh(new THREE.Mesh(new THREE.CylinderGeometry(.2, .2, .018, 16, 1, false, Math.PI * .5, Math.PI), mat(o.cap))); brim.position.set(0, .03 + cr * .25, .03 - cr * .93); brim.rotation.x = .2; brim.scale.z = 1.1; headG.add(brim);
+    const cr = R * 1.13, d = dome(cr, Math.PI * .5, mat(o.cap)); d.position.set(0, .03, .012); d.rotation.x = .25; hs.add(d);
+    const brim = sh(new THREE.Mesh(new THREE.CylinderGeometry(.2, .2, .018, 16, 1, false, Math.PI * .5, Math.PI), mat(o.cap))); brim.position.set(0, .03 + cr * .25, .03 - cr * .93); brim.rotation.x = .2; brim.scale.z = 1.1; hs.add(brim);
   }
   if (o.helmet) {
     const hm = std(o.helmet, { roughness: .2, metalness: .2 }), hr = R * 1.16;
-    const top = dome(hr, Math.PI * .5, hm, 20); top.position.set(0, .02, .012); top.rotation.x = .16; headG.add(top);
-    const side = shell(hr, false, Math.PI * 1.34, Math.PI * .46, Math.PI * .3, hm); side.position.set(0, .02, .012); headG.add(side);
-    const visor = shell(hr * 1.02, true, Math.PI * .7, .74, .3, std('#0e1216', { roughness: .08, metalness: .6, side: THREE.DoubleSide })); visor.position.set(0, .03, .012); headG.add(visor);   // visor terangkat
-    headG.add(place(sh(new THREE.Mesh(new THREE.BoxGeometry(.03, .02, .46), mat('#f4f4f4'))), 0, hr - .004, .07));                // garis helm
+    const top = dome(hr, Math.PI * .5, hm, 20); top.position.set(0, .02, .012); top.rotation.x = .16; hs.add(top);
+    const side = shell(hr, false, Math.PI * 1.34, Math.PI * .46, Math.PI * .3, hm); side.position.set(0, .02, .012); hs.add(side);
+    const visor = shell(hr * 1.02, true, Math.PI * .7, .74, .3, std('#0e1216', { roughness: .08, metalness: .6, side: THREE.DoubleSide })); visor.position.set(0, .03, .012); hs.add(visor);   // visor terangkat
+    hs.add(place(sh(new THREE.Mesh(new THREE.BoxGeometry(.03, .02, .46), mat('#f4f4f4'))), 0, hr - .004, .07));                // garis helm
   }
   if (o.hood) {
     const hm = mat(o.hood, .9), hr = R * 1.14;
-    const hd = dome(hr, Math.PI * .6, hm, 20); hd.position.set(0, .012, .03); hd.rotation.x = .42; headG.add(hd);
-    const back = shell(hr, false, Math.PI * 1.36, Math.PI * .5, Math.PI * .36, hm); back.position.set(0, .012, .03); headG.add(back);
+    const hd = dome(hr, Math.PI * .6, hm, 20); hd.position.set(0, .012, .03); hd.rotation.x = .42; hs.add(hd);
+    const back = shell(hr, false, Math.PI * 1.36, Math.PI * .5, Math.PI * .36, hm); back.position.set(0, .012, .03); hs.add(back);
   }
-  if (o.mask) { const mk = shell(R * 1.03, true, 1.7, 1.74, .8, mat('#0c0c0e', .9)); mk.scale.set(1, .95, .95); headG.add(mk); }
+  if (o.mask) { const mk = shell(R * 1.03, true, 1.7, 1.74, .8, mat('#0c0c0e', .9)); mk.scale.set(1, .95, .95); hs.add(mk); }
   if (o.deliveryBox) {   // tas boks pengantar makanan di punggung
     const bx = new THREE.Group(), body = mat(o.deliveryBox, .55);
     bx.add(sh(new THREE.Mesh(new THREE.BoxGeometry(.38, .36, .3), body)));
@@ -217,17 +221,17 @@ function buildHuman(o) {
     bx.add(place(new THREE.Mesh(new THREE.BoxGeometry(.012, .26, .012), tape), .14, 0, .152));
     bx.add(place(new THREE.Mesh(new THREE.CircleGeometry(.065, 20), mat('#f4f4f4', .4)), 0, .025, .1525));
     bx.add(place(new THREE.Mesh(new THREE.CircleGeometry(.032, 20), body), 0, .025, .1535));
-    bx.position.set(0, .3, .3); torso.add(bx);
-    [-1, 1].forEach(sx => torso.add(place(sh(new THREE.Mesh(new THREE.BoxGeometry(.036, .3, .02), mat('#16161a'))), sx * .095, .36, -.146)));
+    bx.scale.setScalar(.85); bx.position.set(0, .2, .28); torso.add(bx);
+    [-1, 1].forEach(sx => torso.add(place(sh(new THREE.Mesh(new THREE.BoxGeometry(.036, .2, .02), mat('#16161a'))), sx * .095, .27, -.15)));
   }
   if (o.backpack) {
     const bp = new THREE.Group(); bp.add(sh(new THREE.Mesh(new THREE.BoxGeometry(.27, .32, .13), mat(o.backpack, .7))));
     bp.add(place(sh(new THREE.Mesh(new THREE.BoxGeometry(.19, .12, .03), mat('#1c1c20'))), 0, -.05, .08));
-    bp.position.set(0, .3, .2); torso.add(bp);
-    [-1, 1].forEach(sx => torso.add(place(sh(new THREE.Mesh(new THREE.BoxGeometry(.03, .28, .02), mat('#1c1c20'))), sx * .095, .36, -.146)));
+    bp.scale.setScalar(.85); bp.position.set(0, .2, .2); torso.add(bp);
+    [-1, 1].forEach(sx => torso.add(place(sh(new THREE.Mesh(new THREE.BoxGeometry(.03, .2, .02), mat('#1c1c20'))), sx * .095, .27, -.15)));
   }
   g.userData = { legs, arms, elbows, hands, torso, head: headG };
-  if (o.scale) g.scale.setScalar(o.scale);
+  g.scale.setScalar((o.scale || 1) * SIZE);
   // hemat biaya bayangan: bagian kecil tidak melempar/menerima bayangan; yang sangat kecil disembunyikan saat jauh (LOD)
   const fine = [];
   g.traverse(m => { if (m.isMesh) { m.geometry.computeBoundingSphere(); const r = m.geometry.boundingSphere.radius * Math.max(m.scale.x, m.scale.y, m.scale.z); if (r < .055) { m.castShadow = false; m.receiveShadow = false; } if (r < .02) fine.push(m); } });

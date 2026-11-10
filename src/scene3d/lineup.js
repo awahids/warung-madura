@@ -15,8 +15,8 @@ export function createLineup(canvas) {
   const sun = new THREE.DirectionalLight('#fff1d6', 3); sun.position.set(3, 6, 5); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
   Object.assign(sun.shadow.camera, { left: -6, right: 6, top: 4, bottom: -2, near: 1, far: 20 }); scene.add(sun);
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(40, 20), new THREE.MeshStandardMaterial({ color: '#a7a59d', roughness: .95 })); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
-  const people = CAST.map(([type], i) => { const p = personFor(type); p.position.set((i - (CAST.length - 1) / 2) * .95, 0, 0); p.rotation.y = Math.PI; scene.add(p); return p; });
-  const VIEWS = { depan: [[0, 1.25, 7.6], [0, .95, 0]], dekat: [[-2.1, 1.5, 2.6], [-2.1, 1.35, 0]], samping: [[6.5, 1.3, 2.5], [0, .95, 0]], 'ojol depan': [[-.45, 1.35, 2.7], [-.95, 1.0, 0]], 'ojol belakang': [[-1.8, 1.45, -2.7], [-.95, 1.0, 0]], 'wajah haji': [[-2.85, 1.56, 1.7], [-2.85, 1.52, 0]], 'wajah ibu': [[-1.9, 1.46, 1.6], [-1.9, 1.43, 0]], 'wajah ojol': [[-.95, 1.56, 1.7], [-.95, 1.52, 0]], tangan: [[-.78, .86, .5], [-.22, .78, 0]] };
+  const people = CAST.map(([type], i) => { const p = personFor(type); p.position.set((i - (CAST.length - 1) / 2) * 1.2, 0, 0); p.rotation.y = Math.PI; scene.add(p); return p; });
+  const VIEWS = { depan: [[0, 1.15, 9.4], [0, .92, 0]], dekat: [[-3, 1.3, 3.3], [-3, 1.15, 0]], samping: [[8, 1.4, 3], [0, .92, 0]], 'ojol depan': [[-.6, 1.2, 3.2], [-1.2, .92, 0]], 'ojol belakang': [[-2.2, 1.3, -3.2], [-1.2, .92, 0]], 'wajah haji': [[-3.6, 1.42, 2.3], [-3.6, 1.38, 0]], 'wajah ibu': [[-2.4, 1.31, 2.2], [-2.4, 1.27, 0]], 'wajah ojol': [[-1.2, 1.42, 2.3], [-1.2, 1.38, 0]], tangan: [[-.85, .63, 1.0], [-.3, .48, 0]] };
   const setView = n => { const [p, t] = VIEWS[n] || VIEWS.depan; camera.position.set(...p); controls.target.set(...t); };
   setView('depan');
   const resize = () => { const r = canvas.parentElement.getBoundingClientRect(); renderer.setSize(r.width, r.height, false); camera.aspect = r.width / r.height; camera.updateProjectionMatrix(); };

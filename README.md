@@ -35,9 +35,10 @@ hanya tampilannya yang diganti adegan 3D, dengan HUD/balon pesanan/nampan/modal 
 ## Karakter 3D
 Buka `#/orang` (tautan **Karakter 3D**) untuk galeri semua tokoh: Pak Haji (koko putih, sarung, peci), Bu Sri (daster bunga, sanggul), Bang Ojol (helm hijau, jaket hijau berpita reflektif, celana hitam, sneakers, tas boks pengantar makanan di punggung; ada sudut kamera khusus depan/belakang),
 Mas Dimas (kaos, ransel, celana pendek), Bang Rizky (hoodie, topi), tamu misterius (hoodie hitam, masker), dan penjaga (batik kawung, sarung, peci).
-Dibuat prosedural (`src/scene3d/people.js`) dengan gaya **chibi 3D**: kepala besar (≈ sepertiga tinggi badan), mata besar berkilau yang berkedip, pipi merona, mulut tersenyum, badan dan kaki pendek-gempal, tangan bulat.
+Dibuat prosedural (`src/scene3d/people.js`) dengan gaya **chibi 3D**: proporsi dua kepala seperti karakter kantor noskill (kepala ≈ setengah tinggi badan, tinggi total ≈1,8 m), mata besar berkilau yang berkedip, pipi merona, mulut tersenyum, badan dan kaki pendek-gempal, tangan bulat.
 Ciri tiap tokoh tetap: kain bertekstur (batik, bunga, kotak-kotak sarung, jaket berpita reflektif), peci, helm, topi, tudung + masker, kacamata, kumis, sanggul, ransel, tas boks.
 Rangka animasi tidak berubah: pinggul/bahu/siku/leher berporos, tangan mengepal saat menggenggam kantong/uang.
+Karena badannya pendek, pelanggan mengangkat tangan ke samping kepala saat membayar/mengambil belanjaan, dan penjaga berdiri di atas dingklik di balik meja kasir.
 
 ## Warung 3D (prosedural)
 Buka `#/warung` (tautan **Warung 3D** di bawah game): bangunan warung Madura lengkap dibuat lewat kode Three.js, tanpa model eksternal.
