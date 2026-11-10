@@ -17,8 +17,8 @@ const center = (g, text, x, y, size, fill, stroke) => {
 
 /* ---------- geometri ---------- */
 /** Kantong bantal: dua sisi menggembung, tepi atas/bawah menyempit (bagian segel). */
-export function pouchGeometry(w, h, d) {
-  const front = new THREE.PlaneGeometry(w, h, 8, 14), p = front.attributes.position;
+export function pouchGeometry(w, h, d, sx = 5, sy = 8) {
+  const front = new THREE.PlaneGeometry(w, h, sx, sy), p = front.attributes.position;
   for (let i = 0; i < p.count; i++) {
     const u = p.getX(i) / w + .5, v = p.getY(i) / h + .5;
     const sealed = v < .08 || v > .92 ? .12 : 1;                       // segel atas-bawah hampir datar
@@ -29,7 +29,7 @@ export function pouchGeometry(w, h, d) {
   const back = front.clone(); back.rotateY(Math.PI);
   return mergeGeometries([front, back]);
 }
-const lathe = pts => new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), 20);
+const lathe = pts => new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), 14);
 
 /* ---------- tekstur kemasan ---------- */
 function crimp(g, w, h) {   // segel bergerigi atas & bawah
@@ -115,14 +115,14 @@ export function createStock() {
   const bins = new Map();
   return {
     add(key, x, y, z, ry = 0, tilt = 0) { (bins.get(key) || bins.set(key, []).get(key)).push([x, y, z, ry, tilt]); return this; },
-    build() {
+    build(cast = true) {
       const g = new THREE.Group(), m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), one = new THREE.Vector3(1, 1, 1), p = new THREE.Vector3();
       for (const [key, list] of bins) {
         const { geo, mat: mt } = def(key), inst = new THREE.InstancedMesh(geo, mt, list.length);
         // geometri "bantal"/lathe berpusat di tengah-bawah berbeda; offset y agar alas di y=0
         geo.computeBoundingBox(); const lift = -geo.boundingBox.min.y;
         list.forEach(([x, y, z, ry, tilt], i) => { e.set(tilt, ry, 0); q.setFromEuler(e); m.compose(p.set(x, y + lift, z), q, one); inst.setMatrixAt(i, m); });
-        inst.castShadow = true; inst.receiveShadow = true; g.add(inst);
+        inst.castShadow = cast; inst.receiveShadow = true; g.add(inst);
       }
       return g;
     },
@@ -153,7 +153,7 @@ export function fillWallShelf(scene, cx, boards, W = 1.25, zBack = -3.02) {
       s.add(k, x, y + .0175, zBack - .05 + row * .13, rnd(-.12, .12));
     }
   });
-  scene.add(s.build());
+  scene.add(s.build(false));   // rak belakang: tanpa bayangan (hemat)
 }
 
 /**
@@ -164,9 +164,9 @@ export function hangingStrips(kind, x0, count = 8, top = 2.33, perStrip = 6) {
   const variants = kind === 'kopi'
     ? [kopiTex('HITAM', '#4a2a12', '#2a1608'), kopiTex('SUSU', '#c89b64', '#7a4a22'), kopiTex('GULA', '#8a5a2a', '#4a2a12', '#ffe9b0'), kopiTex('JAHE', '#d98a2c', '#8a4a10')]
     : [snackTex('KERIPIK', '#d63b2f', '#8a1f18', '#f6c744'), snackTex('JAGUNG', '#f6c744', '#c98a14', '#fff1a8'), snackTex('COKLAT', '#7a4a2a', '#3a1f10', '#f0c8a0'), snackTex('BALADO', '#e8662a', '#a03a10', '#ffd27a')];
-  const geo = pouchGeometry(.09, .13, .03), g = new THREE.Group();
+  const geo = pouchGeometry(.09, .13, .03, 4, 6), g = new THREE.Group();
   const mats = variants.map(map => new THREE.MeshStandardMaterial({ map, roughness: .45, side: THREE.DoubleSide }));
-  const per = Math.ceil(count * perStrip / variants.length), insts = mats.map(m => { const i = new THREE.InstancedMesh(geo, m, per + 4); i.count = 0; i.castShadow = true; return i; });
+  const per = Math.ceil(count * perStrip / variants.length), insts = mats.map(m => { const i = new THREE.InstancedMesh(geo, m, per + 4); i.count = 0; i.castShadow = false; return i; });
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), one = new THREE.Vector3(1, 1, 1), p = new THREE.Vector3(), strings = [];
   let n = 0;
   for (let i = 0; i < count; i++) {

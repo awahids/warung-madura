@@ -267,6 +267,7 @@ export function createWarung(canvas, opts = {}) {
   /* ---------- animasi penjaga: menjangkau barang, menerima uang (laci), menyerahkan kantong, minum, main HP ---------- */
   const angDiff = (a, b) => Math.atan2(Math.sin(b - a), Math.cos(b - a));
   const PJ_Z = -1.3, pj = { cont: null, timed: null, yaw: Math.PI, lean: 0, lastKind: null, contT0: 0 };
+  const pjHand = penjaga.userData.hands[1]; let pjGrip = .28;
   const pjArm = penjaga.userData.arms[1], pjElbow = penjaga.userData.elbows[1], pjTorso = penjaga.userData.torso, pjHead = penjaga.userData.head;
   const restQ = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, -.1)), downV = new THREE.Vector3(0, -1, 0), tmpQ = new THREE.Quaternion();
   const L1 = .29, L2 = .29, clampN = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -314,6 +315,9 @@ export function createWarung(canvas, opts = {}) {
     const drawerT = !act && mode === 'receive' && since > .7 ? 1 : 0;
     drawerOpen += (drawerT - drawerOpen) * kdt(.14, dt); drawer.position.z = -drawerOpen * .2;
     holds.bag.visible = mode === 'give' && !!pj.cont && pj.cont.bag; holds.mug.visible = mode === 'drink'; holds.phone.visible = mode === 'phone';
+    // jari: terbuka saat menjangkau/menerima, menggenggam saat memegang kantong/gelas/HP
+    const gripT = mode === 'give' ? (pj.cont && pj.cont.bag ? .9 : .15) : mode === 'drink' ? .8 : mode === 'phone' ? .65 : mode === 'receive' ? (since < .9 ? .1 : .55) : mode === 'reach' ? .12 : .28;
+    pjGrip += (gripT - pjGrip) * kdt(.25, dt); pjHand.userData.setCurl(pjGrip);
     if (target) aimArm(target, kdt(.22, dt)); else { pjArm.quaternion.slerp(restQ, kdt(.15, dt)); pjElbow.rotation.x += (.18 - pjElbow.rotation.x) * kdt(.15, dt); }
     Object.values(holds).forEach(h => { if (h.visible) keepUpright(h, penjaga); });
     // badan: menoleh ke sasaran, maju ke meja saat transaksi
@@ -430,7 +434,7 @@ export function createWarung(canvas, opts = {}) {
       if (!e) {
         const g = personFor(it.type); g.position.set(it.x, 0, it.z); scene.add(g);
         const bill = makeBill(); bill.position.set(0, -.33, -.05); bill.rotation.x = Math.PI / 2; bill.visible = false; g.userData.elbows[1].add(bill);
-        e = { g, bill, ang: it.moving ? (it.dir > 0 ? -Math.PI / 2 : Math.PI / 2) : 0, lean: 0, a0: 0, a1: 0, b0: 0, b1: 0, holder: null, holderKind: null }; crowd.set(it.key, e);
+        e = { g, bill, ang: it.moving ? (it.dir > 0 ? -Math.PI / 2 : Math.PI / 2) : 0, lean: 0, a0: 0, a1: 0, b0: 0, b1: 0, g0: .28, g1: .28, holder: null, holderKind: null }; crowd.set(it.key, e);
       }
       seen.add(it.key);
       const want = it.moving ? (it.dir > 0 ? -Math.PI / 2 : Math.PI / 2) : (it.turn ?? 0);
@@ -455,6 +459,10 @@ export function createWarung(canvas, opts = {}) {
       const ka = kdt(.22, dt); e.a0 += (t0 - e.a0) * ka; e.a1 += (t1 - e.a1) * ka; e.b0 += (u0 - e.b0) * ka; e.b1 += (u1 - e.b1) * ka;
       arms[0].rotation.x = e.a0; arms[1].rotation.x = e.a1; elbows[0].rotation.x = e.b0; elbows[1].rotation.x = e.b1;
       if (e.holder) e.holder.rotation.x = -(e.a1 + e.b1);   // bawaan tetap menggantung tegak
+      // jari: menggenggam bawaan, memegang uang saat membayar, terbuka saat menjulur mengambil
+      const reach = it.pose === 'take' && it.pt / 1.1 < .45;
+      const g1T = showHold ? .9 : it.pose === 'pay' ? .55 : reach ? .08 : .28, g0T = reach ? .08 : .28, kg = kdt(.25, dt);
+      e.g0 += (g0T - e.g0) * kg; e.g1 += (g1T - e.g1) * kg; e.g.userData.hands[0].userData.setCurl(e.g0); e.g.userData.hands[1].userData.setCurl(e.g1);
       if (it.moving) { legs[0].rotation.x = Math.sin(ph) * .55; legs[1].rotation.x = -Math.sin(ph) * .55; e.g.position.y = Math.abs(Math.sin(ph)) * .03; }
       else { legs[0].rotation.x *= 1 - kdt(.2, dt); legs[1].rotation.x *= 1 - kdt(.2, dt); e.g.position.y = Math.abs(Math.sin(t * 1.6 + it.key.length)) * .004; head.rotation.y = near ? head.rotation.y * (1 - kdt(.2, dt)) : Math.sin(t * .7 + it.key.length) * .25; }
       e.g.userData.torso.rotation.x = -e.lean * .5;
@@ -497,6 +505,14 @@ export function createWarung(canvas, opts = {}) {
     setAutoRotate(v) { controls.autoRotate = v; },
     setPaket(v) { paket.visible = v; },
     get drawerOpen() { return drawerOpen; },   // 0..1 (untuk tes)
+    /** Diagnostik: 15 mesh terberat (segitiga × instans) — untuk memantau anggaran HP. */
+    heavy() {
+      const rows = [];
+      scene.traverse(o => { if (o.isMesh && o.geometry) { const g = o.geometry, tri = (g.index ? g.index.count : g.attributes.position.count) / 3 * (o.isInstancedMesh ? o.count : 1); rows.push([Math.round(tri), o.isInstancedMesh ? 'instanced' : 'mesh', g.type, o.parent && o.parent.userData && o.parent.userData.act ? o.parent.userData.act.id : '']); } });
+      const total = rows.reduce((a, r) => a + r[0], 0);
+      const byType = {}; rows.forEach(r => { byType[r[2]] = (byType[r[2]] || 0) + r[0]; });
+      return { total, byType: Object.entries(byType).sort((a, b) => b[1] - a[1]).slice(0, 10), top: rows.sort((a, b) => b[0] - a[0]).slice(0, 12) };
+    },
     controls, items, pick: pickItem, penjagaAct, highlight, project, badges, syncPeople, syncTray, headPos, resize: resizeTo, frame: step,
     triangles: () => renderer.info.render.triangles,
     rakBensin: rak,

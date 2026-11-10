@@ -16,7 +16,7 @@ export function createLineup(canvas) {
   Object.assign(sun.shadow.camera, { left: -6, right: 6, top: 4, bottom: -2, near: 1, far: 20 }); scene.add(sun);
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(40, 20), new THREE.MeshStandardMaterial({ color: '#a7a59d', roughness: .95 })); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
   const people = CAST.map(([type], i) => { const p = personFor(type); p.position.set((i - (CAST.length - 1) / 2) * .95, 0, 0); p.rotation.y = Math.PI; scene.add(p); return p; });
-  const VIEWS = { depan: [[0, 1.25, 7.6], [0, .95, 0]], dekat: [[-2.1, 1.62, 2.3], [-2.1, 1.5, 0]], samping: [[6.5, 1.3, 2.5], [0, .95, 0]], 'ojol depan': [[-.45, 1.35, 2.7], [-.95, 1.0, 0]], 'ojol belakang': [[-1.8, 1.45, -2.7], [-.95, 1.0, 0]] };
+  const VIEWS = { depan: [[0, 1.25, 7.6], [0, .95, 0]], dekat: [[-2.1, 1.62, 2.3], [-2.1, 1.5, 0]], samping: [[6.5, 1.3, 2.5], [0, .95, 0]], 'ojol depan': [[-.45, 1.35, 2.7], [-.95, 1.0, 0]], 'ojol belakang': [[-1.8, 1.45, -2.7], [-.95, 1.0, 0]], 'wajah haji': [[-2.85, 1.64, 1.0], [-2.85, 1.6, 0]], 'wajah ibu': [[-1.9, 1.56, .95], [-1.9, 1.53, 0]], 'wajah ojol': [[-.95, 1.62, 1.0], [-.95, 1.6, 0]], tangan: [[-.78, .86, .5], [-.22, .78, 0]] };
   const setView = n => { const [p, t] = VIEWS[n] || VIEWS.depan; camera.position.set(...p); controls.target.set(...t); };
   setView('depan');
   const resize = () => { const r = canvas.parentElement.getBoundingClientRect(); renderer.setSize(r.width, r.height, false); camera.aspect = r.width / r.height; camera.updateProjectionMatrix(); };
@@ -28,5 +28,5 @@ export function createLineup(canvas) {
     controls.update(); renderer.render(scene, camera); raf = requestAnimationFrame(loop);
   };
   loop();
-  return { setView, dispose() { alive = false; cancelAnimationFrame(raf); ro.disconnect(); controls.dispose(); scene.traverse(o => { o.geometry && o.geometry.dispose(); }); renderer.dispose(); } };
+  return { triangles: () => renderer.info.render.triangles, setView, dispose() { alive = false; cancelAnimationFrame(raf); ro.disconnect(); controls.dispose(); scene.traverse(o => { o.geometry && o.geometry.dispose(); }); renderer.dispose(); } };
 }

@@ -8,9 +8,9 @@ const glass = (color, opacity = .55) => new THREE.MeshPhysicalMaterial({
   color, transparent: true, opacity, roughness: .08, metalness: 0, clearcoat: 1, side: THREE.DoubleSide, depthWrite: false,
 });
 const shadowed = m => { m.castShadow = true; m.receiveShadow = true; return m; };
-const lathe = (pts, material, seg = 40) => shadowed(new THREE.Mesh(new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), seg), material));
+const lathe = (pts, material, seg = 24) => shadowed(new THREE.Mesh(new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), seg), material));
 const cyl = (r, h, material, y = 0, seg = 32) => { const m = shadowed(new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, seg), material)); m.position.y = y + h / 2; return m; };
-const torus = (r, tube, material, y) => { const m = shadowed(new THREE.Mesh(new THREE.TorusGeometry(r, tube, 8, 40), material)); m.rotation.x = Math.PI / 2; m.position.y = y; return m; };
+const torus = (r, tube, material, y) => { const m = shadowed(new THREE.Mesh(new THREE.TorusGeometry(r, tube, 5, 22), material)); m.rotation.x = Math.PI / 2; m.position.y = y; return m; };
 
 function textTexture(lines, { w = 256, h = 128, bg = '#fff', fg = '#111', accent } = {}) {
   const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d');

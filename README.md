@@ -34,6 +34,7 @@ hanya tampilannya yang diganti adegan 3D, dengan HUD/balon pesanan/nampan/modal 
 Buka `#/orang` (tautan **Karakter 3D**) untuk galeri semua tokoh: Pak Haji (koko putih, sarung, peci), Bu Sri (daster bunga, sanggul), Bang Ojol (helm hijau, jaket hijau berpita reflektif, celana hitam, sneakers, tas boks pengantar makanan di punggung; ada sudut kamera khusus depan/belakang),
 Mas Dimas (kaos, ransel, celana pendek), Bang Rizky (hoodie, topi), tamu misterius (hoodie hitam, masker), dan penjaga (batik kawung, sarung, peci).
 Dibuat prosedural (`src/scene3d/people.js`): proporsi dewasa ≈1,7 m, wajah (mata, alis, hidung, bibir, telinga, kumis), rambut, kain bertekstur (batik, bunga, kotak-kotak sarung, denim), alas kaki.
+Detail: tangan berjari (telapak, 4 jari × 3 ruas, ibu jari; bisa menggenggam kantong/uang), wajah (rahang & dagu, kelopak, bulu mata, iris bersorot, alis melengkung, hidung bersayap, bibir atas/bawah, kerutan & kacamata untuk Pak Haji, cambang/kumis/janggut tipis), rambut dari helai bertekstur (poni, cambang, belahan, sanggul bertali).
 Rangka animasi: pinggul/bahu/siku/leher berporos. Untuk model foto-realistis, taruh GLB sendiri atau gunakan layanan AI berbayar.
 
 ## Warung 3D (prosedural)
