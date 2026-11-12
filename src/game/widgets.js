@@ -20,7 +20,7 @@ export function button(x, y, w, h, label, fn, o = {}) {
   ctx.fillStyle = 'rgba(255,255,255,.22)'; rr(ctx, x + 4, y + 3, w - 8, h * .36, 7); ctx.fill();
   T(label, x + w / 2, y + h / 2 + (o.s || 18) * .34, { s: o.s || 18, a: 'center', c: dis ? '#d6d6d6' : (o.tc || '#fff'), stroke: 'rgba(0,0,0,.45)', sw: 3 });
   ctx.restore();
-  if (!dis) { hit(x, y, w, h, () => { SFX.click(); fn(); }, o.tip); if (hv && o.tip) ui.tooltip = o.tip; }
+  if (!dis) { const pad = o.pad ?? (ui.touch ? 4 : 0); hit(x - pad, y - pad, w + 2 * pad, h + 2 * pad, () => { SFX.click(); fn(); }, o.tip); if (hv && o.tip) ui.tooltip = o.tip; }
 }
 export function panel(x, y, w, h, o = {}) {
   ctx.fillStyle = 'rgba(0,0,0,.4)'; rr(ctx, x + 4, y + 8, w, h, 16); ctx.fill();

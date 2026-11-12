@@ -10,6 +10,8 @@ import { isRain } from './logic/day.js';
 import { ITEM_LVL, itemOn } from './logic/level.js';
 import { attachInput } from './input.js';
 import { loadSave } from './persist.js';
+import { autoDowngrade, effectiveQuality, onQuality } from './quality.js';
+import { toast } from './widgets.js';
 import { darkness, skyAt } from './render/background.js';
 import { drawOverlay3D } from './render/overlay3d.js';
 import { canAct } from './sprites.js';
@@ -127,10 +129,19 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
 
   const view = { badges: [], headOf: c => { const hp = c.k3 && scene.headPos(c.k3); return hp ? scene.project(hp) : null; } };
 
+  // mode otomatis: ukur FPS rata-rata ±3 detik setelah main dimulai; di bawah ~28 fps → turun ke grafis Rendah (diingat)
+  let fpsN = 0, fpsSum = 0, fpsDone = false;
+  const fpsWatch = rdt => {
+    if (fpsDone || G.screen !== 'play' || document.hidden || ui.modal) return;
+    if (++fpsN <= 40) return;                                   // abaikan pemanasan (kompilasi shader)
+    fpsSum += rdt;
+    if (fpsN >= 40 + 150) { fpsDone = true; if (fpsSum / 150 > 1 / 28 && autoDowngrade()) toast('Grafis diturunkan otomatis agar lancar. Ubah di menu Jeda.', '#cfe8ff'); }
+  };
   const loop = now => {
     if (!alive) return;
     const raw = (now - last) / 1000, dt = Math.min(.05, raw), rdt = Math.min(.25, raw); last = now; t += dt;   // rdt: waktu nyata untuk pelunakan gerak
     update(dt); syncScene(rdt);
+    fpsWatch(rdt);
     const prevHits = ui.hits; ui.hits = prevHits; hover();
     scene.frame(rdt, t);
     ctx.clearRect(0, 0, W, H);
@@ -144,6 +155,7 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
 
   const start = () => {
     scene = createWarung(glCanvas, { game: true, controlsEl: overlay });
+    scene.setQuality(effectiveQuality()); onQuality(q => scene && scene.setQuality(q));
     if (import.meta.env.DEV) window.__game3d = { G, ui, scene, runAct, ...customersApi, ...dayApi }; // hanya debug/tes UI
     scene.controls.enablePan = false;
     makeIcons(); ui.hasSave = !!loadSave();
@@ -185,7 +197,7 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
   const api = {
     view: 'luar', onView: null,
     setView(name) { api.view = name; scene && scene.setView(name); api.onView && api.onView(name); },
-    destroy() { ui.mode3d = false; alive = false; cancelAnimationFrame(raf); detach(); cleanups.forEach(f => f()); ro && ro.disconnect(); scene && scene.dispose(); IMG.onload = IMG.onerror = null; fx.floats.length = 0; },
+    destroy() { ui.mode3d = false; onQuality(null); alive = false; cancelAnimationFrame(raf); detach(); cleanups.forEach(f => f()); ro && ro.disconnect(); scene && scene.dispose(); IMG.onload = IMG.onerror = null; fx.floats.length = 0; },
     get scene() { return scene; },
   };
 

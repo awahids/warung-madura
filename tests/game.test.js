@@ -403,3 +403,17 @@ describe('tahap E: kartu bab & pencapaian', () => {
     S.changeTrust(.5); expect(fx.floats).toHaveLength(0); S.changeTrust(3); expect(fx.floats.at(-1).s).toBe('Percaya +3'); S.changeTrust(-2); expect(fx.floats.at(-1).s).toBe('Percaya −2');
   });
 });
+
+describe('kualitas grafis', () => {
+  it('otomatis mulai Tinggi, turun ke Rendah sekali dan diingat; pilihan manual menimpa', async () => {
+    const mem = {}; vi.stubGlobal('localStorage', { setItem: (k, v) => { mem[k] = v; }, getItem: k => mem[k] ?? null, removeItem: k => { delete mem[k]; } });
+    vi.resetModules(); const Q = await import('../src/game/quality'); const seen = []; Q.onQuality(q => seen.push(q));
+    expect(Q.qualityPref()).toBe('auto'); expect(Q.effectiveQuality()).toBe('high'); expect(Q.qualityLabel()).toBe('Otomatis (Tinggi)');
+    expect(Q.autoDowngrade()).toBe(true); expect(Q.effectiveQuality()).toBe('low'); expect(Q.qualityLabel()).toBe('Otomatis (Rendah)'); expect(Q.autoDowngrade()).toBe(false);
+    expect(Q.cycleQuality()).toBe('high'); expect(Q.effectiveQuality()).toBe('high'); expect(Q.autoDowngrade()).toBe(false);   // manual: tidak diturunkan otomatis
+    expect(Q.cycleQuality()).toBe('low'); expect(Q.effectiveQuality()).toBe('low'); expect(Q.qualityLabel()).toBe('Rendah');
+    expect(Q.cycleQuality()).toBe('auto'); expect(Q.effectiveQuality()).toBe('high');                                          // kembali ke otomatis → diuji ulang
+    expect(seen).toEqual(['low', 'high', 'low', 'high']);
+    vi.unstubAllGlobals();
+  });
+});

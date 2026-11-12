@@ -26,7 +26,8 @@ export function createWarung(canvas, opts = {}) {
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.toneMapping = THREE.ACESFilmicToneMapping;
   const scene = new THREE.Scene();
   // pantulan lingkungan (IBL) untuk material PBR: kaca, logam, plastik, kulit tampak nyata
-  { const pm = new THREE.PMREMGenerator(renderer); scene.environment = pm.fromScene(new RoomEnvironment(), .04).texture; scene.environmentIntensity = .55; pm.dispose(); }
+  let envTex = null;
+  { const pm = new THREE.PMREMGenerator(renderer); envTex = pm.fromScene(new RoomEnvironment(), .04).texture; scene.environment = envTex; scene.environmentIntensity = .55; pm.dispose(); }
   const camera = new THREE.PerspectiveCamera(50, 1, .05, 90);
   const controls = new OrbitControls(camera, opts.controlsEl || canvas); controls.enableDamping = true; controls.maxPolarAngle = Math.PI * .52;
 
@@ -160,8 +161,10 @@ export function createWarung(canvas, opts = {}) {
   /* ---------- area luar ---------- */
   // meja display di teras, setinggi dada, supaya barang besar terlihat DI ATAS barang di meja kasir dari balik meja
   const TH = .85;
+  const tables = [];   // meja display; urutan: tengah (galon, gas), kanan (beras), kiri (rak bensin)
+  const TABLE_ITEMS = [['galon', 'gas'], ['beras'], ['bensin']];
   const displayTable = (x, z, w) => {
-    const t = new THREE.Group(); t.position.set(x, 0, z); scene.add(t);
+    const t = new THREE.Group(); t.position.set(x, 0, z); scene.add(t); tables.push(t);
     t.add(box(w, .05, .55, wood, 0, TH, 0)); [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => t.add(box(.05, TH, .05, woodDark, a * (w / 2 - .05), TH / 2, b * .22)));
     t.add(box(w - .1, .04, .5, woodDark, 0, .3, 0));
   };
@@ -338,6 +341,24 @@ export function createWarung(canvas, opts = {}) {
   scene.updateMatrixWorld(true);
   { const ws = new THREE.Vector3(); scene.traverse(o => { if ((o.isMesh || o.isInstancedMesh) && o.castShadow) { o.geometry.boundingSphere || o.geometry.computeBoundingSphere(); o.getWorldScale(ws); if (o.geometry.boundingSphere.radius * Math.max(ws.x, ws.y, ws.z) < .1) o.castShadow = false; } }); }
 
+  /* ---------- kualitas grafis: 'high' | 'low' (low: tanpa bayangan & pantulan, tanpa sheen/clearcoat, resolusi 1×) ---------- */
+  let quality = 'high';
+  const applyQ = root => root.traverse(o => {
+    for (const m of Array.isArray(o.material) ? o.material : o.material ? [o.material] : []) {
+      if (!m.isMeshPhysicalMaterial) continue;
+      const q = m.userData.q || (m.userData.q = { sheen: m.sheen, clearcoat: m.clearcoat }), low = quality === 'low';
+      const sh = low ? 0 : q.sheen, cc = low ? 0 : q.clearcoat;
+      if (m.sheen !== sh || m.clearcoat !== cc) { m.sheen = sh; m.clearcoat = cc; m.needsUpdate = true; }
+    }
+  });
+  const setQuality = q => {
+    quality = q; const low = q === 'low';
+    renderer.setPixelRatio(low ? 1 : Math.min(window.devicePixelRatio || 1, 2));
+    const sz = renderer.getSize(new THREE.Vector2()); if (sz.x) renderer.setSize(sz.x, sz.y, false);
+    scene.environment = low ? null : envTex; sun.castShadow = !low;
+    applyQ(scene);
+  };
+
   /* ---------- siang / malam / hujan ---------- */
   let night = false;
   const fog = new THREE.Fog('#9ccbf0', 18, 60); scene.fog = fog;
@@ -465,7 +486,7 @@ export function createWarung(canvas, opts = {}) {
     for (const it of list) {
       let e = crowd.get(it.key);
       if (!e) {
-        const g = personFor(it.type, parseInt(it.key.slice(1), 10) || 0); g.position.set(it.x, 0, it.z); scene.add(g);
+        const g = personFor(it.type, parseInt(it.key.slice(1), 10) || 0); g.position.set(it.x, 0, it.z); scene.add(g); if (quality === 'low') applyQ(g);
         const bill = makeBill(); bill.position.set(0, -HOLD - .03, -.05); bill.rotation.x = Math.PI / 2; bill.visible = false; g.userData.elbows[1].add(bill);
         e = { g, bill, ang: it.moving ? (it.dir > 0 ? -Math.PI / 2 : Math.PI / 2) : 0, lean: 0, a0: 0, a1: 0, b0: 0, b1: 0, s0: 0, s1: 0, g0: .28, g1: .28, holder: null, holderKind: null }; crowd.set(it.key, e);
       }
@@ -586,7 +607,8 @@ export function createWarung(canvas, opts = {}) {
       return { total, byType: Object.entries(byType).sort((a, b) => b[1] - a[1]).slice(0, 10), top: rows.sort((a, b) => b[0] - a[0]).slice(0, 12) };
     },
     /** Sembunyikan barang dagangan yang belum terbuka (ids = id barang terkunci); tidak bisa diklik & tanpa lencana. */
-    setLockedItems(ids) { const s = new Set(ids); items.forEach(i => { if (i.act.type === 'item') i.obj.visible = !s.has(i.act.id); }); stock.forEach(d => { d.obj.visible = !s.has(d.id); }); },
+    setLockedItems(ids) { const s = new Set(ids); items.forEach(i => { if (i.act.type === 'item') i.obj.visible = !s.has(i.act.id); }); stock.forEach(d => { d.obj.visible = !s.has(d.id); }); tables.forEach((t, i) => { t.visible = TABLE_ITEMS[i].some(id => !s.has(id)); }); },   // meja muncul bila ada isinya
+    setQuality: q => setQuality(q), get quality() { return quality; },
     controls, items, pick: pickItem, penjagaAct, highlight, project, badges, syncPeople, syncTray, headPos, resize: resizeTo, frame: step,
     triangles: () => renderer.info.render.triangles,
     rakBensin: rak,

@@ -12,6 +12,11 @@ Simulasi warung Madura 2D yang berjalan di browser. Dibangun dengan **React + Vi
 
 Pintasan: `Esc` jeda, `Spasi` hitung.
 
+## Grafis, sentuhan, dan kinerja (mode 3D)
+- **Kualitas grafis** (menu Jeda → *Grafis 3D*): *Otomatis* (default), *Tinggi*, *Rendah*. Otomatis mengukur FPS ±3 detik pertama; bila di bawah ~28 fps, turun ke Rendah sendiri (dengan pemberitahuan) dan diingat per perangkat. Rendah = tanpa bayangan dan pantulan lingkungan, tanpa sheen/clearcoat, resolusi 1×. Disimpan di `localStorage` (bukan di save game); kode di `src/game/quality.js` dan `setQuality` di `src/scene3d/warung.js`.
+- **HP GrosirKu** dibagi dua halaman (6 barang per halaman, barang terbuka lebih dulu) dengan tombol −/+ dan navigasi besar; semua tombol punya area sentuh yang diperlebar di layar sentuh.
+- **Meja display teras** hanya tampil bila isinya sudah terbuka (bensin Lv 3, galon/gas Lv 4–8, beras Lv 6), jadi tidak ada meja kosong di awal permainan.
+
 ## Level & pesan lewat HP
 - **Level juragan** (maks. 20): XP dari tiap pembeli yang dilayani (+10, +5 bila cepat, +3 bila dapat tip) dan misi harian (+40). Bar level ada di HUD. Naik level memberi **bonus kas** (Rp 10.000 × level), **diskon grosir** 2% per level (maks. 20%), dan **kurir lebih cepat** (90 menit → min. 45). XP tersimpan di save; rumus di `src/game/logic/level.js`. Klik bar level di HUD untuk melihat isi tiap level.
 - **Yang dibuka per level** (tabel `ITEM_LVL` / `TYPE_LVL` / `FEATURE_LVL`): Lv 1 → 6 barang dasar (kopi, rokok, air mineral, mie, kerupuk, keripik) + Bang Ojol, Mas Dimas, Bang Rizky · Lv 2 → Cola, Bu Sri, Promo · Lv 3 → Bensin, Adik Pelajar, Kasbon · Lv 4 → Galon, Pak Haji · Lv 5 → Minuman Energi, Pak Tukang, Pesan Ulang di HP · Lv 6 → Beras, Tamu Misterius, Kembalian Otomatis · Lv 7 → Turis Bule · Lv 8 → Gas Melon, Kurir Ekspres (30 menit, biaya +15%). Barang terkunci **disembunyikan dari adegan 3D** (rak bensin, galon, gas, beras, cola, minuman energi — termasuk stok dekoratif di lantai; tidak bisa diklik dan tanpa lencana stok) dan muncul saat levelnya tercapai (`setLockedItems` di `src/scene3d/warung.js`). Barang terkunci juga tidak dipesan pembeli, tidak bisa dijual/dipesan, dan diberi stok perkenalan saat terbuka.

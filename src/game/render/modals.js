@@ -3,6 +3,7 @@ import { H, W, WIN_GOAL } from '../constants.js';
 import { BY, ITEMS } from '../data.js';
 import { ctx } from '../gfx.js';
 import { ico } from '../icons.js';
+import { cycleQuality, qualityLabel } from '../quality.js';
 import { ACH, unlocked, unlockedCount } from '../logic/achievements.js';
 import { INTRO } from '../story/events.js';
 import { catatan, chapterName, chapterOf, choiceOk, chooseEvent, closeStoryEvent, currentEvent, installment, orderBlocked, payDebt, story, trust, epilog } from '../logic/story.js';
@@ -39,7 +40,7 @@ function drawModalBody() {
   else if (ui.modal === 'pause') pauseMenu();
   else if (ui.modal === 'win') winModal();
 }
-export function closeBtn(x, y, fn) { SP('no', x, y, .75, .5, .5, { fn: () => { SFX.click(); fn(); }, always: true }); }
+export function closeBtn(x, y, fn) { SP('no', x, y, .75, .5, .5, { fn: () => { SFX.click(); fn(); }, always: true, pad: ui.touch ? 14 : 4 }); }
 export function notebook() {
   const x = 120, y = 40, w = 1040, h = 640;
   panel(x, y, w, h, { fill: '#f7ecca' });
@@ -68,43 +69,50 @@ export function notebook() {
   button(x + w - 460, by + 18, 250, 54, 'PESAN LEWAT HP', () => { ui.modal = 'phone'; }, { col: 'green', s: 20 });
   button(x + w - 200, by + 18, 170, 54, 'TUTUP', () => { ui.modal = null; }, { col: 'wood', s: 20 });
 }
-/** HP: aplikasi grosir untuk memesan stok (harga turun seiring level) + medsos untuk isi energi. */
+/** HP: aplikasi grosir untuk memesan stok (harga turun seiring level) + medsos untuk isi energi.
+    Daftar dibagi per halaman (6 barang, barang terbuka dulu) agar tombol cukup besar untuk jari. */
 export function phone() {
-  const L = level(), px = 390, py = 8, pw = 500, ph = 704, RH = 38;
+  const L = level(), px = 390, py = 8, pw = 500, ph = 704, RH = 60, PER = 6;
+  const list = [...ITEMS.filter(i => itemOn(i.id)), ...ITEMS.filter(i => !itemOn(i.id))], pages = Math.ceil(list.length / PER);
+  ui.phonePage = clamp(ui.phonePage || 0, 0, pages - 1);
   ctx.fillStyle = 'rgba(0,0,0,.45)'; rr(ctx, px + 6, py + 10, pw, ph, 44); ctx.fill();
   ctx.fillStyle = '#15171c'; rr(ctx, px, py, pw, ph, 44); ctx.fill(); ctx.strokeStyle = '#3a3f4a'; ctx.lineWidth = 3; ctx.stroke();
   ctx.fillStyle = '#f4f6f8'; rr(ctx, px + 12, py + 12, pw - 24, ph - 24, 34); ctx.fill();
   const hh = Math.floor(G.h) % 24, mm = Math.floor((G.h % 1) * 60);
   T(`${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`, px + 40, py + 42, { s: 14, c: '#333' });
   T(`Lv ${L}`, px + pw - 40, py + 42, { s: 14, a: 'right', c: '#333' });
-  ctx.fillStyle = '#2f9e44'; ctx.fillRect(px + 12, py + 52, pw - 24, 52);
+  ctx.fillStyle = '#2f9e44'; ctx.fillRect(px + 12, py + 52, pw - 24, 54);
   T('GrosirKu · Pesan Barang', px + 28, py + 76, { s: 20, c: '#fff' });
   const disc = Math.round(discountOf(L) * 100);
-  T(orderBlocked() ? 'PESANAN DITAHAN Koh Awi — lunasi cicilan dulu' : `Kas ${rp(G.money)} · diskon level ${disc}% · kurir ±${G.express && featureOn('express') ? EXPRESS_MIN : etaOf(L)} mnt`, px + 28, py + 96, { s: 12, w: '600', c: '#e4ffe9' });
-  if (orderBlocked()) { ctx.fillStyle = '#c0392b'; ctx.fillRect(px + 12, py + 104, pw - 24, 8); }
-  button(px + pw - 128, py + 58, 100, 30, 'Medsos', usePhone, { col: 'blue', s: 13, tip: 'Scroll medsos — isi energi (jangan saat ada pembeli!)' });
-  ITEMS.forEach((it, i) => {
-    const ry = py + 112 + i * RH, q = G.cart[it.id] || 0, n = G.stock[it.id] || 0, on = itemOn(it.id);
-    ctx.fillStyle = !on ? '#dfe2e6' : i % 2 ? '#e9eef2' : '#fff'; rr(ctx, px + 20, ry, pw - 40, RH - 3, 8); ctx.fill();
-    ctx.globalAlpha = on ? 1 : .4; ico(it.id, px + 24, ry + 2, 30); ctx.globalAlpha = 1;
-    T(it.name, px + 62, ry + 15, { s: 13, c: on ? '#222' : '#777' });
-    if (!on) { T(`Terkunci · buka di Level ${ITEM_LVL[it.id]}`, px + 62, ry + 29, { s: 11, w: '700', c: '#a05a1a' }); return; }
-    T(`isi ${it.pack} · ${rp(packPrice(it))}`, px + 62, ry + 29, { s: 11, w: '600', c: '#667' });
-    T(`stok ${n}`, px + 318, ry + 23, { s: 12, a: 'center', c: n <= 2 ? '#c0392b' : '#3a6a2a' });
-    button(px + 344, ry + 3, 28, 28, '−', () => { if (q > 0) G.cart[it.id] = q - 1; }, { col: 'red', s: 18, disabled: q <= 0 });
-    T(String(q), px + 392, ry + 24, { s: 18, a: 'center', c: '#222' });
-    button(px + 412, ry + 3, 28, 28, '+', () => { G.cart[it.id] = q + 1; }, { col: 'green', s: 18 });
+  T(orderBlocked() ? 'PESANAN DITAHAN Koh Awi — lunasi cicilan dulu' : `Kas ${rp(G.money)} · diskon level ${disc}% · kurir ±${G.express && featureOn('express') ? EXPRESS_MIN : etaOf(L)} mnt`, px + 28, py + 97, { s: 12, w: '600', c: '#e4ffe9' });
+  if (orderBlocked()) { ctx.fillStyle = '#c0392b'; ctx.fillRect(px + 12, py + 106, pw - 24, 6); }
+  button(px + pw - 134, py + 58, 108, 38, 'Medsos', usePhone, { col: 'blue', s: 14, tip: 'Scroll medsos — isi energi (jangan saat ada pembeli!)' });
+  list.slice(ui.phonePage * PER, ui.phonePage * PER + PER).forEach((it, i) => {
+    const ry = py + 114 + i * RH, q = G.cart[it.id] || 0, n = G.stock[it.id] || 0, on = itemOn(it.id);
+    ctx.fillStyle = !on ? '#dfe2e6' : i % 2 ? '#e9eef2' : '#fff'; rr(ctx, px + 20, ry, pw - 40, RH - 4, 10); ctx.fill();
+    ctx.globalAlpha = on ? 1 : .4; ico(it.id, px + 26, ry + 8, 40); ctx.globalAlpha = 1;
+    T(it.name, px + 76, ry + 24, { s: 16, c: on ? '#222' : '#777' });
+    if (!on) { T(`Terkunci · buka di Level ${ITEM_LVL[it.id]}`, px + 76, ry + 44, { s: 13, w: '700', c: '#a05a1a' }); return; }
+    T(`isi ${it.pack} · ${rp(packPrice(it))}`, px + 76, ry + 44, { s: 12, w: '600', c: '#667' });
+    T(`stok ${n}`, px + 292, ry + 32, { s: 13, a: 'center', c: n <= 2 ? '#c0392b' : '#3a6a2a' });
+    button(px + 328, ry + 5, 50, 46, '−', () => { if (q > 0) G.cart[it.id] = q - 1; }, { col: 'red', s: 26, disabled: q <= 0 });
+    T(String(q), px + 402, ry + 38, { s: 24, a: 'center', c: '#222' });
+    button(px + 424, ry + 5, 50, 46, '+', () => { G.cart[it.id] = q + 1; }, { col: 'green', s: 26 });
   });
-  const cost = orderCost(), fy = py + 112 + ITEMS.length * RH + 6, exOn = featureOn('express');
-  T('Total', px + 30, fy + 22, { s: 16, c: '#333' }); T(rp(cost), px + pw - 30, fy + 24, { s: 24, a: 'right', c: cost > G.money ? '#c0392b' : '#1f7a2f' });
-  if (exOn) button(px + 100, fy + 2, 190, 28, (G.express ? '[x] ' : '[ ] ') + 'Kurir ekspres +15%', () => { G.express = !G.express; }, { col: G.express ? 'yellow' : 'grey', s: 12, tc: G.express ? '#4a2a00' : '#fff' });
-  else T(`Kurir ekspres: Level ${FEATURE_LVL.express}`, px + 100, fy + 22, { s: 12, w: '700', c: '#a05a1a' });
-  const by = fy + 38;
-  button(px + 24, by, 140, 44, 'PESAN', placeOrder, { col: 'green', s: 20, disabled: !cost || cost > G.money });
-  if (featureOn('reorder')) button(px + 172, by, 92, 44, 'ULANG', reorder, { col: 'yellow', s: 14, tc: '#4a2a00', tip: 'Isi keranjang dengan pesanan terakhir' });
-  button(px + 272, by, 92, 44, 'KOSONG', () => { G.cart = {}; }, { col: 'blue', s: 14 });
-  button(px + 372, by, 104, 44, 'TUTUP', () => { ui.modal = null; }, { col: 'wood', s: 16 });
-  if (!featureOn('reorder')) T(`Pesan ulang: Level ${FEATURE_LVL.reorder}`, px + 30, by + 62, { s: 12, w: '700', c: '#a05a1a' });
+  const cost = orderCost(), fy = py + 114 + PER * RH + 2, exOn = featureOn('express');
+  T('Total', px + 30, fy + 24, { s: 16, c: '#333' }); T(rp(cost), px + pw - 30, fy + 28, { s: 25, a: 'right', c: cost > G.money ? '#c0392b' : '#1f7a2f' });
+  if (exOn) button(px + 96, fy + 2, 210, 36, (G.express ? '[x] ' : '[ ] ') + 'Kurir ekspres +15%', () => { G.express = !G.express; }, { col: G.express ? 'yellow' : 'grey', s: 13, tc: G.express ? '#4a2a00' : '#fff' });
+  else T(`Kurir ekspres: Level ${FEATURE_LVL.express}`, px + 96, fy + 24, { s: 12, w: '700', c: '#a05a1a' });
+  const by = fy + 44;
+  button(px + 24, by, 140, 52, 'PESAN', placeOrder, { col: 'green', s: 21, disabled: !cost || cost > G.money });
+  if (featureOn('reorder')) button(px + 172, by, 92, 52, 'ULANG', reorder, { col: 'yellow', s: 15, tc: '#4a2a00', tip: 'Isi keranjang dengan pesanan terakhir' });
+  button(px + 272, by, 92, 52, 'KOSONG', () => { G.cart = {}; }, { col: 'blue', s: 15 });
+  button(px + 372, by, 104, 52, 'TUTUP', () => { ui.modal = null; }, { col: 'wood', s: 17 });
+  const ny = by + 62;
+  button(px + 24, ny, 196, 46, '◀ Sebelumnya', () => { ui.phonePage--; }, { col: 'grey', s: 15, disabled: ui.phonePage <= 0 });
+  T(`${ui.phonePage + 1}/${pages}`, px + pw / 2, ny + 30, { s: 16, a: 'center', c: '#555', w: '700' });
+  button(px + 280, ny, 196, 46, 'Berikutnya ▶', () => { ui.phonePage++; }, { col: 'grey', s: 15, disabled: ui.phonePage >= pages - 1 });
+  if (!featureOn('reorder')) T(`Pesan ulang: Level ${FEATURE_LVL.reorder}`, px + 30, ny + 66, { s: 12, w: '700', c: '#a05a1a' });
 }
 /** Dialog kejadian cerita: pilihan → akibat langsung. */
 export function eventModal() {
@@ -256,16 +264,17 @@ export function help() {
   button(x + w / 2 - 100, y + h - 74, 200, 50, 'MENGERTI', () => { ui.modal = G.screen === 'play' && G.running ? null : null; }, { col: 'green' });
 }
 export function pauseMenu() {
-  const x = 440, y = 70, w = 400, h = 580; panel(x, y, w, h);
+  const x = 440, y = 56, w = 400, h = 608; panel(x, y, w, h);
   T('JEDA', x + w / 2, y + 60, { s: 36, a: 'center', c: '#6b3a14' });
   button(x + 50, y + 90, w - 100, 52, 'LANJUT', () => { ui.modal = null; }, { col: 'green' });
   button(x + 50, y + 156, w - 100, 46, 'Suara: ' + (G.sound ? 'NYALA' : 'MATI'), () => { G.sound = !G.sound; save(); }, { col: 'blue', s: 16 });
   button(x + 50, y + 214, w - 100, 46, featureOn('auto') ? 'Kembalian otomatis: ' + (G.auto ? 'ON' : 'OFF') : `Kembalian otomatis: Level ${FEATURE_LVL.auto}`, () => { G.auto = !G.auto; save(); }, { col: G.auto ? 'green' : 'grey', s: 15, disabled: !featureOn('auto') });
   button(x + 50, y + 272, w - 100, 46, 'Mode santai (tanpa cicilan): ' + (story().easy ? 'ON' : 'OFF'), () => { story().easy = !story().easy; save(); }, { col: story().easy ? 'green' : 'grey', s: 14, tip: 'Cicilan utang ditiadakan. Kepercayaan & kejadian tetap jalan.' });
-  button(x + 50, y + 330, w - 100, 46, `PENCAPAIAN ${unlockedCount()}/${ACH.length}`, () => { ui.modal = 'ach'; }, { col: 'yellow', tc: '#4a2a00', s: 16 });
-  button(x + 50, y + 388, w - 100, 46, 'CARA MAIN', () => { ui.modal = 'help'; }, { col: 'wood', s: 16 });
-  button(x + 50, y + 446, w - 100, 46, 'MENU UTAMA', () => { save(); ui.modal = null; G.screen = 'title'; ui.hasSave = !!loadSave(); }, { col: 'red', s: 16 });
-  T('Kemajuan tersimpan tiap akhir hari.', x + w / 2, y + 528, { s: 13, a: 'center', c: '#7a5a3a', w: '600' });
+  if (ui.mode3d) button(x + 50, y + 330, w - 100, 46, 'Grafis 3D: ' + qualityLabel(), cycleQuality, { col: 'blue', s: 15, tip: 'Otomatis menurunkan kualitas bila FPS rendah. Rendah: tanpa bayangan & pantulan.' });
+  button(x + 50, y + (ui.mode3d ? 388 : 330), w - 100, 46, `PENCAPAIAN ${unlockedCount()}/${ACH.length}`, () => { ui.modal = 'ach'; }, { col: 'yellow', tc: '#4a2a00', s: 16 });
+  button(x + 50, y + (ui.mode3d ? 446 : 388), w - 100, 46, 'CARA MAIN', () => { ui.modal = 'help'; }, { col: 'wood', s: 16 });
+  button(x + 50, y + (ui.mode3d ? 504 : 446), w - 100, 46, 'MENU UTAMA', () => { save(); ui.modal = null; G.screen = 'title'; ui.hasSave = !!loadSave(); }, { col: 'red', s: 16 });
+  T('Kemajuan tersimpan tiap akhir hari.', x + w / 2, y + (ui.mode3d ? 584 : 528), { s: 13, a: 'center', c: '#7a5a3a', w: '600' });
 }
 export function winModal() {
   const x = 340, y = 150, w = 600, h = 400; panel(x, y, w, h);
