@@ -17,11 +17,11 @@ function useHashRoute() {
 
 export default function App() {
   const route = useHashRoute();
-  if (route === '#/3d') return <Suspense fallback={<Loading />}><Game3D /></Suspense>;
+  if (route === '' || route === '#' || route === '#/' || route === '#/3d') return <Suspense fallback={<Loading />}><Game3D /></Suspense>;
   if (route === '#/orang') return <Suspense fallback={<Loading />}><Orang3D /></Suspense>;
   if (route === '#/warung') return <Suspense fallback={<Loading />}><Warung3D /></Suspense>;
   if (route === '#/props') return <Suspense fallback={<Loading />}><Props3D /></Suspense>;
-  return <GameApp />;
+  return <GameApp />;   // '#/2d' (mode 2D)
 }
 
 function GameApp() {

@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { galon, gas, toples, rakBensin, kardus, beras, aqua, cola, redbull, mie, gelas, bensin } from '../props3d/props';
-import { woodTex, roofTex, slatTex, asphaltTex, concreteTex, bannerTex, signTex } from './textures';
+import { woodTex, roofTex, slatTex, asphaltTex, concreteTex, bannerTex, signTex, reliefTex } from './textures';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { person, personFor, makeBag, makeBill, ARM } from './people';
 import { createAmbience } from './ambience';
 import { fillEtalase, fillWallShelf, hangingStrips, pouchGeometry, kopiTex, snackTex, cigTex } from './products';
@@ -24,6 +25,8 @@ export function createWarung(canvas, opts = {}) {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.toneMapping = THREE.ACESFilmicToneMapping;
   const scene = new THREE.Scene();
+  // pantulan lingkungan (IBL) untuk material PBR: kaca, logam, plastik, kulit tampak nyata
+  { const pm = new THREE.PMREMGenerator(renderer); scene.environment = pm.fromScene(new RoomEnvironment(), .04).texture; scene.environmentIntensity = .55; pm.dispose(); }
   const camera = new THREE.PerspectiveCamera(50, 1, .05, 90);
   const controls = new OrbitControls(camera, opts.controlsEl || canvas); controls.enableDamping = true; controls.maxPolarAngle = Math.PI * .52;
 
@@ -41,20 +44,20 @@ export function createWarung(canvas, opts = {}) {
   /* ---------- lampu ---------- */
   const hemi = new THREE.HemisphereLight('#cfe6ff', '#8a7a62', 1.5); scene.add(hemi);
   const sun = new THREE.DirectionalLight('#fff1d6', 3); sun.position.set(5, 8, 7); sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9, near: 1, far: 30 }); sun.shadow.bias = -.0004; scene.add(sun);
+  sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9, near: 1, far: 30 }); sun.shadow.bias = -.0004; sun.shadow.normalBias = .02; sun.shadow.radius = 3; scene.add(sun);
   const moon = new THREE.DirectionalLight('#7f95ff', 0); moon.position.set(-4, 8, 5); scene.add(moon);
   const neonLight = (x, y, z, on, dist = 9) => { const l = new THREE.PointLight('#ffffff', 0, dist, 2); l.position.set(x, y, z); scene.add(l); lampsNight.push({ light: l, on }); };
   neonLight(-1, 2.6, -1.3, 6); neonLight(1, 2.6, -1.3, 6); neonLight(0, 2.5, .6, 4, 10);
 
   /* ---------- tanah, jalan ---------- */
-  const slab = box(5.2, .12, 4.5, new THREE.MeshStandardMaterial({ map: concreteTex(), roughness: .9 }), 0, -.055, -.95); slab.castShadow = false; scene.add(slab);
-  const sidewalk = box(24, .12, 1.5, new THREE.MeshStandardMaterial({ map: concreteTex(), roughness: .9 }), 0, -.06, .75); sidewalk.castShadow = false; scene.add(sidewalk);
+  const slab = box(5.2, .12, 4.5, new THREE.MeshStandardMaterial({ map: concreteTex(), bumpMap: reliefTex('concrete'), bumpScale: 1.4, roughness: .9 }), 0, -.055, -.95); slab.castShadow = false; scene.add(slab);
+  const sidewalk = box(24, .12, 1.5, new THREE.MeshStandardMaterial({ map: concreteTex(), bumpMap: reliefTex('concrete'), bumpScale: 1.4, roughness: .9 }), 0, -.06, .75); sidewalk.castShadow = false; scene.add(sidewalk);
   const curb = box(24, .16, .14, std('#bdbab0'), 0, -.06, 1.55); scene.add(curb);
-  const road = new THREE.Mesh(new THREE.PlaneGeometry(60, 12), new THREE.MeshStandardMaterial({ map: asphaltTex(), roughness: .95 })); road.rotation.x = -Math.PI / 2; road.position.set(0, -.12, 7.6); road.receiveShadow = true; scene.add(road);
+  const road = new THREE.Mesh(new THREE.PlaneGeometry(60, 12), new THREE.MeshStandardMaterial({ map: asphaltTex(), bumpMap: reliefTex('asphalt', [10, 4]), bumpScale: 2, roughness: .95 })); road.rotation.x = -Math.PI / 2; road.position.set(0, -.12, 7.6); road.receiveShadow = true; scene.add(road);
 
   /* ---------- bangunan warung ---------- */
-  const wood = new THREE.MeshStandardMaterial({ map: woodTex('#b97a3e', [3, 2]), roughness: .85 });
-  const woodDark = new THREE.MeshStandardMaterial({ map: woodTex('#7a4a22', [2, 2]), roughness: .85 });
+  const wood = new THREE.MeshStandardMaterial({ map: woodTex('#b97a3e', [3, 2]), bumpMap: reliefTex('wood', [3, 2]), bumpScale: 1.2, roughness: .8 });
+  const woodDark = new THREE.MeshStandardMaterial({ map: woodTex('#7a4a22', [2, 2]), bumpMap: reliefTex('wood', [2, 2]), bumpScale: 1.2, roughness: .78 });
   const backWall = box(4.5, 3.0, .08, wood, 0, 1.5, -3.2); scene.add(backWall);
   scene.add(box(.08, 3.0, 3.3, wood, -2.24, 1.5, -1.6), box(.08, 3.0, 3.3, wood, 2.24, 1.5, -1.6));
   scene.add(box(.14, 3.0, .14, woodDark, -2.2, 1.5, .02), box(.14, 3.0, .14, woodDark, 2.2, 1.5, .02));
@@ -70,7 +73,7 @@ export function createWarung(canvas, opts = {}) {
 
   // rolling door: pivot di atas; skala y mengecil saat dibuka
   const doorH = 2.2, doorTop = 2.25;
-  const doorMat = new THREE.MeshStandardMaterial({ map: slatTex(), roughness: .45, metalness: .65 });
+  const doorMat = new THREE.MeshStandardMaterial({ map: slatTex(), bumpMap: reliefTex('metal', [8, 4]), bumpScale: 1.6, roughness: .38, metalness: .8 });
   const door = sh(new THREE.Mesh(new THREE.BoxGeometry(4.3, doorH, .05), doorMat)); door.userData.isDoor = true; scene.add(door);
   const doorBar = sh(new THREE.Mesh(new THREE.BoxGeometry(4.34, .08, .08), std('#4a5058', { metalness: .6 }))); scene.add(doorBar);
   let doorOpen = 1, doorTarget = 1;
@@ -349,7 +352,7 @@ export function createWarung(canvas, opts = {}) {
     const on = smooth(.25, .75, n);
     lampsNight.forEach(l => { l.light.intensity = l.on * on; });
     glows.forEach(g => { const v = n > .45 ? g.on : g.off; if (g.mat.emissive) g.mat.emissiveIntensity = typeof g.on === 'number' ? (g.off + (g.on - g.off) * on) : 0; else g.mat.color.set(v); });
-    renderer.toneMappingExposure = 1.1 + .15 * n;
+    renderer.toneMappingExposure = 1.1 + .15 * n; scene.environmentIntensity = .55 - .35 * n;
     rainLines.visible = rain;
   };
   const setNight = v => setLook({ night: v ? 1 : 0 });

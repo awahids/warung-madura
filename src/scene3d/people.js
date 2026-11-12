@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { pouchGeometry } from './products';
+import { reliefTex, skinTex } from './textures';
 
 /* Karakter manusia prosedural bergaya chibi 3D (tinggi ≈1,8 m, dua kepala): mata besar berkilau yang berkedip,
    pipi merona, pakaian bermotif (batik, daster bunga, jaket, sarung), alas kaki. Menghadap −z.
@@ -82,6 +83,15 @@ const ink = new THREE.MeshBasicMaterial({ color: '#2a1f2e' });  // mata: tinta g
 const shine = new THREE.MeshBasicMaterial({ color: '#ffffff' });
 const MAT = {};
 const mat = (c, rough = .68) => MAT[c + rough] || (MAT[c + rough] = std(c, { roughness: rough }));
+/** Kulit: tekstur pori + relief halus + kilau 'sheen' lembut (pendekatan hamburan bawah kulit). Di-cache per warna. */
+const SKIN = {};
+const skinMat = hex => SKIN[hex] || (SKIN[hex] = new THREE.MeshPhysicalMaterial({ color: '#ffffff', map: skinTex(hex), bumpMap: reliefTex('skin', [2, 2]), bumpScale: .5, roughness: .58, sheen: .8, sheenRoughness: .45, sheenColor: new THREE.Color('#ffb59a'), clearcoat: .08, clearcoatRoughness: .5 }));
+/** Kain: relief anyaman + kilau serat di tepi (sheen). weave: 'weave' | 'knit'. */
+const FAB = {};
+const fabric = (c, weave = 'weave', rough = .85) => FAB[c + weave] || (FAB[c + weave] = new THREE.MeshPhysicalMaterial({ color: c, roughness: rough, bumpMap: reliefTex(weave, [10, 10]), bumpScale: .6, sheen: .7, sheenRoughness: .6, sheenColor: new THREE.Color(c).lerp(new THREE.Color('#ffffff'), .35) }));
+const fabricTex = (map, weave = 'weave') => new THREE.MeshPhysicalMaterial({ map, roughness: .85, bumpMap: reliefTex(weave, [12, 12]), bumpScale: .6, sheen: .6, sheenRoughness: .6, sheenColor: new THREE.Color('#d8d0c4') });
+const HAIR = {};
+const hairMat = c => HAIR[c] || (HAIR[c] = new THREE.MeshPhysicalMaterial({ color: c, roughness: .48, bumpMap: reliefTex('hair', [3, 3]), bumpScale: .8, sheen: 1, sheenRoughness: .35, sheenColor: new THREE.Color(c).lerp(new THREE.Color('#ffffff'), .45) }));
 const dome = (r, theta, m, seg = 18) => sh(new THREE.Mesh(new THREE.SphereGeometry(r, seg, 10, 0, Math.PI * 2, 0, theta), m));
 /** Potongan kulit bola; phi dipusatkan di depan (−z) atau belakang (+z). */
 const shell = (r, front, width, t0, tl, m) => sh(new THREE.Mesh(new THREE.SphereGeometry(r, 16, 6, (front ? 1.5 : .5) * Math.PI - width / 2, width, t0, tl), m));
@@ -90,7 +100,7 @@ const faceZ = (x, y) => -HEAD[2] * Math.sqrt(Math.max(0, 1 - (x / HEAD[0]) ** 2 
 
 /** Tangan bulat ala chibi dengan ibu jari kecil. userData.setCurl(0..1): mengepal saat menggenggam. */
 function makeHand(skin, glove, sx) {
-  const m = mat(glove || skin, .6), h = new THREE.Group(); h.position.y = -ARM;   // pergelangan
+  const m = glove ? mat(glove, .6) : skinMat(skin), h = new THREE.Group(); h.position.y = -ARM;   // pergelangan
   const palm = place(ell(.066, .068, .066, m), 0, -.025, 0); h.add(palm);
   const thumb = place(ell(.025, .033, .025, m), -sx * .045, -.02, -.042); h.add(thumb);
   h.userData.setCurl = c => { palm.scale.set(.066 - c * .006, .068 - c * .012, .066); thumb.position.y = -.02 - c * .02; };
@@ -100,7 +110,7 @@ function makeHand(skin, glove, sx) {
 
 /** Rambut: tudung bola yang dimiringkan ke belakang + jambul/poni kerucut, sanggul untuk ibu. */
 function makeHair(style, color, parent, front = true) {
-  const m = mat(color, .8), k = R / .29;
+  const m = hairMat(color), k = R / .29;
   const cap = dome(R * 1.09, front ? 1.78 : 1.6, m); cap.position.set(0, .018, .018); cap.rotation.x = front ? .48 : .74; parent.add(cap);
   const tuft = (x, y, z, rx, rz, s = 1) => { const t = sh(new THREE.Mesh(new THREE.ConeGeometry(.058 * s * k, .14 * s * k, 6), m)); t.position.set(x * k, y * k, z * k); t.rotation.set(rx, 0, rz); parent.add(t); };
   if (front) {
@@ -119,7 +129,7 @@ function makeHair(style, color, parent, front = true) {
 
 /** Kepala chibi (menghadap −z). Opsi: skin, hair (gaya), hairColor, hairFront, mustache, glasses, stubble. */
 function makeHead(o) {
-  const g = new THREE.Group(), skin = mat(o.skin, .62);
+  const g = new THREE.Group(), skin = skinMat(o.skin);
   const skull = sh(new THREE.Mesh(new THREE.SphereGeometry(1, 22, 16), skin)); skull.scale.set(...HEAD); g.add(skull);
   const eyes = [], arcs = [], brows = [], ey = -.012;
   [-1, 1].forEach(sx => {
@@ -161,10 +171,10 @@ function makeHead(o) {
 
 /** Bangun manusia chibi sesuai opsi. Rangka: legs[] (pinggul), arms[] (bahu) → elbows[] → hands[], torso (pinggang), head (leher). */
 function buildHuman(o) {
-  const g = new THREE.Group(), skin = mat(o.skin, .62);
-  const topMat = o.topTex ? new THREE.MeshStandardMaterial({ map: o.topTex(), roughness: .75 }) : mat(o.top);
-  const sleeveMat = o.sleeveTex ? new THREE.MeshStandardMaterial({ map: o.sleeveTex(), roughness: .75 }) : topMat;
-  const botMat = o.botTex ? new THREE.MeshStandardMaterial({ map: o.botTex(), roughness: .8 }) : mat(o.bottom || '#333');
+  const g = new THREE.Group(), skin = skinMat(o.skin);
+  const topMat = o.topTex ? fabricTex(o.topTex(), 'knit') : fabric(o.top, 'knit');
+  const sleeveMat = o.sleeveTex ? fabricTex(o.sleeveTex(), 'knit') : topMat;
+  const botMat = o.botTex ? fabricTex(o.botTex()) : fabric(o.bottom || '#333');
   const HIP = .36, belly = o.belly || 0, B = o.build || 1;
 
   // kaki pendek (pivot pinggul)

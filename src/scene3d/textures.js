@@ -68,3 +68,37 @@ export const packTex = () => canvasTex(128, 128, (g, w, h) => {
   g.fillStyle = '#d63b2f'; g.fillRect(0, 0, w, 40); g.fillStyle = '#2f80d6'; g.fillRect(0, h - 36, w, 36);
   g.fillStyle = '#f6c744'; g.beginPath(); g.arc(w / 2, h / 2, 24, 0, 7); g.fill();
 });
+
+/* ---------- peta relief (bump) prosedural: memberi kesan material nyata saat terkena cahaya ---------- */
+const BUMPS = {};
+function bumpTex(key, w, h, draw, repeat = [1, 1]) {
+  if (!BUMPS[key]) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h);
+    const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4; BUMPS[key] = t;
+  }
+  const t = BUMPS[key].clone(); t.needsUpdate = true; t.repeat.set(...repeat); return t;
+}
+const speckle = (g, w, h, n, size, lo, hi) => { for (let i = 0; i < n; i++) { const v = Math.floor(rnd(lo, hi)); g.fillStyle = `rgb(${v},${v},${v})`; g.fillRect(rnd(0, w), rnd(0, h), size, size); } };
+const base = (g, w, h, v = 128) => { g.fillStyle = `rgb(${v},${v},${v})`; g.fillRect(0, 0, w, h); };
+
+/** kind: 'wood' | 'concrete' | 'asphalt' | 'metal' | 'skin' | 'weave' | 'knit' | 'hair' */
+export const reliefTex = (kind, repeat = [1, 1]) => {
+  switch (kind) {
+    case 'wood': return bumpTex(kind, 256, 256, (g, w, h) => { base(g, w, h); for (let i = 0; i < 8; i++) { g.fillStyle = '#4a4a4a'; g.fillRect(0, i * 32, w, 2); } for (let i = 0; i < 260; i++) { const v = Math.floor(rnd(70, 190)); g.strokeStyle = `rgba(${v},${v},${v},.5)`; g.beginPath(); const y = rnd(0, h); g.moveTo(0, y); g.lineTo(w, y + rnd(-2, 2)); g.stroke(); } }, repeat);
+    case 'concrete': return bumpTex(kind, 256, 256, (g, w, h) => { base(g, w, h); speckle(g, w, h, 5000, 2, 60, 200); speckle(g, w, h, 300, 5, 90, 170); g.strokeStyle = '#303030'; g.lineWidth = 3; g.strokeRect(0, 0, w, h); }, repeat);
+    case 'asphalt': return bumpTex(kind, 256, 256, (g, w, h) => { base(g, w, h); speckle(g, w, h, 9000, 2, 20, 235); }, repeat);
+    case 'metal': return bumpTex(kind, 64, 128, (g, w, h) => { base(g, w, h, 150); for (let y = 0; y < h; y += 8) { g.fillStyle = '#303030'; g.fillRect(0, y, w, 2); g.fillStyle = '#c8c8c8'; g.fillRect(0, y + 2, w, 2); } speckle(g, w, h, 300, 1, 110, 190); }, repeat);
+    case 'skin': return bumpTex(kind, 128, 128, (g, w, h) => { base(g, w, h); speckle(g, w, h, 2600, 1, 105, 150); speckle(g, w, h, 90, 2, 90, 120); }, repeat);
+    case 'weave': return bumpTex(kind, 64, 64, (g, w, h) => { base(g, w, h); for (let i = 0; i < w; i += 4) { g.fillStyle = '#9a9a9a'; g.fillRect(i, 0, 2, h); g.fillStyle = '#6a6a6a'; g.fillRect(0, i, w, 2); } }, repeat);
+    case 'knit': return bumpTex(kind, 64, 64, (g, w, h) => { base(g, w, h); for (let y = 0; y < h; y += 4) for (let x = 0; x < w; x += 4) { g.fillStyle = ((x + y) / 4) % 2 ? '#b0b0b0' : '#707070'; g.fillRect(x, y, 3, 3); } speckle(g, w, h, 200, 1, 90, 170); }, repeat);
+    case 'hair': return bumpTex(kind, 64, 128, (g, w, h) => { base(g, w, h); for (let i = 0; i < 90; i++) { const v = Math.floor(rnd(60, 200)); g.fillStyle = `rgb(${v},${v},${v})`; g.fillRect(rnd(0, w), 0, 1, h); } }, repeat);
+    default: return bumpTex('flat', 8, 8, (g, w, h) => base(g, w, h), repeat);
+  }
+};
+/** Kulit: bintik halus semburat kemerahan (rona pori/pembuluh) di atas warna dasar; di-cache per warna. */
+const SKINS = {};
+export const skinTex = hex => SKINS[hex] || (SKINS[hex] = canvasTex(128, 128, (g, w, h) => {
+  g.fillStyle = hex; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 40; i++) { const r = rnd(10, 28); const gr = g.createRadialGradient(rnd(0, w), rnd(0, h), 0, rnd(0, w), rnd(0, h), r); gr.addColorStop(0, `rgba(190,90,70,${rnd(.02, .07)})`); gr.addColorStop(1, 'rgba(190,90,70,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, h); }
+  for (let i = 0; i < 900; i++) { g.fillStyle = `rgba(${rnd(0, 1) > .5 ? '255,235,215' : '70,35,20'},${rnd(.02, .06)})`; g.fillRect(rnd(0, w), rnd(0, h), 1.5, 1.5); }
+}));

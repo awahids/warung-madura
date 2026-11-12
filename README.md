@@ -18,8 +18,11 @@ Game ini PWA: bisa dipasang ke layar utama dan dimainkan **offline** setelah dib
 - **iPhone/iPad (Safari):** ketuk **Bagikan → Tambah ke Layar Utama**.
 Berkas terkait: `public/manifest.webmanifest`, `public/sw.js` (daftar precache & versi disuntik saat build oleh `vite.config.js`), `public/icons/`.
 
-## Main versi 3D
-Buka `#/3d` (tautan **Main 3D** di bawah game). Logika game **sama persis** dengan versi 2D (`src/game/logic`, `update.js`);
+## Mode 3D (utama) & 2D
+Game terbuka dalam **mode 3D** secara default. Pindah ke 2D lewat tombol **Mode 2D** di bilah bawah (`#/2d`), dan kembali lewat **Mode 3D** (`#/`). Progres tersimpan sama di kedua mode.
+Material 3D memakai PBR: peta lingkungan (IBL), relief (bump) kayu/beton/aspal/logam, kulit bertekstur pori dengan sheen, kain beranyaman, dan rambut berkilau.
+
+Detail mode 3D: Logika game **sama persis** dengan versi 2D (`src/game/logic`, `update.js`);
 hanya tampilannya yang diganti adegan 3D, dengan HUD/balon pesanan/nampan/modal sebagai lapisan transparan di atasnya.
 - Pelanggan 3D berjalan mengikuti posisi dari logika game (masuk → antre → dilayani → pergi), tipe-nya (ojol, ibu, juragan, dst.) punya penampilan sendiri.
 - Klik barang 3D: renteng (kopi, keripik), etalase (rokok), rak bensin, minuman & mie & toples di meja, galon/gas/beras di meja teras; kalkulator = HITUNG, HP, gelas kopi, buku catatan, spanduk promo, kardus kurir.
