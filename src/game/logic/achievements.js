@@ -15,6 +15,7 @@ export const ACH = [
   { id: 'cicilan', name: 'Cicilan Lancar', desc: 'Bayar cicilan tiga kali tanpa menunggak.', test: () => story().paidCount >= 3 },
   { id: 'lunas', name: 'Bebas Utang', desc: 'Lunasi utang ke Koh Awi.', test: () => story().lunas },
   { id: 'penagih', name: 'Penagih Santun', desc: 'Tagih 5 kasbon dengan baik-baik sampai dibayar.', test: () => (story().collectCount || 0) >= 5 },
+  { id: 'segar', name: 'Stok Selalu Segar', desc: 'Tujuh hari berturut-turut tanpa barang kedaluwarsa.', test: () => (story().freshStreak || 0) >= 7 },
   { id: 'sahabat', name: 'Sahabat Warung', desc: 'Jadi Sahabat bagi satu pelanggan tetap.', test: () => giftCount() >= 1 },
   { id: 'banyak_teman', name: 'Banyak Teman', desc: 'Akrab dengan 4 pelanggan tetap.', test: () => regularsAtLeast(2) >= 4 },
   { id: 'dipercaya', name: 'Dipercaya Warga', desc: 'Kepercayaan warga mencapai 80.', test: () => story().trust >= 80 },

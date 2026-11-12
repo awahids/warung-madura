@@ -4,6 +4,7 @@ import { BY } from '../data.js';
 import { returnTray, sendAway } from './customers.js';
 import { featureOn, itemOn, typeOn } from './level.js';
 import { checkAchievements } from './achievements.js';
+import { expireStock, reconcileAll } from './freshness.js';
 import { changeTrust, dawnStory, repayChance, scheduleStory, settleInstallment } from './story.js';
 import { save } from '../persist.js';
 import { G, ui } from '../state.js';
@@ -18,7 +19,7 @@ export function startDay(loaded) {
   G.door = 0; G.doorState = 'closed'; G.running = false; G.closing = false;
   G.cust = []; G.leaving = []; G.tray = {}; G.promo = false; G.spawnCd = 3; G.idle = 0; G.cart = {};
   G.rain = Math.random() < .32 ? { from: rnd(8, 17), len: rnd(1.5, 3.2) } : null;
-  G.stats = { xp: 0, served: 0, revenue: 0, profit: 0, spent: 0, tips: 0, left: 0, sold: {}, kasbonNew: 0, kasbonPaid: 0, bonus: 0 };
+  G.stats = { waste: 0, xp: 0, served: 0, revenue: 0, profit: 0, spent: 0, tips: 0, left: 0, sold: {}, kasbonNew: 0, kasbonPaid: 0, bonus: 0 };
   G.missions = genMissions();
   G.events = [];
   if (featureOn('kasbon')) G.events.push({ k: 'kasbon', t: rnd(10, 21), done: false });
@@ -37,6 +38,8 @@ export function startDay(loaded) {
     G.debts = keep;
   }
   dawnStory();
+  if (G.day > 1 && !loaded) expireStock().forEach(t => G.story.kabar.push(t));
+  reconcileAll();   // catat umur stok yang ada sejak awal hari ini
   save();
 }
 export function genMissions() {

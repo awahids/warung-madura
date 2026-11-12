@@ -4,6 +4,7 @@ import { BY, ITEMS } from '../data.js';
 import { ctx } from '../gfx.js';
 import { ico } from '../icons.js';
 import { cycleQuality, qualityLabel } from '../quality.js';
+import { FRIDGE_COST, buyFridge, expiringSoon, freshUnits, oldestLeft, perishables, shelfOf } from '../logic/freshness.js';
 import { favItems, regState, regTier, tierName } from '../logic/regulars.js';
 import { REGULARS, TIER_AT } from '../story/regulars.js';
 import { ATLAS } from '../atlas.js';
@@ -43,6 +44,7 @@ function drawModalBody() {
   else if (ui.modal === 'ach') achModal();
   else if (ui.modal === 'kasbon') kasbonModal();
   else if (ui.modal === 'regulars') regularsModal();
+  else if (ui.modal === 'kulkas') kulkasModal();
   else if (ui.modal === 'summary') summary();
   else if (ui.modal === 'help') help();
   else if (ui.modal === 'pause') pauseMenu();
@@ -54,6 +56,7 @@ export function notebook() {
   panel(x, y, w, h, { fill: '#f7ecca' });
   ctx.strokeStyle = 'rgba(110,80,40,.18)'; ctx.lineWidth = 1; for (let ly = y + 110; ly < y + h - 30; ly += 28) { ctx.beginPath(); ctx.moveTo(x + 26, ly); ctx.lineTo(x + w - 26, ly); ctx.stroke(); }
   T('BUKU CATATAN', x + 34, y + 54, { s: 30, c: '#6b3a14' });
+  button(x + w - 530, y + 22, 180, 40, 'GUDANG', () => { ui.modal = 'kulkas'; }, { col: 'blue', s: 15, tip: 'Umur stok & kulkas' });
   button(x + w - 330, y + 22, 250, 40, 'PELANGGAN TETAP', () => { ui.modal = 'regulars'; ui.regPage = 0; }, { col: 'wood', s: 15, tip: 'Kedekatan & kesukaan pelanggan tetap' });
   T('Cek stok & harga. Untuk memesan barang ke grosir, pakai HP.', x + 36, y + 80, { s: 14, w: '600', c: '#7a5a3a' });
   closeBtn(x + w - 36, y + 38, () => { ui.modal = null; });
@@ -65,7 +68,8 @@ export function notebook() {
     T(`jual ${rp(it.price)} · modal ${rp(Math.round(it.cost))}/pcs · laba ${rp(Math.round(it.price - it.cost))}`, rx + 66, ry + 44, { s: 12, w: '600', c: '#7a5a3a' });
     const n = G.stock[it.id] || 0;
     if (!itemOn(it.id)) { ctx.fillStyle = 'rgba(225,220,205,.8)'; rr(ctx, rx, ry, 480, 58, 10); ctx.fill(); T(`Terkunci · buka di Level ${ITEM_LVL[it.id]}`, rx + 462, ry + 36, { s: 15, a: 'right', c: '#a05a1a' }); return; }
-    T(`stok ${n}`, rx + 462, ry + 36, { s: 20, a: 'right', c: n <= 2 ? '#c0392b' : '#3a6a2a' });
+    T(`stok ${n}`, rx + 462, ry + 30, { s: 20, a: 'right', c: n <= 2 ? '#c0392b' : '#3a6a2a' });
+    const left = n > 0 ? oldestLeft(it.id) : null; if (left !== null) T(left <= 0 ? 'basi hari ini' : `segar ${left} hari`, rx + 462, ry + 50, { s: 12, a: 'right', w: '700', c: left <= 2 ? '#c0392b' : '#7a6a4a' });
   });
   const by = y + h - 130;
   T('Uang kas: ' + rp(G.money), x + 36, by + 28, { s: 18, c: '#5a3a1a' });
@@ -148,6 +152,38 @@ export function eventModal() {
     st.result.lines.forEach((t, i) => { const neg = /^−|−/.test(t) || /menunggak|mundur/.test(t); T(t, x + 44, ly + i * 24, { s: 16, w: '700', c: neg ? '#b3281e' : '#2a6a2a' }); });
     button(x + w / 2 - 110, y + h - 80, 220, 54, 'LANJUT', closeStoryEvent, { col: 'green', s: 22 });
   }
+}
+/** Gudang: umur stok barang yang bisa basi + kulkas. */
+export function kulkasModal() {
+  const x = 190, y = 36, w = 900, h = 648;
+  panel(x, y, w, h);
+  T('GUDANG & KULKAS', x + 36, y + 56, { s: 32, c: '#6b3a14' });
+  closeBtn(x + w - 40, y + 40, () => { ui.modal = 'notebook'; });
+  T('Barang bisa basi. Yang tertua dijual lebih dulu; yang lewat masa simpan dibuang tiap pagi.', x + 36, y + 84, { s: 13, w: '600', c: '#7a5a3a' });
+  perishables().forEach((it, i) => {
+    const ry = y + 104 + i * 64, n = G.stock[it.id] || 0, on = itemOn(it.id), shelf = shelfOf(it.id), left = on && n > 0 ? oldestLeft(it.id) : null, soon = on ? expiringSoon(it.id) : 0;
+    ctx.fillStyle = on ? 'rgba(255,255,255,.55)' : 'rgba(225,220,205,.7)'; rr(ctx, x + 28, ry, w - 56, 58, 10); ctx.fill(); ctx.strokeStyle = soon ? '#d88a7a' : '#d6bf8a'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.globalAlpha = on ? 1 : .35; ico(it.id, x + 38, ry + 7, 44); ctx.globalAlpha = 1;
+    T(it.name, x + 96, ry + 26, { s: 18, c: on ? '#3a210c' : '#8a7a6a' });
+    if (!on) { T(`Terkunci · Level ${ITEM_LVL[it.id]}`, x + 96, ry + 46, { s: 12, w: '700', c: '#a05a1a' }); return; }
+    T(`masa simpan ${shelf} hari · stok ${n}`, x + 96, ry + 46, { s: 12, w: '600', c: '#5a3a1a' });
+    // bar kesegaran: tiap kelompok = satu segmen (kiri = tertua)
+    const bx = x + 360, bw = 340; ctx.fillStyle = '#d8c28c'; rr(ctx, bx, ry + 18, bw, 16, 8); ctx.fill();
+    let px = bx; const total = freshUnits(it.id).reduce((q, u) => q + u.n, 0) || 1;
+    for (const u of freshUnits(it.id)) { const ww = Math.max(4, bw * u.n / total); ctx.fillStyle = u.left <= 2 ? '#d6483a' : u.left <= shelf * .4 ? '#e0b030' : '#58b948'; ctx.fillRect(px, ry + 18, Math.min(ww, bx + bw - px), 16); px += ww; }
+    ctx.strokeStyle = '#6b4a22'; ctx.lineWidth = 2; rr(ctx, bx, ry + 18, bw, 16, 8); ctx.stroke();
+    T(n === 0 ? 'kosong' : left <= 0 ? 'basi besok pagi' : `tertua ${left} hari lagi`, bx + bw + 14, ry + 31, { s: 13, w: '700', c: soon ? '#b3281e' : '#5a3a1a' });
+    if (soon) T(`${soon} unit hampir basi`, bx, ry + 52, { s: 12, w: '800', c: '#b3281e' });
+  });
+  const fy = y + 104 + perishables().length * 64 + 8;
+  ctx.fillStyle = G.fridge ? 'rgba(120,200,110,.35)' : 'rgba(255,255,255,.55)'; rr(ctx, x + 28, fy, w - 56, 78, 12); ctx.fill(); ctx.strokeStyle = G.fridge ? '#5aa84a' : '#d6bf8a'; ctx.lineWidth = 2; ctx.stroke();
+  T('KULKAS', x + 48, fy + 32, { s: 20, c: '#2a4a6a' });
+  if (G.fridge) T('Terpasang: masa simpan semua barang ×2.', x + 48, fy + 58, { s: 15, w: '700', c: '#2a6a1a' });
+  else {
+    T(featureOn('kulkas') ? 'Gandakan masa simpan semua barang yang bisa basi.' : `Terbuka di Level ${FEATURE_LVL.kulkas}.`, x + 48, fy + 58, { s: 14, w: '600', c: '#5a3a1a' });
+    button(x + w - 330, fy + 14, 280, 50, `BELI ${rp(FRIDGE_COST)}`, buyFridge, { col: 'green', s: 18, disabled: !featureOn('kulkas') || G.money < FRIDGE_COST });
+  }
+  T(`Kerugian stok basi hari ini: ${rp((G.stats && G.stats.waste) || 0)}`, x + 36, y + h - 20, { s: 13, w: '700', c: '#7a3a1a' });
 }
 /** Buku pelanggan tetap: kedekatan, kesukaan, kunjungan, utang. */
 export function regularsModal() {

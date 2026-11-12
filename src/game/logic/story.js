@@ -20,7 +20,7 @@ const INTEREST = .05;               // bunga tunggakan
 
 export function initStory(day = 1) {
   return { debt: DEBT0, due: day + CYCLE, arrears: 0, hold: 0, trust: 50, easy: false, lunas: false,
-    done: [], recent: [], flags: {}, queue: [], kabar: [], cur: null, result: null, lastPay: null, ending: null, chapterSeen: 0, paidCount: 0, collectCount: 0, regs: {}, ach: {} };
+    done: [], recent: [], flags: {}, queue: [], kabar: [], cur: null, result: null, lastPay: null, ending: null, chapterSeen: 0, paidCount: 0, collectCount: 0, freshStreak: 0, regs: {}, ach: {} };
 }
 export const story = () => G.story || (G.story = initStory(G.day || 1));
 

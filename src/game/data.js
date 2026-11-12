@@ -1,18 +1,18 @@
 
 /* ---------- data barang ---------- */
 export const ITEMS = [
-  { id: 'kopi',    name: 'Kopi Sachet',    price: 2000,  pack: 10, packCost: 12000, spr: null },
+  { id: 'kopi',    name: 'Kopi Sachet',    price: 2000,  pack: 10, packCost: 12000, spr: null, shelf: 18 },
   { id: 'rokok',   name: 'Rokok Ketengan', price: 2000,  pack: 20, packCost: 26000, spr: null },
   { id: 'bensin',  name: 'Bensin Botol',   price: 12000, pack: 5,  packCost: 50000, spr: null },
   { id: 'aqua',    name: 'Air Mineral',    price: 4000,  pack: 12, packCost: 36000, spr: 'aqua' },
-  { id: 'cola',    name: 'Cola Kaleng',    price: 7000,  pack: 6,  packCost: 36000, spr: 'cola' },
-  { id: 'redbull', name: 'Minuman Energi', price: 10000, pack: 6,  packCost: 54000, spr: 'redbull' },
-  { id: 'mie',     name: 'Mie Instan Cup', price: 5000,  pack: 10, packCost: 30000, spr: 'mie' },
+  { id: 'cola',    name: 'Cola Kaleng',    price: 7000,  pack: 6,  packCost: 36000, spr: 'cola', shelf: 12 },
+  { id: 'redbull', name: 'Minuman Energi', price: 10000, pack: 6,  packCost: 54000, spr: 'redbull', shelf: 12 },
+  { id: 'mie',     name: 'Mie Instan Cup', price: 5000,  pack: 10, packCost: 30000, spr: 'mie', shelf: 14 },
   { id: 'galon',   name: 'Galon Isi Ulang',price: 7000,  pack: 3,  packCost: 15000, spr: 'galon' },
   { id: 'gas',     name: 'Gas Melon 3 Kg', price: 25000, pack: 2,  packCost: 44000, spr: 'gas' },
   { id: 'beras',   name: 'Beras 1 Kg',     price: 15000, pack: 4,  packCost: 52000, spr: 'beras2' },
-  { id: 'kerupuk', name: 'Kerupuk',        price: 1000,  pack: 20, packCost: 14000, spr: 'toples' },
-  { id: 'snack',   name: 'Keripik Renteng',price: 2000,  pack: 10, packCost: 13000, spr: null },
+  { id: 'kerupuk', name: 'Kerupuk',        price: 1000,  pack: 20, packCost: 14000, spr: 'toples', shelf: 8 },
+  { id: 'snack',   name: 'Keripik Renteng',price: 2000,  pack: 10, packCost: 13000, spr: null, shelf: 10 },
 ];
 export const BY = {}; ITEMS.forEach(i => { i.cost = i.packCost / i.pack; BY[i.id] = i; });
 export const START_STOCK = { kopi: 15, rokok: 20, bensin: 6, aqua: 12, cola: 6, redbull: 4, mie: 8, galon: 4, gas: 3, beras: 6, kerupuk: 15, snack: 10 };

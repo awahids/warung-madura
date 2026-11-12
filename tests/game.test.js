@@ -540,3 +540,60 @@ describe('pelanggan tetap', () => {
     ['sri', 'dimas', 'rizky'].forEach(id => P.bond(id, 35)); expect(A.unlocked('banyak_teman')).toBe(true);
   });
 });
+
+describe('umur stok & kulkas', () => {
+  beforeEach(() => { setG(freshState(G)); G.xp = 1e6; G.stock = { ...START_STOCK }; ui.modal = null; startDay(); G.story.chapterSeen = 99; });
+
+  it('hanya barang tertentu bisa basi; kulkas menggandakan masa simpan', async () => {
+    const F = await import('../src/game/logic/freshness'), D = await import('../src/game/data');
+    expect(F.perishables().map(i => i.id).sort()).toEqual(['cola', 'kerupuk', 'kopi', 'mie', 'redbull', 'snack']);
+    expect(F.shelfOf('kerupuk')).toBe(8); expect(F.shelfOf('aqua')).toBe(0); expect(F.shelfOf('rokok')).toBe(0);
+    G.fridge = true; expect(F.shelfOf('kerupuk')).toBe(16); expect(D.BY.kerupuk.shelf).toBe(8);
+  });
+
+  it('kelompok stok: FIFO saat dijual, kelompok baru saat stok bertambah', async () => {
+    const F = await import('../src/game/logic/freshness'); G.day = 1; G.stock.mie = 10; F.reconcile('mie');
+    G.day = 5; F.stockIn('mie', 6);                                         // kelompok baru hari ke-5
+    expect(F.freshUnits('mie')).toEqual([{ n: 10, left: 14 - 4 }, { n: 6, left: 14 }]);
+    G.stock.mie -= 12; F.reconcile('mie');                                  // dijual 12: habiskan yang tertua dulu
+    expect(F.freshUnits('mie')).toEqual([{ n: 4, left: 14 }]); expect(F.oldestLeft('mie')).toBe(14);
+    G.stock.mie = 0; expect(F.oldestLeft('mie')).toBeNull();
+  });
+
+  it('pengiriman dari kurir menambah kelompok bertanggal hari itu', async () => {
+    const F = await import('../src/game/logic/freshness'), { placeOrder, receiveDelivery } = await import('../src/game/logic/actions');
+    G.day = 3; G.stock.kopi = 4; G.cart = { kopi: 1 }; G.money = 1e6; placeOrder(); G.abs += 200; receiveDelivery();
+    expect(G.stock.kopi).toBe(14); expect(F.freshUnits('kopi').at(-1)).toEqual({ n: 10, left: 18 });
+  });
+
+  it('barang lewat masa simpan dibuang tiap pagi, rugi dihitung, kabar dicatat', async () => {
+    const F = await import('../src/game/logic/freshness'); G.day = 1; G.stock.kerupuk = 15; F.reconcile('kerupuk'); G.day = 6; F.stockIn('kerupuk', 5);
+    G.day = 8; G.morning = []; expect(F.expireStock()).toEqual([]);          // umur 7 < 8
+    G.day = 9; G.morning = []; G.stats = { waste: 0 }; const out = F.expireStock();      // kelompok pertama berumur 8 → basi
+    expect(G.stock.kerupuk).toBe(5); expect(out[0]).toBe('15 Kerupuk kedaluwarsa dan dibuang'); expect(G.stats.waste).toBe(Math.round(15 * 700)); expect(G.morning).toEqual(out);
+    expect(F.freshUnits('kerupuk')).toEqual([{ n: 5, left: 5 }]);
+  });
+
+  it('startDay membuang stok basi dan masuk kabar kampung; kulkas mencegahnya', async () => {
+    const F = await import('../src/game/logic/freshness'); G.day = 1; G.stock.kerupuk = 12; F.reconcile('kerupuk');
+    G.day = 8; startDay(); expect(G.stock.kerupuk).toBe(12);                // hari ke-9 belum tiba
+    G.day = 9; startDay(); expect(G.stock.kerupuk).toBe(0); expect(G.story.kabar.some(k => k.includes('kedaluwarsa'))).toBe(true);
+    G.stock.kerupuk = 12; G.day = 20; F.reconcile('kerupuk'); G.fridge = true; G.day = 35; startDay(); expect(G.stock.kerupuk).toBe(12);   // 15 hari < 16
+  });
+
+  it('membeli kulkas: butuh level & uang; sekali saja', async () => {
+    const F = await import('../src/game/logic/freshness'), L = await import('../src/game/logic/level');
+    setG(freshState(G)); startDay(); G.story.chapterSeen = 99; G.money = 1e6; expect(F.buyFridge()).toBe(false);   // Level 1
+    L.addXp(L.xpAt(4)); G.money = 100000; expect(F.buyFridge()).toBe(false); G.money = 400000; expect(F.buyFridge()).toBe(true);
+    expect(G.fridge).toBe(true); expect(G.money).toBe(100000); expect(F.buyFridge()).toBe(false); expect(G.money).toBe(100000);
+  });
+
+  it('pencapaian Stok Selalu Segar setelah 7 pagi tanpa barang basi; tersimpan di save', async () => {
+    const F = await import('../src/game/logic/freshness'), A = await import('../src/game/logic/achievements');
+    G.stock = {}; G.morning = []; for (let d = 2; d <= 8; d++) { G.day = d; F.expireStock(); }
+    expect(G.story.freshStreak).toBe(7); A.checkAchievements(); expect(A.unlocked('segar')).toBe(true);
+    const mem = {}; vi.stubGlobal('localStorage', { setItem: (k, v) => { mem[k] = v; }, getItem: k => mem[k] ?? null, removeItem: k => { delete mem[k]; } });
+    G.fridge = true; G.stock.mie = 3; G.day = 4; F.reconcile('mie'); const { save, loadSave } = await import('../src/game/persist'); save();
+    const s = loadSave(); expect(s.fridge).toBe(true); expect(s.batches.mie).toEqual([{ n: 3, day: 4 }]); vi.unstubAllGlobals();
+  });
+});

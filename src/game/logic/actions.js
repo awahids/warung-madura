@@ -4,6 +4,7 @@ import { active } from './customers.js';
 import { save } from '../persist.js';
 import { G } from '../state.js';
 import { FEATURE_LVL, discountOf, etaOf, featureOn, itemOn, level } from './level.js';
+import { stockIn } from './freshness.js';
 import { orderBlocked } from './story.js';
 import { rp } from '../util.js';
 import { flt, toast } from '../widgets.js';
@@ -24,7 +25,7 @@ export function drinkKopi() {
 export function receiveDelivery() {
   const d = G.deliveries.find(x => G.abs >= x.eta); if (!d) return;
   const parts = [];
-  for (const id in d.items) { G.stock[id] = (G.stock[id] || 0) + d.items[id]; parts.push(`${d.items[id]} ${BY[id].name}`); }
+  for (const id in d.items) { stockIn(id, d.items[id]); parts.push(`${d.items[id]} ${BY[id].name}`); }
   G.deliveries = G.deliveries.filter(x => x !== d); SFX.good(); toast('Barang diterima: ' + parts.join(', '), '#cfe8ff'); save();
 }
 export function usePromo() {

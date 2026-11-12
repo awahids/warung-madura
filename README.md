@@ -19,7 +19,7 @@ Pintasan: `Esc` jeda, `Spasi` hitung.
 
 ## Level & pesan lewat HP
 - **Level juragan** (maks. 20): XP dari tiap pembeli yang dilayani (+10, +5 bila cepat, +3 bila dapat tip) dan misi harian (+40). Bar level ada di HUD. Naik level memberi **bonus kas** (Rp 10.000 × level), **diskon grosir** 2% per level (maks. 20%), dan **kurir lebih cepat** (90 menit → min. 45). XP tersimpan di save; rumus di `src/game/logic/level.js`. Klik bar level di HUD untuk melihat isi tiap level.
-- **Yang dibuka per level** (tabel `ITEM_LVL` / `TYPE_LVL` / `FEATURE_LVL`): Lv 1 → 6 barang dasar (kopi, rokok, air mineral, mie, kerupuk, keripik) + Bang Ojol, Mas Dimas, Bang Rizky · Lv 2 → Cola, Bu Sri, Promo · Lv 3 → Bensin, Adik Pelajar, Kasbon · Lv 4 → Galon, Pak Haji · Lv 5 → Minuman Energi, Pak Tukang, Pesan Ulang di HP · Lv 6 → Beras, Tamu Misterius, Kembalian Otomatis · Lv 7 → Turis Bule · Lv 8 → Gas Melon, Kurir Ekspres (30 menit, biaya +15%). Barang terkunci **disembunyikan dari adegan 3D** (rak bensin, galon, gas, beras, cola, minuman energi — termasuk stok dekoratif di lantai; tidak bisa diklik dan tanpa lencana stok) dan muncul saat levelnya tercapai (`setLockedItems` di `src/scene3d/warung.js`). Barang terkunci juga tidak dipesan pembeli, tidak bisa dijual/dipesan, dan diberi stok perkenalan saat terbuka.
+- **Yang dibuka per level** (tabel `ITEM_LVL` / `TYPE_LVL` / `FEATURE_LVL`): Lv 1 → 6 barang dasar (kopi, rokok, air mineral, mie, kerupuk, keripik) + Bang Ojol, Mas Dimas, Bang Rizky · Lv 2 → Cola, Bu Sri, Promo · Lv 3 → Bensin, Adik Pelajar, Kasbon · Lv 4 → Galon, Pak Haji, Kulkas · Lv 5 → Minuman Energi, Pak Tukang, Pesan Ulang di HP · Lv 6 → Beras, Tamu Misterius, Kembalian Otomatis · Lv 7 → Turis Bule · Lv 8 → Gas Melon, Kurir Ekspres (30 menit, biaya +15%). Barang terkunci **disembunyikan dari adegan 3D** (rak bensin, galon, gas, beras, cola, minuman energi — termasuk stok dekoratif di lantai; tidak bisa diklik dan tanpa lencana stok) dan muncul saat levelnya tercapai (`setLockedItems` di `src/scene3d/warung.js`). Barang terkunci juga tidak dipesan pembeli, tidak bisa dijual/dipesan, dan diberi stok perkenalan saat terbuka.
 - **Pesan barang lewat HP**: klik HP di meja (atau tombol *HP · Pesan Barang* sebelum buka) → aplikasi **GrosirKu** untuk memilih paket dan memesan. Tombol *Medsos* di HP mengisi energi (membuat pembeli yang sedang dilayani lebih tidak sabar). Buku Catatan kini hanya untuk cek stok, harga, dan laba.
 
 ## Pasang sebagai aplikasi (PWA)
@@ -78,6 +78,13 @@ Buku Catatan → **Kasbon** (merah bila ada yang jatuh tempo). Kode: `src/game/l
 - **Batas kasbon beredar** = Rp 80.000 + Rp 30.000 × level. Bila kasbon baru melampauinya, tombol *Boleh* ditolak dengan pesan; pembeli tampil dengan keterangan beredar/batas. (Kasbon dari kejadian cerita tidak terkena batas.)
 - Tiap catatan bisa ditagih **sekali sehari**: **Tagih** (halus, peluang ±25–55%, membuat pemain sedikit lelah, kepercayaan +0,5 bila berhasil) atau **Keras** (peluang ±60–95%, kepercayaan −1 bila berhasil, −2 dan reputasi −1 bila gagal). Peluang naik menurut umur kasbon dan kepercayaan warga dan ditampilkan di tiap baris.
 - **Ikhlaskan** menghapus catatan (kepercayaan +1,5, XP +5). Kasbon yang tidak ditagih tetap bisa dibayar sendiri tiap pagi atau macet setelah 3 hari. Pencapaian baru: *Penagih Santun* (5 tagih halus berhasil).
+
+## Umur stok & kulkas
+Buku Catatan → **Gudang**. Kode: `src/game/logic/freshness.js`.
+- Enam barang **bisa basi** (`shelf` di `src/game/data.js`): kerupuk 8 hari, keripik 10, mie 12→14, cola & minuman energi 12, kopi 18. Barang lain (air mineral, rokok, bensin, gas, galon, beras) tidak basi.
+- Stok dicatat per **kelompok** menurut hari tiba; penjualan selalu mengambil yang **tertua dulu**. Tiap pagi, kelompok yang melewati masa simpan **dibuang**: rugi sebesar modalnya, masuk toast pagi dan *Kabar kampung* di rekap. Layar Gudang menampilkan bar kesegaran per barang (merah = ≤ 2 hari), dan Buku Catatan menampilkan "segar N hari".
+- **Kulkas** (Lv 4, Rp 300.000, sekali beli) menggandakan masa simpan semua barang yang bisa basi. Pencapaian baru: *Stok Selalu Segar* (7 hari berturut-turut tanpa barang basi). Kelompok stok dan kulkas tersimpan di save.
+- Implementasi: stok diubah dari banyak tempat, jadi kelompok diselaraskan ke `G.stock` di titik penting (barang tiba, awal hari, saat dilihat).
 
 ## Pelanggan tetap (diingat)
 Buku Catatan → **Pelanggan Tetap**. Data tokoh di `src/game/story/regulars.js`, logika di `src/game/logic/regulars.js`.
