@@ -5,7 +5,7 @@ import { freshState } from '../src/game/persist';
 import { startDay, openShop } from '../src/game/logic/day';
 import { spawnCustomer, active, addToTray, doHitung, giveBill, confirmChange, carryKind } from '../src/game/logic/customers';
 import { update } from '../src/game/update';
-import { toWorldX, crowdFromGame, runAct, moodOf } from '../src/game/engine3d';
+import { toWorldX, crowdFromGame, runAct, moodOf, pointerToNdc } from '../src/game/engine3d';
 
 function begin() { setG(freshState(G)); G.story.chapterSeen = 99; G.xp = 1e6; G.stock = { ...START_STOCK }; ui.modal = null; startDay(); G.door = 1; openShop(); G.firstCust = false; G.spawnCd = 1e9; }
 
@@ -109,5 +109,15 @@ describe('jembatan logika → 3D', () => {
     const c = active(); c.order = [{ id: 'aqua', qty: 1 }]; c.total = 4000; c.pay = 4000; c.change = 0;
     addToTray('aqua'); doHitung();
     expect(c.walkAt).toBeUndefined();
+  });
+});
+
+describe('ketukan di layar sentuh', () => {
+  it('titik pointer → NDC dihitung dari event dan kotak overlay (bukan dari posisi mouse global)', () => {
+    const rect = { left: 100, top: 50, width: 640, height: 360 };                 // overlay 1280×720 diskalakan 0,5 dan digeser
+    expect(pointerToNdc({ clientX: 420, clientY: 230 }, rect)).toEqual([0, -0]);   // tepat di tengah
+    expect(pointerToNdc({ clientX: 100, clientY: 50 }, rect)).toEqual([-1, 1]);    // pojok kiri atas
+    expect(pointerToNdc({ clientX: 740, clientY: 410 }, rect)).toEqual([1, -1]);   // pojok kanan bawah
+    const [x, y] = pointerToNdc({ clientX: 260, clientY: 140 }, rect); expect(x).toBeCloseTo(-.5); expect(y).toBeCloseTo(.5);
   });
 });

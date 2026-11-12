@@ -31,6 +31,10 @@ import { createWarung } from '../scene3d/warung.js';
 /** Peta koordinat x layar 2D (slot antrean 450/640/835) → x dunia 3D (meter). */
 export const toWorldX = x2d => (x2d - 640) / 190;   // slot berjarak ≈1 m agar kepala chibi yang besar tidak saling menutupi
 
+/** Titik pointer → koordinat NDC (−1..1) adegan 3D, dihitung dari event + kotak overlay.
+    Dipakai saat pointerup: di layar sentuh `mouse` sudah direset ke −99 oleh handler input umum sebelum handler 3D berjalan. */
+export const pointerToNdc = (e, rect, w = W, h = H) => { const x = (e.clientX - rect.left) / rect.width * w, y = (e.clientY - rect.top) / rect.height * h; return [x / w * 2 - 1, -(y / h * 2 - 1)]; };
+
 /** Ekspresi wajah pelanggan 3D dari sisa kesabaran: senang → datar → marah; girang saat pulang membawa belanjaan. */
 export const moodOf = (c, leaving) => leaving ? (c.took ? 'joy' : 'angry') : (c.patience / c.max > .55 ? 'happy' : c.patience / c.max > .28 ? 'flat' : 'angry');
 
@@ -173,7 +177,7 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
     };
     const onDown = e => {
       if (ui.consumed || G.screen !== 'play' || ui.modal) return;
-      const o = scene.pick(...ndcOf()); const act = o && o.userData.act; if (!act) return;
+      const o = scene.pick(...pointerToNdc(e, overlay.getBoundingClientRect())); const act = o && o.userData.act; if (!act) return;
       pending = { act, o, x: e.clientX, y: e.clientY, long: false };
       if (ui.touch) pressTimer = setTimeout(() => { if (pending) { pending.long = true; ui.longTip = describe(act); } }, 420);
     };
@@ -182,7 +186,7 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
       if (pending) {
         const { act, o, x, y, long } = pending; pending = null;
         const moved = Math.hypot(e.clientX - x, e.clientY - y) > 8;
-        if (!long && !moved && (!ui.modal)) { const now = scene.pick(...ndcOf()); if (now === o) runAct(act, scene); }
+        if (!long && !moved && (!ui.modal)) { const now = scene.pick(...pointerToNdc(e, overlay.getBoundingClientRect())); if (now === o) runAct(act, scene); }
       }
       ui.longTip = '';
     };
@@ -191,9 +195,11 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
     };
     overlay.addEventListener('pointerdown', onDownCapture, true);
     overlay.addEventListener('pointerdown', onDown);
+    const onCancel = () => { clearTimeout(pressTimer); pending = null; ui.longTip = ''; scene.controls.enabled = true; };
     overlay.addEventListener('pointerup', onUp);
+    overlay.addEventListener('pointercancel', onCancel);
     window.addEventListener('keydown', onKey);
-    cleanups.push(() => { overlay.removeEventListener('pointerdown', onDownCapture, true); overlay.removeEventListener('pointerdown', onDown); overlay.removeEventListener('pointerup', onUp); window.removeEventListener('keydown', onKey); });
+    cleanups.push(() => { overlay.removeEventListener('pointerdown', onDownCapture, true); overlay.removeEventListener('pointerdown', onDown); overlay.removeEventListener('pointerup', onUp); overlay.removeEventListener('pointercancel', onCancel); window.removeEventListener('keydown', onKey); });
     last = performance.now(); raf = requestAnimationFrame(loop);
     onReady && onReady(api);
   };
