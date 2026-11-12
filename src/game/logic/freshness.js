@@ -4,6 +4,7 @@ import { G } from '../state.js';
 import { rp } from '../util.js';
 import { toast } from '../widgets.js';
 import { featureOn } from './level.js';
+import { hasRole } from './regulars.js';
 
 /* ============================================================
    UMUR STOK & KULKAS
@@ -14,7 +15,7 @@ import { featureOn } from './level.js';
    ============================================================ */
 export const FRIDGE_COST = 300000;
 export const perishables = () => ITEMS.filter(i => i.shelf);
-export const shelfOf = id => { const s = BY[id] && BY[id].shelf; return s ? s * (G.fridge ? 2 : 1) : 0; };
+export const shelfOf = id => { const s = BY[id] && BY[id].shelf; return s ? Math.round(s * (G.fridge ? 2 : 1) * (hasRole('gudang') ? 1.3 : 1)) : 0; };
 const batches = id => { G.batches = G.batches || {}; return G.batches[id] || (G.batches[id] = []); };
 
 /** Samakan jumlah kelompok dengan G.stock: kelebihan → kelompok baru (hari ini); kekurangan → ambil dari yang tertua. */

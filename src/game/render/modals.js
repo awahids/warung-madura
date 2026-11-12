@@ -4,9 +4,10 @@ import { BY, ITEMS } from '../data.js';
 import { ctx } from '../gfx.js';
 import { ico } from '../icons.js';
 import { cycleQuality, qualityLabel } from '../quality.js';
+import { BONUS_COST, candidates, canHire, fire, giveBonus, hire, slots, staffList, wageOf, wagesPerDay } from '../logic/staff.js';
 import { FRIDGE_COST, buyFridge, expiringSoon, freshUnits, oldestLeft, perishables, shelfOf } from '../logic/freshness.js';
 import { favItems, regState, regTier, tierName } from '../logic/regulars.js';
-import { REGULARS, TIER_AT } from '../story/regulars.js';
+import { REGULARS, ROLES, TIER_AT } from '../story/regulars.js';
 import { ATLAS } from '../atlas.js';
 import { TYPES } from '../data.js';
 import { TYPE_LVL, typeOn } from '../logic/level.js';
@@ -45,6 +46,7 @@ function drawModalBody() {
   else if (ui.modal === 'kasbon') kasbonModal();
   else if (ui.modal === 'regulars') regularsModal();
   else if (ui.modal === 'kulkas') kulkasModal();
+  else if (ui.modal === 'staff') staffModal();
   else if (ui.modal === 'summary') summary();
   else if (ui.modal === 'help') help();
   else if (ui.modal === 'pause') pauseMenu();
@@ -56,6 +58,7 @@ export function notebook() {
   panel(x, y, w, h, { fill: '#f7ecca' });
   ctx.strokeStyle = 'rgba(110,80,40,.18)'; ctx.lineWidth = 1; for (let ly = y + 110; ly < y + h - 30; ly += 28) { ctx.beginPath(); ctx.moveTo(x + 26, ly); ctx.lineTo(x + w - 26, ly); ctx.stroke(); }
   T('BUKU CATATAN', x + 34, y + 54, { s: 30, c: '#6b3a14' });
+  if (featureOn('karyawan')) button(x + w - 720, y + 22, 180, 40, 'KARYAWAN' + (staffList().length ? ` (${staffList().length})` : ''), () => { ui.modal = 'staff'; }, { col: 'yellow', tc: '#4a2a00', s: 15, tip: 'Rekrut & kelola karyawan' });
   button(x + w - 530, y + 22, 180, 40, 'GUDANG', () => { ui.modal = 'kulkas'; }, { col: 'blue', s: 15, tip: 'Umur stok & kulkas' });
   button(x + w - 330, y + 22, 250, 40, 'PELANGGAN TETAP', () => { ui.modal = 'regulars'; ui.regPage = 0; }, { col: 'wood', s: 15, tip: 'Kedekatan & kesukaan pelanggan tetap' });
   T('Cek stok & harga. Untuk memesan barang ke grosir, pakai HP.', x + 36, y + 80, { s: 14, w: '600', c: '#7a5a3a' });
@@ -153,6 +156,40 @@ export function eventModal() {
     button(x + w / 2 - 110, y + h - 80, 220, 54, 'LANJUT', closeStoryEvent, { col: 'green', s: 22 });
   }
 }
+/** Karyawan: rekrut dari pelanggan tetap yang Akrab, gaji, kesetiaan. */
+export function staffModal() {
+  const x = 190, y = 36, w = 900, h = 648, list = staffList(), sl = slots();
+  panel(x, y, w, h);
+  T('KARYAWAN', x + 36, y + 56, { s: 32, c: '#6b3a14' });
+  closeBtn(x + w - 40, y + 40, () => { ui.modal = 'notebook'; });
+  T(`Kursi ${list.length}/${sl} (Lv 7: 1 · Lv 10: 2) · gaji ${rp(wagesPerDay())}/hari, dibayar saat warung tutup`, x + 36, y + 84, { s: 14, w: '700', c: '#5a3a1a' });
+  T('KARYAWANMU', x + 36, y + 114, { s: 13, w: '800', c: '#a05a1a' });
+  if (!list.length) T('Belum ada. Rekrut pelanggan tetap yang sudah Akrab di bawah.', x + 56, y + 150, { s: 15, w: '600', c: '#7a6a5a' });
+  list.forEach((e, i) => {
+    const r = REGULARS.find(q => q.id === e.id), role = ROLES[r.job], ry = y + 122 + i * 82, lazy = e.loyalty < 30, a = ATLAS[TYPES[r.type].spr];
+    ctx.fillStyle = lazy ? 'rgba(230,150,130,.35)' : 'rgba(120,200,110,.25)'; rr(ctx, x + 28, ry, w - 56, 74, 10); ctx.fill(); ctx.strokeStyle = lazy ? '#d88a7a' : '#7ac070'; ctx.lineWidth = 2; ctx.stroke();
+    if (a) SP(TYPES[r.type].spr, x + 66, ry + 70, 62 / a[3], .5, 1);
+    T(`${r.name} · ${role.name}`, x + 110, ry + 26, { s: 18, c: '#3a210c' });
+    T(lazy ? 'Malas — perannya tidak aktif. Beri bonus atau bayar gaji tepat waktu.' : role.desc, x + 110, ry + 46, { s: 12, w: '600', c: lazy ? '#b3281e' : '#2a5a1a' });
+    ctx.fillStyle = '#d8c28c'; rr(ctx, x + 110, ry + 54, 160, 9, 5); ctx.fill(); ctx.fillStyle = e.loyalty >= 60 ? '#58b948' : e.loyalty >= 30 ? '#e0b030' : '#d6483a'; rr(ctx, x + 110, ry + 54, Math.max(5, 160 * e.loyalty / 100), 9, 5); ctx.fill();
+    T(`Kesetiaan ${Math.round(e.loyalty)} · gaji ${rp(wageOf(e.id))}/hari${e.owed ? ` · tunggakan ${rp(e.owed)}` : ''}`, x + 282, ry + 63, { s: 12, w: '700', c: e.owed ? '#b3281e' : '#5a3a1a' });
+    button(x + w - 330, ry + 14, 150, 46, `BONUS ${Math.round(BONUS_COST / 1000)}rb`, () => giveBonus(e.id), { col: 'green', s: 14, disabled: G.money < BONUS_COST, tip: 'Kesetiaan +15, kedekatan +3' });
+    button(x + w - 170, ry + 14, 130, 46, 'PECAT', () => fire(e.id), { col: 'red', s: 15 });
+  });
+  const cy = y + 122 + Math.max(1, sl) * 82 + 12;
+  T('BISA DIREKRUT (pelanggan tetap yang sudah Akrab)', x + 36, cy, { s: 13, w: '800', c: '#a05a1a' });
+  const cand = candidates();
+  if (!featureOn('karyawan')) T(`Karyawan terbuka di Level ${FEATURE_LVL.karyawan}.`, x + 56, cy + 40, { s: 16, w: '700', c: '#a05a1a' });
+  else if (!cand.length) T('Belum ada. Layani pelanggan tetap sampai Akrab (lihat Pelanggan Tetap).', x + 56, cy + 40, { s: 15, w: '600', c: '#7a6a5a' });
+  cand.slice(0, 4).forEach((r, i) => {
+    const ry = cy + 12 + i * 62, ok = canHire(r.id), role = ROLES[r.job];
+    ctx.fillStyle = 'rgba(255,255,255,.55)'; rr(ctx, x + 28, ry, w - 56, 56, 10); ctx.fill(); ctx.strokeStyle = '#d6bf8a'; ctx.lineWidth = 2; ctx.stroke();
+    T(`${r.name} → ${role.name}`, x + 48, ry + 24, { s: 17, c: '#3a210c' });
+    T(`${role.desc}  Gaji ${rp(role.wage)}/hari.`, x + 48, ry + 44, { s: 12, w: '600', c: '#5a3a1a' });
+    button(x + w - 200, ry + 6, 160, 44, 'REKRUT', () => hire(r.id), { col: 'green', s: 16, disabled: !ok, tip: ok ? 'Mulai bekerja besok' : 'Kursi penuh' });
+  });
+  T('Pelanggan yang bekerja tidak lagi datang sebagai pembeli.', x + 36, y + h - 20, { s: 12, w: '600', c: '#7a5a3a' });
+}
 /** Gudang: umur stok barang yang bisa basi + kulkas. */
 export function kulkasModal() {
   const x = 190, y = 36, w = 900, h = 648;
@@ -199,6 +236,7 @@ export function regularsModal() {
     const a = ATLAS[TYPES[r.type].spr]; if (a) { ctx.globalAlpha = on ? 1 : .35; SP(TYPES[r.type].spr, cx + 44, cy + CH - 12, 78 / a[3], .5, 1); ctx.globalAlpha = 1; }
     if (!on) { T(r.name, cx + 100, cy + 36, { s: 19, c: '#8a7a6a' }); T(`Belum dikenal · muncul di Level ${TYPE_LVL[r.type]}`, cx + 100, cy + 62, { s: 14, w: '700', c: '#a05a1a' }); return; }
     T(r.name, cx + 100, cy + 32, { s: 20, c: '#3a210c' });
+    if (staffList().some(e => e.id === r.id)) T('KARYAWAN', cx + CW - 16, cy + 12, { s: 10, a: 'right', w: '800', c: '#2a6a1a' });
     T(`${'★'.repeat(tier)}${'☆'.repeat(3 - tier)} ${tierName(tier)}`, cx + CW - 16, cy + 32, { s: 15, a: 'right', c: ['#8a8a8a', '#3a7ab8', '#2a8a2a', '#b88a10'][tier] });
     const nxt = TIER_AT[tier + 1], lo = TIER_AT[tier], f = nxt === undefined ? 1 : (st.aff - lo) / (nxt - lo);
     ctx.fillStyle = '#d8c28c'; rr(ctx, cx + 100, cy + 42, 200, 10, 5); ctx.fill(); ctx.fillStyle = ['#aab', '#5aa6e8', '#58b948', '#e0b030'][tier]; rr(ctx, cx + 100, cy + 42, Math.max(6, 200 * f), 10, 5); ctx.fill();
@@ -314,7 +352,7 @@ export function summary() {
   T(`Rekap Hari ${G.day} · Bab ${chapterOf()} ${chapterName()}`, x + w / 2, y + 80, { s: 15, a: 'center', c: '#7a5a3a', w: '600' });
   const rows = [
     ['Pelanggan dilayani', s.served], ['Pelanggan kecewa', s.left], ['Omzet penjualan', rp(s.revenue)],
-    ['Laba kotor', rp(s.profit)], ['Tip', rp(s.tips)], ['Belanja stok & promo', '-' + rp(s.spent)],
+    ['Laba kotor', rp(s.profit)], ['Tip', rp(s.tips)], ['Belanja, gaji & promo', '-' + rp(s.spent)],
     ['Bonus misi & level', '+' + rp(s.bonus)], ['XP didapat · Level ' + level() + ' ' + rankOf(level()), '+' + (s.xp || 0)], ['Kasbon baru', rp(s.kasbonNew)],
   ];
   if (G.endReason === 'faint') rows.splice(7, 0, ['Biaya klinik', '-Rp 15.000']);

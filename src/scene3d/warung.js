@@ -258,6 +258,17 @@ export function createWarung(canvas, opts = {}) {
   scene.add(box(.6, PJ_Y, .85, std('#8a5a32', { roughness: .85 }), .2, PJ_Y / 2, -1.15));
   const penjaga = personFor('penjaga'); penjaga.position.set(.2, PJ_Y, -1.3); penjaga.rotation.y = Math.PI; scene.add(penjaga);
   const people = [...demo, penjaga];
+  // karyawan: figur tokoh di dalam warung (maks. 2 kursi); ikut animasi napas/menoleh seperti figur lain
+  const staffFigs = new Map(), STAFF_AT = [[1.75, -1.85], [-1.05, -2.1]];
+  const setStaff = list => {
+    const want = new Set(list.map(s => s.id));
+    for (const [id, g] of staffFigs) if (!want.has(id)) { scene.remove(g); people.splice(people.indexOf(g), 1); staffFigs.delete(id); }
+    list.forEach(s => {
+      if (staffFigs.has(s.id)) return;
+      const g = personFor(s.type, s.look), [x, z] = STAFF_AT[staffFigs.size % STAFF_AT.length];
+      g.position.set(x, 0, z); g.rotation.y = Math.PI; scene.add(g); people.push(g); staffFigs.set(s.id, g); if (quality === 'low') applyQ(g);
+    });
+  };
 
   /* ---------- mesin kasir + laci uang (di meja, menghadap penjaga) ---------- */
   const till = new THREE.Group(); till.position.set(.02, 1.0, .08); counter.add(till);
@@ -608,7 +619,7 @@ export function createWarung(canvas, opts = {}) {
     },
     /** Sembunyikan barang dagangan yang belum terbuka (ids = id barang terkunci); tidak bisa diklik & tanpa lencana. */
     setLockedItems(ids) { const s = new Set(ids); items.forEach(i => { if (i.act.type === 'item') i.obj.visible = !s.has(i.act.id); }); stock.forEach(d => { d.obj.visible = !s.has(d.id); }); tables.forEach((t, i) => { t.visible = TABLE_ITEMS[i].some(id => !s.has(id)); }); },   // meja muncul bila ada isinya
-    setQuality: q => setQuality(q), get quality() { return quality; },
+    setStaff, setQuality: q => setQuality(q), get quality() { return quality; },
     controls, items, pick: pickItem, penjagaAct, highlight, project, badges, syncPeople, syncTray, headPos, resize: resizeTo, frame: step,
     triangles: () => renderer.info.render.triangles,
     rakBensin: rak,

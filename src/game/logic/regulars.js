@@ -28,12 +28,16 @@ export function bond(id, n) {
   if (s.aff >= TIER_AT[3] && !s.gift) { s.gift = true; applyFx(r.reward.fx); toast(r.reward.text, '#ffe45c'); story().kabar.push(r.reward.text); }
   checkAchievements();
 }
+export const employedIds = () => (story().staff || []).map(s => s.id);
+/** Peran aktif: karyawan dengan peran ini dan kesetiaan ≥ 30. */
+export const hasRole = role => (story().staff || []).some(s => s.loyalty >= 30 && (regById(s.id) || {}).job === role);
 export function bondByName(name, n) { const r = regByName(name); if (r) bond(r.id, n); }
 
 /** Mungkin memilih pelanggan tetap untuk tipe ini: yang belum datang hari ini & tidak sedang ada di warung. */
 export function pickRegular(type) {
   const inPlay = new Set([...G.cust, ...G.leaving].map(c => c.reg).filter(Boolean));
-  const pool = REGULARS.filter(r => r.type === type && rec(r.id).last !== G.day && !inPlay.has(r.id));
+  const staff = new Set(employedIds());
+  const pool = REGULARS.filter(r => r.type === type && rec(r.id).last !== G.day && !inPlay.has(r.id) && !staff.has(r.id));
   if (!pool.length) return null;
   const r = pick(pool); return Math.random() < .3 + .002 * rec(r.id).aff ? r : null;   // 34% … 50%
 }

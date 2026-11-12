@@ -8,6 +8,8 @@ import { addToTray, doHitung } from './logic/customers.js';
 import { drinkKopi, receiveDelivery, usePromo as tapPromo } from './logic/actions.js';
 import { isRain } from './logic/day.js';
 import { ITEM_LVL, itemOn } from './logic/level.js';
+import { regById } from './logic/regulars.js';
+import { staffList } from './logic/staff.js';
 import { attachInput } from './input.js';
 import { loadSave } from './persist.js';
 import { autoDowngrade, effectiveQuality, onQuality } from './quality.js';
@@ -82,7 +84,7 @@ export function crowdFromGame(nextId) {
 export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = {}) {
   ui.cv = overlay; ui.mode3d = true; setCtx(overlay.getContext('2d'));
   ui.touch = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
-  let scene = null, raf = 0, alive = true, last = 0, t = 0, ro = null, detach = () => { }, prevScreen = null, lookKey = '', lockedKey = null, idN = 0, pending = null, pressTimer = 0;
+  let scene = null, raf = 0, alive = true, last = 0, t = 0, ro = null, detach = () => { }, prevScreen = null, lookKey = '', lockedKey = null, staffShown = null, idN = 0, pending = null, pressTimer = 0;
   const cleanups = [];
 
   const resize = () => {
@@ -107,6 +109,8 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
     if (key !== lookKey) { lookKey = key; scene.setLook({ night: n, sky, rain }); }
     const lockKey = playing ? Object.keys(ITEM_LVL).filter(id => !itemOn(id)).join(',') : '';   // judul: semua barang tampil
     if (lockKey !== lockedKey) { lockedKey = lockKey; scene.setLockedItems(lockKey ? lockKey.split(',') : []); }
+    const staffKey = playing ? staffList().map(s => s.id).join(',') : '';   // karyawan tampil di warung
+    if (staffKey !== staffShown) { staffShown = staffKey; scene.setStaff(staffList().map(s => { const r = regById(s.id); return { id: s.id, type: r.type, look: r.look }; })); }
     scene.setPaket(playing && G.deliveries.some(d => G.abs >= d.eta));
     // kamera mengikuti layar: judul = memutar dari luar; main = sudut pandang penjaga
     if (G.screen !== prevScreen) {

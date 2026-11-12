@@ -5,6 +5,7 @@ import { save } from '../persist.js';
 import { G } from '../state.js';
 import { FEATURE_LVL, discountOf, etaOf, featureOn, itemOn, level } from './level.js';
 import { stockIn } from './freshness.js';
+import { hasRole } from './regulars.js';
 import { orderBlocked } from './story.js';
 import { rp } from '../util.js';
 import { flt, toast } from '../widgets.js';
@@ -51,7 +52,7 @@ export function placeOrder() {
   if (orderBlocked()) { SFX.err(); toast('Koh Awi menahan pesananmu sampai cicilan beres.', '#ffd0d0'); return; }
   if (cost > G.money) { SFX.err(); toast('Uang tidak cukup untuk pesanan ini.', '#ffd0d0'); return; }
   const items = {}; for (const i of ITEMS) if (G.cart[i.id] && itemOn(i.id)) items[i.id] = G.cart[i.id] * i.pack;
-  const ex = G.express && featureOn('express'), mins = ex ? EXPRESS_MIN : etaOf(level());
+  const ex = G.express && featureOn('express'), mins = Math.max(20, (ex ? EXPRESS_MIN : etaOf(level())) - (hasRole('kurir') ? 25 : 0));
   G.money -= cost; G.stats.spent += cost; G.deliveries.push({ items, eta: G.abs + mins }); G.lastOrder = { ...G.cart }; G.cart = {};
   SFX.coin(); toast(`Pesanan ${rp(cost)} dikirim. Kurir tiba ± ${mins} menit.`, '#cfe8ff'); save();
 }

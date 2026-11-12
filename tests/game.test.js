@@ -597,3 +597,85 @@ describe('umur stok & kulkas', () => {
     const s = loadSave(); expect(s.fridge).toBe(true); expect(s.batches.mie).toEqual([{ n: 3, day: 4 }]); vi.unstubAllGlobals();
   });
 });
+
+describe('karyawan', () => {
+  beforeEach(() => { setG(freshState(G)); G.xp = 1e6; G.stock = { ...START_STOCK }; ui.modal = null; startDay(); G.story.chapterSeen = 99; G.events = G.events.filter(e => e.k !== 'bab'); G.debts = []; G.money = 500000; });
+  const akrab = async (...ids) => { const P = await import('../src/game/logic/regulars'); ids.forEach(id => P.bond(id, 40)); };
+
+  it('data peran: hanya 5 tokoh yang bisa bekerja, tiap peran punya gaji & penjelasan', async () => {
+    const R = await import('../src/game/story/regulars');
+    const jobs = R.REGULARS.filter(r => r.job); expect(jobs.map(r => r.id).sort()).toEqual(['dimas', 'jaka', 'rizky', 'sri', 'wati']);
+    expect(new Set(jobs.map(r => r.job)).size).toBe(5); jobs.forEach(r => { expect(R.ROLES[r.job].wage).toBeGreaterThan(0); expect(R.ROLES[r.job].desc.length).toBeGreaterThan(15); });
+    R.REGULARS.filter(r => !r.job).forEach(r => expect(r.nojob.length).toBeGreaterThan(3));
+  });
+
+  it('syarat rekrut: Level 7, tingkat Akrab, kursi tersedia (1 di Lv7, 2 di Lv10)', async () => {
+    const T = await import('../src/game/logic/staff'), L = await import('../src/game/logic/level');
+    setG(freshState(G)); startDay(); G.story.chapterSeen = 99; await akrab('jaka'); expect(T.slots()).toBe(0); expect(T.hire('jaka')).toBe(false);        // Level 1
+    L.addXp(L.xpAt(7)); expect(T.slots()).toBe(1); expect(T.candidates().map(r => r.id)).toEqual(['jaka']);
+    await akrab('sri'); expect(T.canHire('rani')).toBe(false); expect(T.hire('jaka')).toBe(true); expect(T.canHire('sri')).toBe(false);                  // kursi penuh
+    L.addXp(L.xpAt(10) - G.xp); expect(T.slots()).toBe(2); expect(T.hire('sri')).toBe(true); expect(T.staffList()).toHaveLength(2);
+    expect(T.hire('jaka')).toBe(false);                                                                                                                  // sudah bekerja
+  });
+
+  it('karyawan tidak lagi datang sebagai pembeli', async () => {
+    const T = await import('../src/game/logic/staff'), L = await import('../src/game/logic/level'); const r = vi.spyOn(Math, 'random').mockReturnValue(0);
+    await akrab('jaka'); G.cust = []; spawnCustomer('ojol'); expect(G.cust[0].reg).toBe('jaka');
+    G.cust = []; G.leaving = []; G.day++; T.staffList().push({ id: 'jaka', loyalty: 60, owed: 0 }); spawnCustomer('ojol'); expect(G.cust[0].reg).toBeNull(); r.mockRestore(); expect(L.level()).toBeGreaterThan(0);
+  });
+
+  it('gaji dibayar saat tutup; gagal bayar menumpuk, kesetiaan turun, lalu berhenti', async () => {
+    const T = await import('../src/game/logic/staff'), S = await import('../src/game/logic/story');
+    T.staffList().push({ id: 'rizky', loyalty: 60, owed: 0 });                                                 // penjaga: Rp 40.000
+    G.money = 100000; let out = T.payWages(); expect(out.paid).toBe(40000); expect(G.money).toBe(60000); expect(T.staffList()[0].loyalty).toBe(61);
+    G.money = 10000; out = T.payWages(); expect(out.unpaid).toEqual(['Bang Rizky']); expect(T.staffList()[0].owed).toBe(40000); expect(T.staffList()[0].loyalty).toBe(46);
+    G.money = 100000; out = T.payWages(); expect(out.paid).toBe(80000); expect(T.staffList()[0].owed).toBe(0);                                  // tunggakan ikut dibayar
+    const e = T.staffList()[0]; e.loyalty = 10; G.money = 0; const t = S.trust(); out = T.payWages();
+    expect(out.quit).toEqual(['Bang Rizky']); expect(T.staffList()).toHaveLength(0); expect(S.trust()).toBeCloseTo(t - 3);
+  });
+
+  it('bonus menaikkan kesetiaan; pecat menurunkan kedekatan', async () => {
+    const T = await import('../src/game/logic/staff'), P = await import('../src/game/logic/regulars');
+    T.staffList().push({ id: 'sri', loyalty: 50, owed: 0 }); const m = G.money, aff = P.regState('sri').aff;
+    expect(T.giveBonus('sri')).toBe(true); expect(G.money).toBe(m - 50000); expect(T.staffList()[0].loyalty).toBe(65); expect(P.regState('sri').aff).toBe(aff + 3);
+    G.money = 100; expect(T.giveBonus('sri')).toBe(false);
+    T.fire('sri'); expect(T.staffList()).toHaveLength(0); expect(P.regState('sri').aff).toBe(aff + 3 - 6);
+  });
+
+  it('peran: penjaga, kurir, gudang bekerja bila kesetiaan ≥ 30', async () => {
+    const T = await import('../src/game/logic/staff'), P = await import('../src/game/logic/regulars'), F = await import('../src/game/logic/freshness');
+    const { placeOrder } = await import('../src/game/logic/actions'); const base = F.shelfOf('mie');
+    G.cart = { kopi: 1 }; const abs = G.abs; placeOrder(); const eta0 = G.deliveries[0].eta - abs;
+    T.staffList().push({ id: 'jaka', loyalty: 60, owed: 0 }, { id: 'wati', loyalty: 60, owed: 0 });
+    expect(P.hasRole('kurir')).toBe(true); expect(F.shelfOf('mie')).toBe(Math.round(base * 1.3));
+    G.cart = { kopi: 1 }; placeOrder(); expect(G.deliveries[1].eta - abs).toBe(Math.max(20, eta0 - 25));
+    T.staffList()[0].loyalty = 29; expect(P.hasRole('kurir')).toBe(false);                                         // malas
+    T.staffList().push({ id: 'rizky', loyalty: 60, owed: 0 }); G.running = true; G.door = 1; G.doorState = 'open'; G.firstCust = false; G.spawnCd = 1e9; const e0 = G.energy; update(1);
+    const drainWith = e0 - G.energy; T.staffList().pop(); G.energy = e0; update(1); expect(drainWith).toBeCloseTo((e0 - G.energy) * .65, 3);
+  });
+
+  it('kurir langganan menerima kiriman otomatis', async () => {
+    const T = await import('../src/game/logic/staff'); const { placeOrder } = await import('../src/game/logic/actions');
+    T.staffList().push({ id: 'jaka', loyalty: 60, owed: 0 }); G.cart = { kopi: 1 }; placeOrder(); const k = G.stock.kopi;
+    G.running = true; G.door = 1; G.doorState = 'open'; G.firstCust = false; G.spawnCd = 1e9; G.abs += 200; update(.1);
+    expect(G.deliveries).toHaveLength(0); expect(G.stock.kopi).toBe(k + 10);
+  });
+
+  it('tugas pagi: penagih menagih kasbon, admin memesan stok yang menipis (batas 30% kas)', async () => {
+    const T = await import('../src/game/logic/staff'); const r = vi.spyOn(Math, 'random').mockReturnValue(0);
+    T.staffList().push({ id: 'sri', loyalty: 60, owed: 0 }, { id: 'dimas', loyalty: 60, owed: 0 });
+    G.day = 5; G.debts.push({ who: 'Pak Darto', amount: 30000, day: 3 }); G.stock.kopi = 1; G.stock.aqua = 0; G.money = 100000; G.morning = [];
+    const lastOrder = G.lastOrder; T.dawnStaff(); r.mockRestore();
+    expect(G.debts).toHaveLength(0); expect(G.morning.some(m => m.includes('Pak Darto'))).toBe(true);
+    expect(G.deliveries.length).toBeGreaterThan(0); const spent = 130000 - G.money; expect(spent).toBeGreaterThan(0); expect(spent).toBeLessThanOrEqual(130000 * .3 + 1);
+    expect(G.lastOrder).toBe(lastOrder); expect(G.morning.some(m => m.includes('Admin stok'))).toBe(true);
+  });
+
+  it('pencapaian Juragan Beneran dan Majikan Baik; karyawan tersimpan di save', async () => {
+    const T = await import('../src/game/logic/staff'), A = await import('../src/game/logic/achievements'); await akrab('jaka');
+    expect(T.hire('jaka')).toBe(true); expect(A.unlocked('bos')).toBe(true); expect(A.unlocked('majikan')).toBe(false);
+    T.staffList()[0].loyalty = 95; A.checkAchievements(); expect(A.unlocked('majikan')).toBe(true);
+    const mem = {}; vi.stubGlobal('localStorage', { setItem: (k, v) => { mem[k] = v; }, getItem: k => mem[k] ?? null, removeItem: k => { delete mem[k]; } });
+    const { save, loadSave } = await import('../src/game/persist'); save(); expect(loadSave().story.staff[0]).toMatchObject({ id: 'jaka', loyalty: 95 }); vi.unstubAllGlobals();
+  });
+});

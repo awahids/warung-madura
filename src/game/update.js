@@ -4,6 +4,8 @@ import { RATE } from './data.js';
 import { angryLeave, checkMissions, spawnCustomer } from './logic/customers.js';
 import { typeOn } from './logic/level.js';
 import { openChapterIntro, openStoryEvent } from './logic/story.js';
+import { hasRole } from './logic/regulars.js';
+import { receiveDelivery } from './logic/actions.js';
 import { endDay, finishClose, isRain, openShop } from './logic/day.js';
 import { G, fx, ui } from './state.js';
 import { clamp, lerp, pick, rnd } from './util.js';
@@ -44,7 +46,7 @@ export function update(dt) {
 
   // waktu
   const dh = dt / HOUR_SEC; G.h += dh; G.abs += dh * 60;
-  G.energy -= dh * (G.h >= 23 ? 5.4 : 4);
+  G.energy -= dh * (G.h >= 23 ? 5.4 : 4) * (hasRole('penjaga') ? .65 : 1);
 
   // spawn
   const ri0 = clamp(Math.floor(G.h) - DAY_START, 0, RATE.length - 1);
@@ -73,7 +75,8 @@ export function update(dt) {
   }
   // kurir
   const d = G.deliveries.find(x => G.abs >= x.eta);
-  if (d && !d.notified) { d.notified = true; SFX.bell(); toast('Kurir datang! Klik kardus di kiri bawah.', '#cfe8ff'); }
+  if (d && hasRole('kurir')) { SFX.bell(); toast('Kurir langganan menerima kiriman.', '#cfe8ff'); receiveDelivery(); }
+  else if (d && !d.notified) { d.notified = true; SFX.bell(); toast('Kurir datang! Klik kardus di kiri bawah.', '#cfe8ff'); }
   checkMissions();
   if (G.energy <= 0) { toast('Kamu pingsan kecapekan…', '#ffd0d0'); endDay('faint'); }
   else if (G.h >= DAY_END) endDay('normal');

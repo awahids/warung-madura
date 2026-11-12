@@ -5,6 +5,7 @@ import { returnTray, sendAway } from './customers.js';
 import { featureOn, itemOn, typeOn } from './level.js';
 import { checkAchievements } from './achievements.js';
 import { expireStock, reconcileAll } from './freshness.js';
+import { dawnStaff, payWages } from './staff.js';
 import { changeTrust, dawnStory, repayChance, scheduleStory, settleInstallment } from './story.js';
 import { save } from '../persist.js';
 import { G, ui } from '../state.js';
@@ -40,6 +41,7 @@ export function startDay(loaded) {
   dawnStory();
   if (G.day > 1 && !loaded) expireStock().forEach(t => G.story.kabar.push(t));
   reconcileAll();   // catat umur stok yang ada sejak awal hari ini
+  if (G.day > 1 && !loaded) dawnStaff();
   save();
 }
 export function genMissions() {
@@ -72,7 +74,7 @@ export function endDay(reason) {
 }
 export function finishClose() {
   G.doorState = 'closed'; G.door = 0; G.bonusMissions = 0;
-  settleInstallment(); checkAchievements();
+  payWages(); settleInstallment(); checkAchievements();
   for (const m of G.missions) if (missionVal(m) >= m.target) { G.bonusMissions++; }
   G.stats.bonus = G.bonusMissions * 20000; G.money += G.stats.bonus;
   ui.modal = 'summary'; save();
