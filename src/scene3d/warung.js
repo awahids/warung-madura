@@ -139,8 +139,9 @@ export function createWarung(canvas, opts = {}) {
 
   // barang lantai: karung beras, galon, gas, kardus
   const place = (obj, x, y, z, s = 1, ry = 0) => { obj.scale.setScalar(s); obj.position.set(x, y, z); obj.rotation.y = ry; scene.add(obj); return obj; };
-  [[-1.9, 0, -2.4, .3], [-1.45, 0, -2.45, -.15]].forEach(([x, y, z, ry]) => place(beras(), x, y, z, 1.25, ry));
-  place(galon(), .6, 0, -2.45, 1.2); place(gas(), -.4, 0, -2.45, 1.3);
+  const stock = [];   // dekor stok lantai yang ikut tersembunyi bila barangnya belum terbuka: { id, obj }
+  [[-1.9, 0, -2.4, .3], [-1.45, 0, -2.45, -.15]].forEach(([x, y, z, ry]) => stock.push({ id: 'beras', obj: place(beras(), x, y, z, 1.25, ry) }));
+  stock.push({ id: 'galon', obj: place(galon(), .6, 0, -2.45, 1.2) }, { id: 'gas', obj: place(gas(), -.4, 0, -2.45, 1.3) });
   place(kardus(), 1.0, 0, -1.9, 1.1, .2); place(kardus(), 1.0, .31, -1.9, 1.1, -.1);
 
   // renteng gantung di balok depan: kiri = kopi sachet, kanan = keripik/snack (sachet 3D menggembung)
@@ -400,11 +401,10 @@ export function createWarung(canvas, opts = {}) {
   }
 
   /* ---------- mode game: pilih objek, sorotan, proyeksi, kerumunan ---------- */
-  const roots = items.map(i => i.obj);
   /** Objek interaktif di bawah titik ndc (−1..1), atau null. */
   const pickItem = (nx, ny) => {
     ndc.set(nx, ny); ray.setFromCamera(ndc, camera);
-    for (const h of ray.intersectObjects(roots, true)) { let o = h.object; while (o && !o.userData.act) o = o.parent; if (o) return o; }
+    for (const h of ray.intersectObjects(items.filter(i => i.obj.visible).map(i => i.obj), true)) { let o = h.object; while (o && !o.userData.act) o = o.parent; if (o) return o; }
     return null;
   };
   let hot = null; const saved = new Map();
@@ -420,7 +420,7 @@ export function createWarung(canvas, opts = {}) {
     return ent.anchor;
   };
   /** Posisi layar lencana stok untuk tiap barang yang punya lencana. */
-  const badges = () => items.filter(i => i.badge && i.act.type === 'item').map(i => ({ id: i.act.id, ...project(anchorOf(i)) })).filter(b => b.z < 1 && b.x > 0 && b.x < 1280 && b.y > 0 && b.y < 720);
+  const badges = () => items.filter(i => i.badge && i.act.type === 'item' && i.obj.visible).map(i => ({ id: i.act.id, ...project(anchorOf(i)) })).filter(b => b.z < 1 && b.x > 0 && b.x < 1280 && b.y > 0 && b.y < 720);
 
   const crowd = new Map();
   const BAG_COLORS = ['#d63b2f', '#e8e8e8', '#2d2d33', '#f6c744'];
@@ -585,6 +585,8 @@ export function createWarung(canvas, opts = {}) {
       const byType = {}; rows.forEach(r => { byType[r[2]] = (byType[r[2]] || 0) + r[0]; });
       return { total, byType: Object.entries(byType).sort((a, b) => b[1] - a[1]).slice(0, 10), top: rows.sort((a, b) => b[0] - a[0]).slice(0, 12) };
     },
+    /** Sembunyikan barang dagangan yang belum terbuka (ids = id barang terkunci); tidak bisa diklik & tanpa lencana. */
+    setLockedItems(ids) { const s = new Set(ids); items.forEach(i => { if (i.act.type === 'item') i.obj.visible = !s.has(i.act.id); }); stock.forEach(d => { d.obj.visible = !s.has(d.id); }); },
     controls, items, pick: pickItem, penjagaAct, highlight, project, badges, syncPeople, syncTray, headPos, resize: resizeTo, frame: step,
     triangles: () => renderer.info.render.triangles,
     rakBensin: rak,

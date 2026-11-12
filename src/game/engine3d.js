@@ -7,6 +7,7 @@ import { makeIcons } from './icons.js';
 import { addToTray, doHitung } from './logic/customers.js';
 import { drinkKopi, receiveDelivery, usePromo as tapPromo } from './logic/actions.js';
 import { isRain } from './logic/day.js';
+import { ITEM_LVL, itemOn } from './logic/level.js';
 import { attachInput } from './input.js';
 import { loadSave } from './persist.js';
 import { darkness, skyAt } from './render/background.js';
@@ -79,7 +80,7 @@ export function crowdFromGame(nextId) {
 export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = {}) {
   ui.cv = overlay; ui.mode3d = true; setCtx(overlay.getContext('2d'));
   ui.touch = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
-  let scene = null, raf = 0, alive = true, last = 0, t = 0, ro = null, detach = () => { }, prevScreen = null, lookKey = '', idN = 0, pending = null, pressTimer = 0;
+  let scene = null, raf = 0, alive = true, last = 0, t = 0, ro = null, detach = () => { }, prevScreen = null, lookKey = '', lockedKey = null, idN = 0, pending = null, pressTimer = 0;
   const cleanups = [];
 
   const resize = () => {
@@ -102,6 +103,8 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
     const h = playing ? G.h : 12, dk = darkness(h), n = clamp(dk / .62, 0, 1), rain = playing && isRain(), sky = skyAt(h)[1];
     const key = `${Math.round(n * 50)}|${rain}|${sky}`;
     if (key !== lookKey) { lookKey = key; scene.setLook({ night: n, sky, rain }); }
+    const lockKey = playing ? Object.keys(ITEM_LVL).filter(id => !itemOn(id)).join(',') : '';   // judul: semua barang tampil
+    if (lockKey !== lockedKey) { lockedKey = lockKey; scene.setLockedItems(lockKey ? lockKey.split(',') : []); }
     scene.setPaket(playing && G.deliveries.some(d => G.abs >= d.eta));
     // kamera mengikuti layar: judul = memutar dari luar; main = sudut pandang penjaga
     if (G.screen !== prevScreen) {
