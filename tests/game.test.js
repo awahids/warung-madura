@@ -184,3 +184,29 @@ describe('level membuka barang, pembeli, dan fitur', () => {
     const abs = G.abs; placeOrder(); expect(G.deliveries[1].eta).toBe(abs + 30);
   });
 });
+
+describe('pembeli baru (pelajar, tukang, turis)', () => {
+  beforeEach(begin);
+
+  it('muncul sesuai level dan hanya memesan barang yang terbuka', async () => {
+    const { TYPE_LVL, ITEM_LVL, itemOn } = await import('../src/game/logic/level');
+    expect(TYPE_LVL).toMatchObject({ pelajar: 3, tukang: 5, turis: 7 });
+    G.xp = 0; setG(freshState(G)); startDay();           // level 1: tidak ada pembeli baru
+    for (let i = 0; i < 120; i++) { G.cust = []; spawnCustomer(); expect(['pelajar', 'tukang', 'turis']).not.toContain(G.cust[0].type); }
+    G.xp = 1e6; const seen = new Set();
+    for (let i = 0; i < 600; i++) { G.cust = []; spawnCustomer(); const c = G.cust[0]; seen.add(c.type); for (const l of c.order) expect(itemOn(l.id)).toBe(true); }
+    expect([...seen]).toEqual(expect.arrayContaining(['pelajar', 'tukang', 'turis']));
+    expect(ITEM_LVL.redbull).toBeLessThanOrEqual(7);
+  });
+
+  it('turis membayar pecahan besar', () => {
+    for (let i = 0; i < 40; i++) { G.cust = []; spawnCustomer('turis'); expect(G.cust[0].pay).toBeGreaterThanOrEqual(50000); }
+  });
+
+  it('semua tipe punya tampilan 3D (termasuk variasi)', async () => {
+    const { VARIANTS } = await import('../src/scene3d/people');
+    const { TYPES } = await import('../src/game/data');
+    for (const t of ['pelajar', 'tukang', 'turis']) expect(TYPES[t]).toBeTruthy();
+    expect(VARIANTS.pelajar).toHaveLength(2); expect(VARIANTS.turis).toHaveLength(2);
+  });
+});

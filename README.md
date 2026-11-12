@@ -14,7 +14,7 @@ Pintasan: `Esc` jeda, `Spasi` hitung.
 
 ## Level & pesan lewat HP
 - **Level juragan** (maks. 20): XP dari tiap pembeli yang dilayani (+10, +5 bila cepat, +3 bila dapat tip) dan misi harian (+40). Bar level ada di HUD. Naik level memberi **bonus kas** (Rp 10.000 × level), **diskon grosir** 2% per level (maks. 20%), dan **kurir lebih cepat** (90 menit → min. 45). XP tersimpan di save; rumus di `src/game/logic/level.js`. Klik bar level di HUD untuk melihat isi tiap level.
-- **Yang dibuka per level** (tabel `ITEM_LVL` / `TYPE_LVL` / `FEATURE_LVL`): Lv 1 → 6 barang dasar (kopi, rokok, air mineral, mie, kerupuk, keripik) + Bang Ojol, Mas Dimas, Bang Rizky · Lv 2 → Cola, Bu Sri, Promo · Lv 3 → Bensin, Kasbon · Lv 4 → Galon, Pak Haji · Lv 5 → Minuman Energi, Pesan Ulang di HP · Lv 6 → Beras, Tamu Misterius, Kembalian Otomatis · Lv 8 → Gas Melon, Kurir Ekspres (30 menit, biaya +15%). Barang terkunci **disembunyikan dari adegan 3D** (rak bensin, galon, gas, beras, cola, minuman energi — termasuk stok dekoratif di lantai; tidak bisa diklik dan tanpa lencana stok) dan muncul saat levelnya tercapai (`setLockedItems` di `src/scene3d/warung.js`). Barang terkunci juga tidak dipesan pembeli, tidak bisa dijual/dipesan, dan diberi stok perkenalan saat terbuka.
+- **Yang dibuka per level** (tabel `ITEM_LVL` / `TYPE_LVL` / `FEATURE_LVL`): Lv 1 → 6 barang dasar (kopi, rokok, air mineral, mie, kerupuk, keripik) + Bang Ojol, Mas Dimas, Bang Rizky · Lv 2 → Cola, Bu Sri, Promo · Lv 3 → Bensin, Adik Pelajar, Kasbon · Lv 4 → Galon, Pak Haji · Lv 5 → Minuman Energi, Pak Tukang, Pesan Ulang di HP · Lv 6 → Beras, Tamu Misterius, Kembalian Otomatis · Lv 7 → Turis Bule · Lv 8 → Gas Melon, Kurir Ekspres (30 menit, biaya +15%). Barang terkunci **disembunyikan dari adegan 3D** (rak bensin, galon, gas, beras, cola, minuman energi — termasuk stok dekoratif di lantai; tidak bisa diklik dan tanpa lencana stok) dan muncul saat levelnya tercapai (`setLockedItems` di `src/scene3d/warung.js`). Barang terkunci juga tidak dipesan pembeli, tidak bisa dijual/dipesan, dan diberi stok perkenalan saat terbuka.
 - **Pesan barang lewat HP**: klik HP di meja (atau tombol *HP · Pesan Barang* sebelum buka) → aplikasi **GrosirKu** untuk memilih paket dan memesan. Tombol *Medsos* di HP mengisi energi (membuat pembeli yang sedang dilayani lebih tidak sabar). Buku Catatan kini hanya untuk cek stok, harga, dan laba.
 
 ## Pasang sebagai aplikasi (PWA)
@@ -51,6 +51,13 @@ Karena badannya pendek, pelanggan mengangkat tangan ke samping kepala saat memba
 - **Variasi penampilan** (dipilih per pelanggan, logika game tetap enam tipe): Bu berhijab, bapak sarungan dengan rokok di telinga, mas berkacamata, bang berambut keriting. Semuanya ada di galeri; tombol **Baru** menyorotnya, dan ekspresi diperagakan bergiliran.
 - **Kurir** berjalan masuk saat kiriman tiba, menunggu di samping kardus, lalu pergi setelah barang diterima.
 - **Serah-terima**: uang terbang dari tangan pelanggan ke penjaga, kantong/barang terbang balik ke pelanggan. Slot antrean berjarak ≈1 m supaya kepala tidak saling menutupi.
+
+## Pembeli baru
+Tiga tipe pembeli baru (`TYPES` di `src/game/data.js`, tampilan di `LOOK`/`VARIANTS` pada `src/scene3d/people.js`, semuanya tampil di galeri `#/orang`):
+- **Adik Pelajar** (Lv 3, seragam putih-abu + dasi, ransel; variasi berhijab): jajan murah (keripik, air mineral, kerupuk, mie, cola), lebih ramai saat berangkat/pulang sekolah.
+- **Pak Tukang** (Lv 5, helm proyek kuning, baju proyek oranye berpita pantul, sarung tangan): rokok, kopi, air mineral, galon; ramai pagi–siang.
+- **Turis Bule** (Lv 7, topi lebar, kamera di dada, baju pantai; variasi wanita bergaun kotak): minuman dingin, selalu membayar pecahan Rp 50.000+ dan sering memberi tip besar; ramai siang saat tidak hujan.
+Di mode 2D, tipe baru memakai sprite pembeli yang sudah ada (atlas sprite 2D tidak diubah).
 
 ## Suasana jalan
 Murni visual, tidak menyentuh logika game (`src/scene3d/ambience.js`):

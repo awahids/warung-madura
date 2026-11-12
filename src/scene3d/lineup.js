@@ -4,7 +4,8 @@ import { personFor } from './people';
 
 /** Galeri karakter 3D: semua tipe orang dalam satu barisan (halaman #/orang). */
 export const CAST = [['juragan', 'Pak Haji'], ['ibu', 'Bu Sri'], ['ojol', 'Bang Ojol'], ['pemuda', 'Mas Dimas'], ['cowok', 'Bang Rizky'], ['hoodie', 'Tamu misterius'], ['penjaga', 'Penjaga warung'],
-  ['ibuHijab', 'Bu berhijab'], ['bapak', 'Bapak sarungan'], ['pemuda2', 'Mas berkacamata'], ['cowok2', 'Bang keriting'], ['kurir', 'Kurir']];
+  ['ibuHijab', 'Bu berhijab'], ['bapak', 'Bapak sarungan'], ['pemuda2', 'Mas berkacamata'], ['cowok2', 'Bang keriting'], ['kurir', 'Kurir'],
+  ['pelajar', 'Adik pelajar'], ['pelajarPutri', 'Pelajar berhijab'], ['tukang', 'Pak Tukang'], ['turis', 'Turis bule'], ['turis2', 'Turis wanita']];
 const MOODS = ['happy', 'flat', 'angry', 'joy'];
 
 export function createLineup(canvas) {

@@ -28,6 +28,12 @@ export const TYPES = {
              w: { beras: 3, galon: 3, gas: 2, kerupuk: 2, mie: 1, kopi: 1, snack: 1 } },
   juragan: { spr: 'juragan', name: 'Pak Haji',   patience: 46, say: ['Assalamualaikum, Nak.', 'Warungnya rame ya, alhamdulillah.', 'Pak Haji mau belanja banyak.'],
              w: { galon: 2, gas: 2, beras: 2, kopi: 2, rokok: 2, bensin: 1 } },
+  pelajar: { spr: 'pemuda',  name: 'Adik Pelajar', patience: 30, say: ['Kak, beli jajan ya.', 'Istirahat bentar, Kak!', 'Kak, ada yang murah nggak?'],
+             w: { snack: 3, aqua: 2.5, kerupuk: 2, mie: 1.5, cola: 1.5, kopi: .2 } },
+  tukang:  { spr: 'cowok',   name: 'Pak Tukang', patience: 38, say: ['Capek nih, habis ngaduk semen.', 'Kopi sama rokok, Dek. Cepetan ya.', 'Istirahat siang dulu, Dek.'],
+             w: { rokok: 3, kopi: 3, aqua: 2, galon: 1.5, mie: 1, bensin: 1 } },
+  turis:   { spr: 'cowok',   name: 'Turis Bule', patience: 44, say: ['Excuse me, water please?', 'Hello! One cold drink, please.', 'How much is this? Cheap!'],
+             w: { aqua: 3, cola: 2.5, redbull: 2, snack: 1.5, mie: 1 } },
   hoodie:  { spr: 'hoodie',  name: '???',        patience: 60, say: ['...', '(berbisik) Jam segini masih buka, ya...', '...Ada yang bisa bikin melek?'],
              w: { redbull: 3, mie: 2, rokok: 2 } },
 };

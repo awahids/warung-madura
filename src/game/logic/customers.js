@@ -11,6 +11,11 @@ export function spawnCustomer(type, ev) {
   if (G.cust.length >= 3) return false;
   if (!type) {
     const w = { ojol: 3, pemuda: 3, cowok: 2.5, ibu: 3, juragan: .8 };
+    Object.assign(w, { pelajar: 2.2, tukang: 1.6, turis: .9 });
+    if ((G.h >= 6.5 && G.h < 8) || (G.h >= 13 && G.h < 16)) w.pelajar *= 1.8;   // berangkat / pulang sekolah
+    if (G.h >= 7 && G.h < 12) w.tukang *= 1.4;
+    if (G.h >= 10 && G.h < 16 && !isRain()) w.turis *= 1.6;
+    if (G.h > 20) { w.pelajar *= .15; w.turis *= .3; }
     for (const t in w) if (!typeOn(t)) delete w[t];
     if (isRain()) { w.ojol *= 1.6; w.pemuda *= .6; }
     if (G.h < 9) { w.ojol *= 1.4; w.ibu *= 1.5; }
@@ -41,9 +46,9 @@ export function recalc(c) {
   c.total = c.order.reduce((s, l) => s + BY[l.id].price * l.qty, 0);
   c.cost = c.order.reduce((s, l) => s + BY[l.id].cost * l.qty, 0);
   if (c.type === 'hoodie') { c.tip = ri(2, 5) * 10000; c.pay = c.total + c.tip; }
-  else if (Math.random() < .3 || c.event === 'kasbon') { c.pay = c.total; }
+  else if ((Math.random() < .3 && c.type !== 'turis') || c.event === 'kasbon') { c.pay = c.total; }
   else {
-    const bills = [5000, 10000, 20000, 50000, 100000].filter(b => b >= c.total);
+    const bills = [5000, 10000, 20000, 50000, 100000].filter(b => b >= c.total && (c.type !== 'turis' || b >= 50000));   // turis membayar pecahan besar
     c.pay = bills.length ? bills[Math.min(bills.length - 1, Math.random() < .65 ? 0 : 1)] : Math.ceil(c.total / 50000) * 50000;
   }
   c.change = c.type === 'hoodie' ? 0 : c.pay - c.total;
@@ -91,8 +96,8 @@ export function completeSale(c, given) {
   flt('+' + rp(c.total), 640, 380, '#9dff8c');
   let tip = 0;
   if (c.type === 'hoodie') { tip = c.tip; c.bye = '"Simpan kembaliannya. Terima kasih."'; G.stats.tips += tip; toast(`Pembeli misterius meninggalkan tip ${rp(tip)}!`, '#ffe45c'); }
-  else if (given === c.change && c.change > 0 && Math.random() < .25) { tip = ri(1, 3) * 1000; G.money += tip; G.stats.tips += tip; flt('Tip +' + rp(tip), 660, 340, '#ffe45c'); c.bye = 'Makasih, Bang!'; }
-  else c.bye = c.type === 'juragan' ? 'Barakallah, Nak.' : pick(['Makasih ya!', 'Mantap, Bang!', 'Sip, makasih!']);
+  else if (given === c.change && c.change > 0 && Math.random() < (c.type === 'turis' ? .65 : .25)) { tip = c.type === 'turis' ? ri(3, 8) * 1000 : ri(1, 3) * 1000; G.money += tip; G.stats.tips += tip; flt('Tip +' + rp(tip), 660, 340, '#ffe45c'); c.bye = c.type === 'turis' ? 'Thank you! Very nice!' : 'Makasih, Bang!'; }
+  else c.bye = c.type === 'turis' ? 'Thank you, bye!' : c.type === 'juragan' ? 'Barakallah, Nak.' : pick(['Makasih ya!', 'Mantap, Bang!', 'Sip, makasih!']);
   if (given > c.change) toast(`Kembalian kelebihan ${rp(given - c.change)}!`, '#ffd0d0');
   addXp(10 + (fast ? 5 : 0) + (tip ? 3 : 0));
   sendAway(c);
