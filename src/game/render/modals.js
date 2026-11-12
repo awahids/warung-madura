@@ -4,6 +4,7 @@ import { BY, ITEMS } from '../data.js';
 import { ctx } from '../gfx.js';
 import { ico } from '../icons.js';
 import { cycleQuality, qualityLabel } from '../quality.js';
+import { ageOf, askedToday, chances, collect, forgive, kasbonLimit, outstanding, overdue } from '../logic/kasbon.js';
 import { ACH, unlocked, unlockedCount } from '../logic/achievements.js';
 import { INTRO } from '../story/events.js';
 import { catatan, chapterName, chapterOf, choiceOk, chooseEvent, closeStoryEvent, currentEvent, installment, orderBlocked, payDebt, story, trust, epilog } from '../logic/story.js';
@@ -35,6 +36,7 @@ function drawModalBody() {
   else if (ui.modal === 'epilog') epilogModal();
   else if (ui.modal === 'bab') babModal();
   else if (ui.modal === 'ach') achModal();
+  else if (ui.modal === 'kasbon') kasbonModal();
   else if (ui.modal === 'summary') summary();
   else if (ui.modal === 'help') help();
   else if (ui.modal === 'pause') pauseMenu();
@@ -61,13 +63,14 @@ export function notebook() {
   const by = y + h - 130;
   T('Uang kas: ' + rp(G.money), x + 36, by + 28, { s: 18, c: '#5a3a1a' });
   const debt = G.debts.reduce((s, d) => s + d.amount, 0);
-  T(`Kasbon belum dibayar: ${rp(debt)} (${G.debts.length} catatan)`, x + 36, by + 54, { s: 14, w: '600', c: '#7a3a1a' });
+  T(`Kasbon beredar: ${rp(debt)} (${G.debts.length})`, x + 36, by + 54, { s: 14, w: '600', c: '#7a3a1a' });
   const pend = G.deliveries.length ? 'Dalam perjalanan: ' + G.deliveries.map(d => Object.entries(d.items).map(([k, v]) => `${v} ${BY[k].name}`).join(', ')).join(' | ') : '';
   if (pend) T(pend.length > 100 ? pend.slice(0, 98) + '…' : pend, x + 36, by + 80, { s: 12, w: '600', c: '#3a5a8a' });
   { const st = story(); T(st.easy ? 'Mode santai: tanpa cicilan' : st.lunas ? 'Utang ke Koh Awi lunas' : `Utang Koh Awi ${rp(st.debt)} · cicilan hari ke-${st.due}: ${rp(installment())}`, x + 36, by + 106, { s: 13, w: '700', c: '#7a3a1a' });
-    if (!st.lunas && st.debt > 0) button(x + w - 700, by + 18, 230, 54, 'BAYAR UTANG +50rb', () => payDebt(50000), { col: 'blue', s: 16, disabled: G.money < Math.min(50000, st.debt), tip: 'Cicil lebih awal ke Koh Awi' }); }
-  button(x + w - 460, by + 18, 250, 54, 'PESAN LEWAT HP', () => { ui.modal = 'phone'; }, { col: 'green', s: 20 });
-  button(x + w - 200, by + 18, 170, 54, 'TUTUP', () => { ui.modal = null; }, { col: 'wood', s: 20 });
+    if (!st.lunas && st.debt > 0) button(x + w - 550, by + 18, 180, 54, 'BAYAR UTANG', () => payDebt(50000), { col: 'blue', s: 15, disabled: G.money < Math.min(50000, st.debt), tip: 'Bayar Rp 50.000 ke Koh Awi lebih awal' }); }
+  button(x + w - 730, by + 18, 170, 54, 'KASBON' + (G.debts.length ? ` (${G.debts.length})` : ''), () => { ui.modal = 'kasbon'; ui.kasbonPage = 0; }, { col: G.debts.some(overdue) ? 'red' : 'yellow', tc: G.debts.some(overdue) ? '#fff' : '#4a2a00', s: 15, tip: 'Daftar kasbon & penagihan' });
+  button(x + w - 360, by + 18, 200, 54, 'PESAN LEWAT HP', () => { ui.modal = 'phone'; }, { col: 'green', s: 17 });
+  button(x + w - 150, by + 18, 120, 54, 'TUTUP', () => { ui.modal = null; }, { col: 'wood', s: 18 });
 }
 /** HP: aplikasi grosir untuk memesan stok (harga turun seiring level) + medsos untuk isi energi.
     Daftar dibagi per halaman (6 barang, barang terbuka dulu) agar tombol cukup besar untuk jari. */
@@ -138,6 +141,38 @@ export function eventModal() {
     st.result.lines.forEach((t, i) => { const neg = /^−|−/.test(t) || /menunggak|mundur/.test(t); T(t, x + 44, ly + i * 24, { s: 16, w: '700', c: neg ? '#b3281e' : '#2a6a2a' }); });
     button(x + w / 2 - 110, y + h - 80, 220, 54, 'LANJUT', closeStoryEvent, { col: 'green', s: 22 });
   }
+}
+/** Daftar kasbon & penagihan. */
+export function kasbonModal() {
+  const x = 190, y = 36, w = 900, h = 648, PER = 5, RH = 78;
+  panel(x, y, w, h);
+  T('DAFTAR KASBON', x + 36, y + 56, { s: 32, c: '#6b3a14' });
+  closeBtn(x + w - 40, y + 40, () => { ui.modal = 'notebook'; });
+  const out = outstanding(), lim = kasbonLimit();
+  T(`Beredar ${rp(out)} dari batas ${rp(lim)} · ${G.debts.length} catatan`, x + 36, y + 86, { s: 15, w: '700', c: out > lim * .85 ? '#b3281e' : '#5a3a1a' });
+  ctx.fillStyle = '#d8c28c'; rr(ctx, x + w - 330, y + 74, 280, 12, 6); ctx.fill();
+  ctx.fillStyle = out > lim * .85 ? '#d6483a' : '#58b948'; rr(ctx, x + w - 330, y + 74, Math.max(6, 280 * Math.min(1, out / lim)), 12, 6); ctx.fill();
+  T('Tagih sekali sehari per catatan. Halus: aman, peluang sedang. Keras: peluang tinggi tapi merusak kepercayaan. Ikhlaskan: hapus catatan.', x + 36, y + 112, { s: 12, w: '600', c: '#7a5a3a' });
+  const list = [...G.debts].sort((a, b) => ageOf(b) - ageOf(a)), pages = Math.max(1, Math.ceil(list.length / PER));
+  ui.kasbonPage = clamp(ui.kasbonPage || 0, 0, pages - 1);
+  if (!list.length) T('Tidak ada kasbon beredar. Semua lunas!', x + w / 2, y + 300, { s: 24, a: 'center', c: '#2a6a2a' });
+  list.slice(ui.kasbonPage * PER, ui.kasbonPage * PER + PER).forEach((d, i) => {
+    const ry = y + 128 + i * RH, od = overdue(d), asked = askedToday(d), ch = chances(d);
+    ctx.fillStyle = od ? 'rgba(230,150,130,.35)' : 'rgba(255,255,255,.55)'; rr(ctx, x + 28, ry, w - 56, RH - 8, 10); ctx.fill(); ctx.strokeStyle = od ? '#d88a7a' : '#d6bf8a'; ctx.lineWidth = 2; ctx.stroke();
+    T(d.who, x + 48, ry + 36, { s: 21, c: '#3a210c' });
+    T(rp(d.amount), x + 48 + Math.min(260, 20 + d.who.length * 11), ry + 36, { s: 19, c: '#2a6a2a' });
+    if (od) T('JATUH TEMPO — bisa macet besok', x + 48, ry + 15, { s: 11, w: '800', c: '#b3281e' });
+    T(asked ? `Hari ke-${Math.max(1, ageOf(d))} · sudah ditagih hari ini` : `Hari ke-${Math.max(1, ageOf(d))} · peluang halus ${Math.round(ch.soft * 100)}% · keras ${Math.round(ch.hard * 100)}%`, x + 48, ry + 58, { s: 13, w: '600', c: '#5a3a1a' });
+    button(x + w - 420, ry + 12, 110, 46, 'TAGIH', () => collect(d, false), { col: 'green', s: 16, disabled: asked, tip: 'Tagih dengan baik-baik' });
+    button(x + w - 300, ry + 12, 110, 46, 'KERAS', () => collect(d, true), { col: 'red', s: 16, disabled: asked, tip: 'Tagih keras: peluang tinggi, kepercayaan turun' });
+    button(x + w - 180, ry + 12, 150, 46, 'IKHLASKAN', () => forgive(d), { col: 'blue', s: 15, tip: 'Hapus catatan, kepercayaan naik' });
+  });
+  if (pages > 1) {
+    button(x + 40, y + h - 96, 190, 46, '◀ Sebelumnya', () => { ui.kasbonPage--; }, { col: 'grey', s: 15, disabled: ui.kasbonPage <= 0 });
+    T(`${ui.kasbonPage + 1}/${pages}`, x + w / 2, y + h - 66, { s: 16, a: 'center', c: '#555', w: '700' });
+    button(x + w - 230, y + h - 96, 190, 46, 'Berikutnya ▶', () => { ui.kasbonPage++; }, { col: 'grey', s: 15, disabled: ui.kasbonPage >= pages - 1 });
+  }
+  T('Kasbon yang tidak ditagih bisa dibayar sendiri tiap pagi, atau macet setelah 3 hari.', x + 36, y + h - 24, { s: 12, w: '600', c: '#7a5a3a' });
 }
 /** Kartu pembuka bab. */
 export function babModal() {

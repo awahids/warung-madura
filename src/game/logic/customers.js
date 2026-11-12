@@ -1,5 +1,6 @@
 import { SFX } from '../audio.js';
 import { ITEM_LVL, addXp, featureOn, itemOn, typeOn } from './level.js';
+import { kasbonLimit, outstanding } from './kasbon.js';
 import { changeTrust, trustMul } from './story.js';
 import { W, WIN_GOAL } from '../constants.js';
 import { BY, TYPES } from '../data.js';
@@ -123,6 +124,7 @@ export function angryLeave(c, why) {
 }
 export function doKasbon(yes) {
   const c = active(); if (!c || c.stage !== 'kasbon') return;
+  if (yes && outstanding() + c.total > kasbonLimit()) { SFX.err(); toast(`Batas kasbon ${rp(kasbonLimit())} tercapai. Tagih dulu di Buku Catatan, atau tolak.`, '#ffd0d0'); return; }
   if (yes) {
     G.debts.push({ who: c.name, amount: c.total, day: G.day }); G.stats.kasbonNew += c.total; G.stats.served++;
     for (const l of c.order) G.stats.sold[l.id] = (G.stats.sold[l.id] || 0) + l.qty;

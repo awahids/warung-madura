@@ -13,6 +13,7 @@ export const ACH = [
   { id: 'lv10', name: 'Juragan Besar', desc: 'Capai Level 10.', test: () => level() >= 10 },
   { id: 'cicilan', name: 'Cicilan Lancar', desc: 'Bayar cicilan tiga kali tanpa menunggak.', test: () => story().paidCount >= 3 },
   { id: 'lunas', name: 'Bebas Utang', desc: 'Lunasi utang ke Koh Awi.', test: () => story().lunas },
+  { id: 'penagih', name: 'Penagih Santun', desc: 'Tagih 5 kasbon dengan baik-baik sampai dibayar.', test: () => (story().collectCount || 0) >= 5 },
   { id: 'dipercaya', name: 'Dipercaya Warga', desc: 'Kepercayaan warga mencapai 80.', test: () => story().trust >= 80 },
   { id: 'jujur', name: 'Jujur Sampai Receh', desc: 'Kembalikan kembalian yang kurang.', test: () => !!story().flags.jujur_kembalian },
   { id: 'tamu_jujur', name: 'Tidak Tergoda', desc: 'Tolak tawaran barang gelap si tamu bertudung.', test: () => !!story().flags.tamu_jujur },

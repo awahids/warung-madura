@@ -407,7 +407,7 @@ describe('tahap E: kartu bab & pencapaian', () => {
 describe('kualitas grafis', () => {
   it('otomatis mulai Tinggi, turun ke Rendah sekali dan diingat; pilihan manual menimpa', async () => {
     const mem = {}; vi.stubGlobal('localStorage', { setItem: (k, v) => { mem[k] = v; }, getItem: k => mem[k] ?? null, removeItem: k => { delete mem[k]; } });
-    vi.resetModules(); const Q = await import('../src/game/quality'); const seen = []; Q.onQuality(q => seen.push(q));
+    const Q = await import('../src/game/quality'); const seen = []; Q.onQuality(q => seen.push(q));
     expect(Q.qualityPref()).toBe('auto'); expect(Q.effectiveQuality()).toBe('high'); expect(Q.qualityLabel()).toBe('Otomatis (Tinggi)');
     expect(Q.autoDowngrade()).toBe(true); expect(Q.effectiveQuality()).toBe('low'); expect(Q.qualityLabel()).toBe('Otomatis (Rendah)'); expect(Q.autoDowngrade()).toBe(false);
     expect(Q.cycleQuality()).toBe('high'); expect(Q.effectiveQuality()).toBe('high'); expect(Q.autoDowngrade()).toBe(false);   // manual: tidak diturunkan otomatis
@@ -415,5 +415,59 @@ describe('kualitas grafis', () => {
     expect(Q.cycleQuality()).toBe('auto'); expect(Q.effectiveQuality()).toBe('high');                                          // kembali ke otomatis → diuji ulang
     expect(seen).toEqual(['low', 'high', 'low', 'high']);
     vi.unstubAllGlobals();
+  });
+});
+
+describe('daftar kasbon & penagihan', () => {
+  beforeEach(() => { setG(freshState(G)); ui.modal = null; startDay(); G.story.chapterSeen = 99; });
+  const debt = (who = 'Bu Sri', amount = 20000, day = G.day) => { const d = { who, amount, day }; G.debts.push(d); return d; };
+
+  it('batas kasbon naik dengan level; kasbon baru ditolak bila melampaui batas', async () => {
+    const K = await import('../src/game/logic/kasbon'), L = await import('../src/game/logic/level');
+    expect(K.kasbonLimit()).toBe(110000); L.addXp(L.xpAt(5)); expect(K.kasbonLimit()).toBe(230000);
+    setG(freshState(G)); startDay(); G.story.chapterSeen = 99; G.xp = 1e6; G.debts = []; debt('A', K.kasbonLimit() - 5000);   // hampir penuh
+    spawnCustomer('ibu', 'kasbon'); for (let i = 0; i < 300 && !active(); i++) update(1 / 30);
+    const c = active(); c.order = [{ id: 'kopi', qty: 3 }]; c.total = 6000; c.stage = 'kasbon';
+    const n = G.debts.length; doKasbon(true); expect(G.debts.length).toBe(n); expect(c.stage).toBe('kasbon');     // lewat batas → tidak dicatat
+    c.total = 5000; doKasbon(true); expect(G.debts.length).toBe(n + 1);                                          // pas di batas → boleh
+  });
+
+  it('peluang tagih: halus < keras, naik menurut umur dan dibatasi', async () => {
+    const K = await import('../src/game/logic/kasbon');
+    G.day = 5; const baru = { who: 'X', amount: 1, day: 5 }, lama = { who: 'Y', amount: 1, day: 2 };
+    const a = K.chances(baru), b = K.chances(lama);
+    expect(a.soft).toBeCloseTo(.3575); expect(a.hard).toBeCloseTo(.8); expect(a.soft).toBeLessThan(a.hard);
+    expect(b.soft).toBeGreaterThan(a.soft); expect(b.hard).toBeCloseTo(.95); expect(K.overdue(lama)).toBe(true); expect(K.overdue(baru)).toBe(false);
+  });
+
+  it('tagih halus berhasil: uang masuk, catatan hilang, kepercayaan naik; hanya sekali sehari', async () => {
+    const K = await import('../src/game/logic/kasbon'), S = await import('../src/game/logic/story'); const r = vi.spyOn(Math, 'random');
+    const d = debt('Bu Sri', 20000); const m = G.money, e = G.energy, t = S.trust();
+    r.mockReturnValue(0); const res = K.collect(d, false);
+    expect(res.ok).toBe(true); expect(G.debts).not.toContain(d); expect(G.money).toBe(m + 20000); expect(S.trust()).toBeCloseTo(t + .5); expect(G.energy).toBe(e - 2);
+    const d2 = debt('Pak Darto', 30000); r.mockReturnValue(.999); K.collect(d2, false);                       // gagal
+    expect(G.debts).toContain(d2); expect(K.askedToday(d2)).toBe(true); const m2 = G.money; r.mockReturnValue(0);
+    expect(K.collect(d2, false).ok).toBe(false); expect(G.money).toBe(m2);                                     // tidak bisa dua kali sehari
+    G.day++; expect(K.askedToday(d2)).toBe(false); r.mockRestore();
+  });
+
+  it('tagih keras gagal merusak kepercayaan dan reputasi; berhasil tetap menurunkan sedikit', async () => {
+    const K = await import('../src/game/logic/kasbon'), S = await import('../src/game/logic/story'); const r = vi.spyOn(Math, 'random');
+    const d = debt('Rizky', 10000), rep = G.rep, t = S.trust(); r.mockReturnValue(.999); K.collect(d, true);
+    expect(S.trust()).toBeCloseTo(t - 2); expect(G.rep).toBe(rep - 1); expect(G.debts).toContain(d);
+    const d2 = debt('Dimas', 10000), t2 = S.trust(); r.mockReturnValue(0); K.collect(d2, true);
+    expect(G.debts).not.toContain(d2); expect(S.trust()).toBeCloseTo(t2 - 1); r.mockRestore();
+  });
+
+  it('ikhlaskan menghapus catatan, menaikkan kepercayaan dan XP', async () => {
+    const K = await import('../src/game/logic/kasbon'), S = await import('../src/game/logic/story');
+    const d = debt('Bu Sri', 50000), t = S.trust(), xp = G.xp; K.forgive(d);
+    expect(G.debts).not.toContain(d); expect(S.trust()).toBeCloseTo(t + 1.5); expect(G.xp).toBe(xp + 5);
+  });
+
+  it('pencapaian Penagih Santun setelah 5 kali tagih halus berhasil', async () => {
+    const K = await import('../src/game/logic/kasbon'), A = await import('../src/game/logic/achievements'); const r = vi.spyOn(Math, 'random').mockReturnValue(0);
+    for (let i = 0; i < 4; i++) K.collect(debt('Warga' + i, 1000), false);
+    expect(A.unlocked('penagih')).toBe(false); K.collect(debt('Warga5', 1000), false); expect(A.unlocked('penagih')).toBe(true); r.mockRestore();
   });
 });

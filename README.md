@@ -73,6 +73,12 @@ Rancangan lengkap: `docs/STORY.md`. Yang sudah jalan:
 - Sintaks data kejadian (`when`, `night`, `group`, `final`, `later`, `req`) dijelaskan di kepala `src/game/story/events.js`.
 - XP per level dinaikkan (`xpAt` = 100·(L−1)·L) supaya satu bab bertahan beberapa hari.
 
+## Daftar kasbon & penagihan
+Buku Catatan → **Kasbon** (merah bila ada yang jatuh tempo). Kode: `src/game/logic/kasbon.js`.
+- **Batas kasbon beredar** = Rp 80.000 + Rp 30.000 × level. Bila kasbon baru melampauinya, tombol *Boleh* ditolak dengan pesan; pembeli tampil dengan keterangan beredar/batas. (Kasbon dari kejadian cerita tidak terkena batas.)
+- Tiap catatan bisa ditagih **sekali sehari**: **Tagih** (halus, peluang ±25–55%, membuat pemain sedikit lelah, kepercayaan +0,5 bila berhasil) atau **Keras** (peluang ±60–95%, kepercayaan −1 bila berhasil, −2 dan reputasi −1 bila gagal). Peluang naik menurut umur kasbon dan kepercayaan warga dan ditampilkan di tiap baris.
+- **Ikhlaskan** menghapus catatan (kepercayaan +1,5, XP +5). Kasbon yang tidak ditagih tetap bisa dibayar sendiri tiap pagi atau macet setelah 3 hari. Pencapaian baru: *Penagih Santun* (5 tagih halus berhasil).
+
 ## Pembeli baru
 Tiga tipe pembeli baru (`TYPES` di `src/game/data.js`, tampilan di `LOOK`/`VARIANTS` pada `src/scene3d/people.js`, semuanya tampil di galeri `#/orang`):
 - **Adik Pelajar** (Lv 3, seragam putih-abu + dasi, ransel; variasi berhijab): jajan murah (keripik, air mineral, kerupuk, mie, cola), lebih ramai saat berangkat/pulang sekolah.
