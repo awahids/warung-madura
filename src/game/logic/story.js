@@ -99,7 +99,7 @@ export function eligible(ev) {
   if (w.trustMax !== undefined && s.trust > w.trustMax) return false;
   return true;
 }
-/** Pilih kejadian hari ini: urutan bab dulu (yang syaratnya terpenuhi), lalu kolam acak (tanpa ulang dalam 4 terakhir). */
+/** Pilih kejadian hari ini: urutan bab dulu (yang syaratnya terpenuhi), lalu kolam acak (tanpa ulang dalam 8 terakhir). */
 export function pickEvent() {
   const s = story(), ch = chapterOf(), L = level();
   const scripted = SCRIPT.find(e => e.ch <= ch && !s.done.includes(e.id) && eligible(e));
@@ -133,7 +133,7 @@ export function chooseEvent(i) {
   s.result = { text: c.res, lines }; s.kabar.push(c.res);
   if (SCRIPT.includes(ev)) { s.done.push(ev.id); if (ev.group) SCRIPT.filter(e => e.group === ev.group).forEach(e => { if (!s.done.includes(e.id)) s.done.push(e.id); }); }
   if (ev.final) s.ending = endingId();
-  s.recent.push(ev.id); if (s.recent.length > 4) s.recent.shift();
+  s.recent.push(ev.id); if (s.recent.length > 8) s.recent.shift();
   SFX.click();
 }
 /** Epilog menurut keadaan akhir: dipercaya / untung / bertahan. */

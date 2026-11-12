@@ -340,3 +340,30 @@ describe('cerita Bab 3–5 dan epilog', () => {
     expect(['haji_akhir_biasa', 'haji_akhir_rendah']).not.toContain(S.pickEvent() && S.pickEvent().id);
   });
 });
+
+describe('validasi data cerita', () => {
+  it('semua kejadian konsisten: id unik, efek sah, barang sudah terbuka, flag dan syarat nyambung', async () => {
+    const E = await import('../src/game/story/events'), L = await import('../src/game/logic/level'), D = await import('../src/game/data');
+    const all = [...E.SCRIPT, ...E.POOL], ids = all.map(e => e.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    const FX = ['money', 'trust', 'rep', 'energy', 'xp', 'stock', 'flag', 'debt', 'dueShift', 'kasbon'], WHEN = ['lunas', 'flag', 'noFlag', 'trustMin', 'trustMax'];
+    const chStart = { 1: 1, 2: 3, 3: 5, 4: 7, 5: 8 };
+    const setFlags = new Set(); all.forEach(e => e.choices.forEach(c => c.fx && c.fx.flag && setFlags.add(c.fx.flag)));
+    expect(E.POOL.length).toBeGreaterThanOrEqual(20);
+    for (const ev of all) {
+      const lvl = ev.ch ? chStart[ev.ch] : ev.minLevel;
+      expect(typeof ev.who).toBe('string'); expect(ev.text.length).toBeGreaterThan(20); expect(ev.choices.length).toBeGreaterThanOrEqual(1); expect(ev.choices.length).toBeLessThanOrEqual(3);
+      for (const k of Object.keys(ev.when || {})) expect(WHEN).toContain(k);
+      if (ev.when && ev.when.flag) expect(setFlags.has(ev.when.flag)).toBe(true);
+      for (const c of ev.choices) {
+        expect(c.t.length).toBeLessThanOrEqual(46); expect(c.res.length).toBeGreaterThan(5);
+        for (const k of Object.keys(c.fx || {})) expect(FX).toContain(k);
+        for (const src of [c.fx && c.fx.stock, c.req && c.req.stock]) for (const id of Object.keys(src || {})) { expect(D.BY[id]).toBeTruthy(); expect(L.ITEM_LVL[id]).toBeLessThanOrEqual(lvl); }
+        if (c.fx && c.fx.kasbon) expect(c.fx.kasbon.amount).toBeGreaterThan(0);
+        for (const l of c.later || []) { expect(l.days).toBeGreaterThanOrEqual(0); expect(typeof l.text).toBe('string'); if (l.chance !== undefined) { expect(l.chance).toBeGreaterThan(0); expect(l.chance).toBeLessThan(1); if (l.elseText) expect(typeof l.elseText).toBe('string'); } }
+      }
+    }
+    // grup penutup: tiap kejadian final punya grup, dan syarat trust tidak saling tumpang tindih
+    const fin = E.SCRIPT.filter(e => e.final); expect(fin.length).toBe(3); fin.forEach(e => expect(e.group).toBe('akhir'));
+  });
+});

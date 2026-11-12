@@ -61,6 +61,8 @@ Rancangan lengkap: `docs/STORY.md`. Yang sudah jalan:
 - Bab mengikuti level: 1 (Lv1–2), 2 (Lv3–4), 3 (Lv5–6), 4 (Lv7), 5 (Lv8+). Konten ada di `src/game/story/events.js` (data murni), mesin di `src/game/logic/story.js`.
 - **Bab 3 Musim Hujan** (harga naik & menimbun, banjir & titipan warga, utang macet Pak Darto *bila kamu pernah mengutangkan*, turis vs pelanggan tetap, telepon Pak Haji yang berbeda bila utang sudah lunas), **Bab 4 Tamu Bertudung** (tiga kunjungan tengah malam: mantan pegawai Pak Haji menawarkan barang gelap — tolak, ambil, atau laporkan), **Bab 5 Pusat Kampung** (titik paket, lalu pilihan besar: *cabang* / *pusat layanan kampung* / *koperasi warga*, dan kedatangan Pak Haji yang berbeda menurut kepercayaanmu).
 - **Epilog** setelah kunjungan akhir Pak Haji: *Warung Kita* (kepercayaan ≥ 60 & utang lunas), *Juragan Untung* (kepercayaan < 45 & kas ≥ Rp 500 rb), atau *Bertahan*; ditambah baris untuk pilihan besar dan sisa utang. Setelah itu permainan lanjut sebagai mode bebas.
+- **Kolam kejadian harian**: 20 kejadian acak (pembeli lupa dompet, uang palsu, listrik padam, uang keamanan, anak tersesat, pengajian, lomba kampung, dll.). Tidak berulang dalam 8 kejadian terakhir; ada yang hanya muncul bila kepercayaan tinggi (*warga bergotong royong*) atau rendah (*gosip*), dan keringanan dari Koh Awi bila dipercaya dan utang belum lunas.
+- Tes `validasi data cerita` memeriksa semua kejadian (id unik, efek sah, barang sudah terbuka di levelnya, flag nyambung), jadi menambah konten tidak bisa diam-diam salah.
 - Sintaks data kejadian (`when`, `night`, `group`, `final`, `later`, `req`) dijelaskan di kepala `src/game/story/events.js`.
 - XP per level dinaikkan (`xpAt` = 100·(L−1)·L) supaya satu bab bertahan beberapa hari.
 

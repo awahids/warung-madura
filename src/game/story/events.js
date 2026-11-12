@@ -164,6 +164,74 @@ export const POOL = [
       later: [{ days: 2, text: 'Kucing sembuh dan kembali menjaga teras. Pembeli senang melihatnya.', fx: { trust: 1, rep: 3 } }] },
     { t: 'Biarkan, nanti juga sembuh', fx: { trust: -1 }, res: 'Kamu berharap yang terbaik.' },
   ] },
+
+  { id: 'promo_dimas', minLevel: 2, who: 'Mas Dimas', text: '"Bang, saya bikinkan poster promo di HP, gratis. Kirim ke grup RT. Tapi Abang harus siap kalau jadi ramai."', choices: [
+    { t: 'Coba, pasang di grup RT', fx: { energy: -10, rep: 5, xp: 15 }, res: 'Poster beredar di grup RT. Besok mungkin lebih ramai.',
+      later: [{ days: 1, text: 'Poster Mas Dimas dibagikan banyak orang. Warung ramai sejak pagi.', fx: { rep: 5, money: 20000 } }] },
+    { t: 'Terima kasih, nanti saja', fx: {}, res: 'Mas Dimas mengangkat bahu. "Siap, Bang."' },
+  ] },
+  { id: 'uang_palsu', minLevel: 2, who: 'Pembeli', text: 'Seorang pembeli membayar dengan uang Rp 50.000 yang terasa aneh: kertasnya terlalu licin dan warnanya pudar.', choices: [
+    { t: 'Terima saja, tidak enak menolak', fx: { money: -30000 }, res: 'Keesokan harinya terbukti palsu. Kamu menelan rugi.' },
+    { t: 'Periksa teliti, minta diganti', fx: { energy: -5, trust: 1 }, res: 'Ia kaget lalu menggantinya dengan uang asli. Mungkin ia memang tidak tahu.' },
+    { t: 'Tolak dan peringatkan warga', fx: { trust: -1, rep: 2 }, res: 'Kabar uang palsu menyebar dan warga lebih waspada, walau ia tersinggung.' },
+  ] },
+  { id: 'jaka_bensin', minLevel: 3, who: 'Bang Jaka', text: 'Bang Jaka mendorong motornya yang mogok. "Dompet saya kosong, Nak. Bensin satu botol Rp 12.000, boleh kasbon?"', choices: [
+    { t: 'Beri kasbon bensin', fx: { kasbon: { who: 'Bang Jaka', amount: 12000 }, stock: { bensin: -1 }, trust: 3 }, res: 'Bang Jaka menyalami tanganmu erat. "Utang budi, Nak."', req: { stock: { bensin: 1 } } },
+    { t: '"Maaf, Bang, bayar dulu."', fx: { trust: -2 }, res: 'Bang Jaka mendorong motornya ke bengkel dengan wajah lelah.' },
+  ] },
+  { id: 'mati_lampu', minLevel: 1, who: 'Warung', text: 'Listrik padam tiba-tiba. Warung gelap gulita. Dari luar, suara anak-anak ribut senang karena gelap.', choices: [
+    { t: 'Nyalakan lilin, lanjut jualan', fx: { energy: -5, trust: 1, rep: 2 }, res: 'Cahaya lilin membuat warung hangat. Beberapa warga malah ikut nongkrong.' },
+    { t: 'Tutup dulu, istirahat', fx: { energy: 10, rep: -2 }, res: 'Kamu duduk di teras sambil menunggu listrik menyala.' },
+  ] },
+  { id: 'tetangga_ribut', minLevel: 1, who: 'Tetangga', text: 'Dua tetangga bertengkar soal parkir di depan warung. Suara makin keras dan beberapa pembeli menjauh.', choices: [
+    { t: 'Tengahi mereka', fx: { energy: -10, trust: 3 }, res: 'Setelah bicara baik-baik, mereka bersalaman. Ternyata cuma salah paham.' },
+    { t: 'Abaikan saja', fx: {}, res: 'Akhirnya mereka pergi sendiri-sendiri.' },
+    { t: 'Tawarkan minuman dingin ke keduanya', fx: { money: 8000, trust: -1 }, res: 'Kamu untung, tapi ada rasa kurang pantas.' },
+  ] },
+  { id: 'ganti_rugi', minLevel: 2, who: 'Pelanggan', text: 'Seorang pelanggan menggerutu: "Kemarin saya hampir telat kerja gara-gara antreanmu lama!"', choices: [
+    { t: 'Minta maaf, beri kopi gratis', fx: { stock: { kopi: -1 }, trust: 2 }, res: 'Ia luluh. "Ya sudah, lain kali dipercepat ya."', req: { stock: { kopi: 1 } } },
+    { t: 'Minta maaf saja', fx: { trust: 1 }, res: 'Ia mengangguk, masih sedikit kesal.' },
+    { t: '"Itu bukan salah warung."', fx: { trust: -2, rep: -2 }, res: 'Ia pergi sambil menggeleng. Beberapa orang melihat.' },
+  ] },
+  { id: 'pengajian', minLevel: 2, who: 'Panitia pengajian', text: 'Panitia pengajian memesan konsumsi untuk besok malam: 12 air mineral dan 10 kerupuk, total Rp 58.000.', choices: [
+    { t: 'Terima, harga biasa', fx: { stock: { aqua: -12, kerupuk: -10 }, money: 58000, trust: 2, xp: 20 }, res: 'Pesanan dikemas rapi dan diantar. Panitia berterima kasih.', req: { stock: { aqua: 12, kerupuk: 10 } } },
+    { t: 'Beri harga khusus (Rp 45.000)', fx: { stock: { aqua: -12, kerupuk: -10 }, money: 45000, trust: 4 }, res: '"Semoga berkah warungnya," kata ketua panitia.', req: { stock: { aqua: 12, kerupuk: 10 } } },
+    { t: 'Tolak, stok terbatas', fx: {}, res: 'Panitia mencari warung lain.' },
+  ] },
+  { id: 'uang_keamanan', minLevel: 3, who: 'Orang tak dikenal', text: 'Seseorang yang mengaku petugas meminta "uang keamanan" Rp 30.000 sebulan. Tidak ada surat tugas, hanya nada yang tidak enak.', choices: [
+    { t: 'Bayar supaya aman', fx: { money: -30000 }, res: 'Ia pergi puas. Kamu tidak yakin ini yang terakhir.',
+      later: [{ days: 5, chance: .7, text: 'Orang yang sama kembali dan meminta lagi.', fx: { money: -30000 } }] },
+    { t: 'Tolak, minta surat tugas', fx: { trust: 2 }, res: 'Ia menggerutu lalu pergi. Warga yang melihat mengangguk setuju.' },
+    { t: 'Tanya Pak RT dulu', fx: { energy: -5, trust: 1, xp: 10 }, res: 'Pak RT: "Itu bukan petugas resmi." Ia langsung melapor.' },
+  ] },
+  { id: 'tukar_rusak', minLevel: 1, who: 'Pembeli', text: 'Seorang pembeli mengembalikan 3 mie cup yang kemasannya sobek. "Ini sudah rusak waktu saya beli kemarin."', choices: [
+    { t: 'Tukar dengan yang baru', fx: { stock: { mie: -3 }, trust: 2 }, res: 'Ia puas. Kamu rugi sedikit, tapi ia janji kembali.', req: { stock: { mie: 3 } } },
+    { t: 'Ganti uang Rp 15.000', fx: { money: -15000, trust: 2 }, res: 'Ia menerima dengan senang hati.', req: { money: 15000 } },
+    { t: 'Tolak, bukan salah warung', fx: { trust: -2 }, res: 'Ia pergi sambil bergumam.' },
+  ] },
+  { id: 'anak_tersesat', minLevel: 1, who: 'Anak kecil', text: 'Seorang anak kecil menangis di depan warung. Ia tersesat dan tidak tahu jalan pulang.', choices: [
+    { t: 'Temani dan cari orang tuanya', fx: { energy: -10, trust: 4, xp: 20 }, res: 'Setelah bertanya ke beberapa warga, ibunya ketemu. Ia memeluk anaknya sambil menangis lega.' },
+    { t: 'Panggil Pak RT', fx: { trust: 2 }, res: 'Pak RT datang cepat dan mengurus semuanya.' },
+  ] },
+  { id: 'lomba_17', minLevel: 4, who: 'Panitia lomba', text: 'Panitia lomba kampung meminta sumbangan hadiah. "Dek, boleh sumbang 5 mie cup?"', choices: [
+    { t: 'Sumbang 5 mie cup', fx: { stock: { mie: -5 }, trust: 4, rep: 5 }, res: 'Namamu disebut di panggung. Warga bertepuk tangan.', req: { stock: { mie: 5 } } },
+    { t: 'Sumbang uang Rp 10.000', fx: { money: -10000, trust: 2 }, res: '"Terima kasih, Dek."', req: { money: 10000 } },
+    { t: 'Maaf, belum bisa', fx: { trust: -1 }, res: 'Panitia mengangguk dan pergi ke warung lain.' },
+  ] },
+  /* kejadian yang bergantung pada kepercayaan / utang */
+  { id: 'warga_bantu', minLevel: 2, when: { trustMin: 70 }, who: 'Warga gang', text: 'Warga datang bergotong royong membersihkan teras dan mengecat ulang papan nama warung. "Warungmu sudah seperti milik kita."', choices: [
+    { t: 'Terima dengan terima kasih', fx: { trust: 1, rep: 5, energy: 10 }, res: 'Teras bersih, papan nama tampak baru. Kamu terharu.' },
+    { t: 'Traktir mereka kopi', fx: { stock: { kopi: -5 }, trust: 3, xp: 20 }, res: 'Kopi habis tapi suasana hangat sampai malam.', req: { stock: { kopi: 5 } } },
+  ] },
+  { id: 'gosip', minLevel: 2, when: { trustMax: 35 }, who: 'Pelanggan lama', text: 'Kabar beredar di warung seberang bahwa warungmu kurang jujur. Seorang pelanggan lama bertanya langsung padamu.', choices: [
+    { t: 'Jawab jujur dan minta maaf atas kekeliruan', fx: { trust: 4 }, res: 'Ia mengangguk pelan. "Terima kasih sudah jujur."' },
+    { t: 'Traktir kopi sebagai tanda baik', fx: { stock: { kopi: -1 }, trust: 2 }, res: 'Ia tersenyum tipis. "Kita lihat saja nanti."', req: { stock: { kopi: 1 } } },
+    { t: 'Marah dan menyangkal', fx: { trust: -3, rep: -3 }, res: 'Ia pergi. Kamu menyesal setelah bicara sekeras itu.' },
+  ] },
+  { id: 'awi_keringanan', minLevel: 3, when: { trustMin: 65, lunas: false }, who: 'Koh Awi (telepon)', text: '"Saya dengar warungmu dipercaya warga. Orang yang dipercaya itu modal terbaik. Saya beri keringanan: cicilan berikut mundur sehari."', choices: [
+    { t: 'Terima, terima kasih Koh', fx: { dueShift: 1, trust: 1 }, res: '"Jangan kecewakan saya, ya."' },
+    { t: 'Minta potongan utang', fx: { debt: -30000, trust: -1 }, res: '"Hm. Baik, Rp 30.000. Tapi jangan serakah."' },
+  ] },
 ];
 
 /** Epilog: ditentukan oleh kepercayaan, utang, dan uang. */
