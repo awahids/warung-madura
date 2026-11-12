@@ -3,6 +3,7 @@ import { HUD_H, W } from '../constants.js';
 import { ctx } from '../gfx.js';
 import { isRain, missionVal } from '../logic/day.js';
 import { level, progress, rankOf } from '../logic/level.js';
+import { story, trust } from '../logic/story.js';
 import { save } from '../persist.js';
 import { SP, hit } from '../sprites.js';
 import { G, ui } from '../state.js';
@@ -37,6 +38,13 @@ export function drawHUD() {
     ctx.fillStyle = '#1a3a0a'; ctx.fillRect(cx - 5, cy - 4, 3, 4); ctx.fillRect(cx + 3, cy - 4, 3, 4);
     ctx.beginPath(); ctx.arc(cx, cy + 1, 6, .15 * Math.PI, .85 * Math.PI); ctx.stroke();
   });
+  // kepercayaan warga (bar tipis di bawah reputasi) + utang
+  { const tv = trust(); ctx.fillStyle = 'rgba(0,0,0,.5)'; rr(ctx, 730, 45, 150, 7, 3); ctx.fill();
+    ctx.fillStyle = tv >= 60 ? '#6fb6ff' : tv >= 35 ? '#e0b030' : '#d6483a'; rr(ctx, 730, 45, Math.max(5, 150 * tv / 100), 7, 3); ctx.fill();
+    T(`PERCAYA ${Math.round(tv)}`, 726, 52, { s: 9, a: 'right', c: '#f3d9a4' });
+    hit(700, 42, 180, 14, () => { }, 'Kepercayaan warga — naik bila jujur & membantu, turun bila menolak atau menunggak');
+    const st = story(), dt = st.easy ? 'mode santai' : st.lunas ? 'utang lunas' : `utang ${(st.debt / 1e6).toFixed(2).replace('.', ',')}jt · cicil H${st.due}`;
+    T(dt, 232, 52, { s: 10, c: st.arrears ? '#ff9a8a' : '#f3d9a4' }); }
   // level juragan + bar XP
   const L = level();
   bar(890, `LV ${L} · ${rankOf(L).toUpperCase()}`, progress() * 100, '#7fd0ff', '#2d78c8', (cx, cy) => {

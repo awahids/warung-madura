@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { START_STOCK } from '../src/game/data';
+import { chooseEvent, choiceOk, closeStoryEvent, eventById, story } from '../src/game/logic/story';
 import { G, setG, ui } from '../src/game/state';
 import { freshState } from '../src/game/persist';
 import { ITEMS } from '../src/game/data';
@@ -97,6 +98,7 @@ describe('simulasi bot 3 hari', () => {
         if (G.deliveries.some(d => G.abs >= d.eta)) receiveDelivery();
         G.energy = Math.max(G.energy, 40);
         if (ui.modal === 'win') ui.modal = null;
+        if (ui.modal === 'event') { if (!story().result) chooseEvent(story().cur && eventById(story().cur).choices.findIndex(c => choiceOk(c))); closeStoryEvent(); }   // jawab kejadian cerita
       }
       for (let i = 0; i < 600 && ui.modal !== 'summary'; i++) update(1 / 30);
       expect(ui.modal).toBe('summary');
@@ -141,7 +143,7 @@ describe('level membuka barang, pembeli, dan fitur', () => {
     expect(typeOn('ojol')).toBe(true); expect(typeOn('ibu')).toBe(false); expect(typeOn('juragan')).toBe(false);
     expect(featureOn('promo')).toBe(false); expect(featureOn('kasbon')).toBe(false);
     expect(G.stock.gas).toBeUndefined();
-    expect(G.events).toHaveLength(0);                       // belum ada kasbon / tamu misterius
+    expect(G.events.filter(e => e.k !== 'story')).toHaveLength(0);   // belum ada kasbon / tamu misterius
   });
 
   it('pembeli hanya memesan barang yang sudah terbuka', () => {
@@ -208,5 +210,75 @@ describe('pembeli baru (pelajar, tukang, turis)', () => {
     const { TYPES } = await import('../src/game/data');
     for (const t of ['pelajar', 'tukang', 'turis']) expect(TYPES[t]).toBeTruthy();
     expect(VARIANTS.pelajar).toHaveLength(2); expect(VARIANTS.turis).toHaveLength(2);
+  });
+});
+
+describe('cerita: utang, kepercayaan, kejadian', () => {
+  beforeEach(() => { setG(freshState(G)); ui.modal = null; startDay(); });
+
+  it('utang awal Rp 1,2 jt, cicilan hari ke-4, kepercayaan 50', async () => {
+    const S = await import('../src/game/logic/story');
+    expect(S.story().debt).toBe(1200000); expect(S.story().due).toBe(4); expect(S.trust()).toBe(50);
+    expect(S.installment()).toBe(90000);
+  });
+
+  it('cicilan dibayar bila saldo cukup; menunggak menambah bunga & menahan pesanan', async () => {
+    const S = await import('../src/game/logic/story'); const { finishClose } = await import('../src/game/logic/day');
+    G.day = 4; G.money = 500000; finishClose();
+    expect(G.money).toBe(410000); expect(S.story().debt).toBe(1110000); expect(S.story().due).toBe(7);
+    G.day = 7; G.money = 1000; finishClose();                         // menunggak #1
+    expect(S.story().arrears).toBe(1); expect(S.story().debt).toBe(Math.round(1110000 * 1.05)); expect(S.story().due).toBe(8);
+    G.day = 8; G.money = 1000; finishClose();                         // menunggak #2 → pesanan besok ditahan
+    expect(S.story().arrears).toBe(2); G.day = 9; expect(S.orderBlocked()).toBe(true);
+    G.cart = { kopi: 1 }; G.money = 1e6; const before = G.deliveries.length;
+    const { placeOrder } = await import('../src/game/logic/actions'); placeOrder(); expect(G.deliveries.length).toBe(before);
+  });
+
+  it('mode santai meniadakan cicilan; utang lunas menghentikan cicilan', async () => {
+    const S = await import('../src/game/logic/story'); const { finishClose } = await import('../src/game/logic/day');
+    S.story().easy = true; G.day = 4; G.money = 0; finishClose(); expect(S.story().arrears).toBe(0);
+    S.story().easy = false; S.story().debt = 80000; G.day = 4; G.money = 200000; finishClose();
+    expect(S.story().lunas).toBe(true); expect(S.story().debt).toBe(0); expect(G.money).toBe(120000);
+  });
+
+  it('bayar utang lebih awal mengurangi sisa utang dan bisa melunasi', async () => {
+    const S = await import('../src/game/logic/story'); G.money = 500000;
+    expect(S.payDebt(50000)).toBe(true); expect(S.story().debt).toBe(1150000); expect(G.money).toBe(450000);
+    S.story().debt = 30000; expect(S.payDebt(50000)).toBe(true); expect(S.story().lunas).toBe(true); expect(G.money).toBe(420000);
+    G.money = 10; S.story().lunas = false; S.story().debt = 100000; expect(S.payDebt(50000)).toBe(false);
+  });
+
+  it('kepercayaan mengubah kesabaran pembeli dan peluang kasbon dilunasi', async () => {
+    const S = await import('../src/game/logic/story');
+    S.changeTrust(50); expect(S.trust()).toBe(100); expect(S.trustMul()).toBeCloseTo(1.12); expect(S.repayChance()).toBeCloseTo(.85);
+    S.changeTrust(-200); expect(S.trust()).toBe(0); expect(S.trustMul()).toBeCloseTo(.88); expect(S.repayChance()).toBeCloseTo(.45);
+    S.story().trust = 50; expect(S.repayChance()).toBeCloseTo(.65);
+  });
+
+  it('kejadian bab berurutan; pilihan menerapkan efek, kabar lanjutan datang di pagi hari', async () => {
+    const S = await import('../src/game/logic/story');
+    expect(S.pickEvent().id).toBe('jaka_kopi');
+    S.openStoryEvent(); expect(ui.modal).toBe('event');
+    const k = G.stock.kopi; S.chooseEvent(0);                           // kasih gratis
+    expect(G.stock.kopi).toBe(k - 1); expect(S.trust()).toBe(53); expect(S.story().result.lines).toContain('Kepercayaan +3');
+    S.closeStoryEvent(); expect(ui.modal).toBeNull(); expect(S.story().done).toContain('jaka_kopi');
+    expect(S.pickEvent().id).toBe('kembalian');
+    S.openStoryEvent(); G.money = 100000; S.chooseEvent(2);            // catat, ganti nanti → kabar 2 hari lagi
+    expect(S.story().queue).toHaveLength(1); S.closeStoryEvent();
+    G.day = 3; startDay(); expect(G.morning.some(m => m.includes('Orang itu mampir'))).toBe(true); expect(S.story().queue).toHaveLength(0);
+  });
+
+  it('pilihan dengan syarat tidak bisa dipilih bila stok/uang kurang', async () => {
+    const S = await import('../src/game/logic/story');
+    G.stock.aqua = 0; const ev = S.eventById('darto_pesan'); expect(S.choiceOk(ev.choices[0])).toBe(false); expect(S.choiceOk(ev.choices[2])).toBe(true);
+    G.money = 1000; expect(S.choiceOk(S.eventById('kembalian').choices[0])).toBe(false);
+  });
+
+  it('bab mengikuti level; save menyimpan cerita', async () => {
+    const S = await import('../src/game/logic/story'); const { addXp, xpAt } = await import('../src/game/logic/level');
+    expect(S.chapterOf()).toBe(1); addXp(xpAt(3)); expect(S.chapterOf()).toBe(2); expect(S.chapterName()).toBe('Kasbon');
+    const mem = {}; vi.stubGlobal('localStorage', { setItem: (k, v) => { mem[k] = v; }, getItem: k => mem[k] ?? null, removeItem: k => { delete mem[k]; } });
+    const { save, loadSave } = await import('../src/game/persist'); S.changeTrust(7); save();
+    expect(loadSave().story.trust).toBe(57); expect(loadSave().story.cur).toBeNull(); vi.unstubAllGlobals();
   });
 });

@@ -1,6 +1,6 @@
 # Juragan Warung — Desain Cerita & Tanggung Jawab (DRAFT untuk ditinjau)
 
-> Status: **draft, belum diimplementasikan.** Dokumen ini untuk disetujui/diubah dulu sebelum kode ditulis.
+> Status: **disetujui; tahap A (fondasi) sudah diimplementasikan**, tahap B–E menyusul. Angka final bisa berbeda dari tabel di bawah (mis. cicilan Bab 1 = Rp 90.000; pesanan ditahan mulai tunggakan ke-2) — lihat README dan `src/game/logic/story.js`.
 > Semua angka adalah titik awal dan akan disetel lewat uji main.
 
 ## 1. Premis

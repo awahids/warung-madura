@@ -4,6 +4,7 @@ import { active } from './customers.js';
 import { save } from '../persist.js';
 import { G } from '../state.js';
 import { FEATURE_LVL, discountOf, etaOf, featureOn, itemOn, level } from './level.js';
+import { orderBlocked } from './story.js';
 import { rp } from '../util.js';
 import { flt, toast } from '../widgets.js';
 
@@ -46,6 +47,7 @@ export function reorder() {
 }
 export function placeOrder() {
   const cost = orderCost(); if (!cost) { SFX.err(); return; }
+  if (orderBlocked()) { SFX.err(); toast('Koh Awi menahan pesananmu sampai cicilan beres.', '#ffd0d0'); return; }
   if (cost > G.money) { SFX.err(); toast('Uang tidak cukup untuk pesanan ini.', '#ffd0d0'); return; }
   const items = {}; for (const i of ITEMS) if (G.cart[i.id] && itemOn(i.id)) items[i.id] = G.cart[i.id] * i.pack;
   const ex = G.express && featureOn('express'), mins = ex ? EXPRESS_MIN : etaOf(level());

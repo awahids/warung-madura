@@ -1,5 +1,6 @@
 import { SFX } from '../audio.js';
 import { ITEM_LVL, addXp, featureOn, itemOn, typeOn } from './level.js';
+import { changeTrust, trustMul } from './story.js';
 import { W, WIN_GOAL } from '../constants.js';
 import { BY, TYPES } from '../data.js';
 import { isRain, missionVal } from './day.js';
@@ -35,7 +36,7 @@ export function spawnCustomer(type, ev) {
   for (const id in map) order.push({ id, qty: map[id] });
   const c = {
     type, name: T0.name, spr: T0.spr, order, event: ev || null, stage: 'order', given: 0,
-    x: Math.random() < .5 ? -120 : W + 120, y: 0, state: 'in', patience: T0.patience, max: T0.patience,
+    x: Math.random() < .5 ? -120 : W + 120, y: 0, state: 'in', patience: T0.patience * trustMul(), max: T0.patience * trustMul(),
     say: ev === 'kasbon' ? 'Bang, kasbon dulu ya, besok dibayar!' : pick(T0.say), bob: Math.random() * 7, bye: '',
   };
   recalc(c);
@@ -117,7 +118,7 @@ export function sendAway(c) {
   G.cust = G.cust.filter(x => x !== c); G.leaving.push(c);
 }
 export function angryLeave(c, why) {
-  returnTray(); G.rep = clamp(G.rep - 2, 0, 100); G.stats.left++; c.bye = why || 'Lama banget, ah!'; SFX.err();
+  returnTray(); G.rep = clamp(G.rep - 2, 0, 100); changeTrust(-.5); G.stats.left++; c.bye = why || 'Lama banget, ah!'; SFX.err();
   toast(`${c.name} pergi kecewa. Reputasi turun.`, '#ffd0d0'); sendAway(c);
 }
 export function doKasbon(yes) {
@@ -126,17 +127,17 @@ export function doKasbon(yes) {
     G.debts.push({ who: c.name, amount: c.total, day: G.day }); G.stats.kasbonNew += c.total; G.stats.served++;
     for (const l of c.order) G.stats.sold[l.id] = (G.stats.sold[l.id] || 0) + l.qty;
     c.took = true; c.carry = carryKind(c.order);
-    G.tray = {}; G.rep = clamp(G.rep + 2, 0, 100); c.bye = 'Makasih, Bang! Besok pasti dibayar.'; SFX.good();
+    G.tray = {}; G.rep = clamp(G.rep + 2, 0, 100); changeTrust(1); c.bye = 'Makasih, Bang! Besok pasti dibayar.'; SFX.good();
     toast(`Kasbon ${rp(c.total)} dicatat di buku.`, '#cfe8ff'); sendAway(c); checkMissions();
   } else {
-    returnTray(); G.rep = clamp(G.rep - 1, 0, 100); c.bye = 'Yah... oke deh.'; SFX.err(); sendAway(c);
+    returnTray(); G.rep = clamp(G.rep - 1, 0, 100); changeTrust(-1); c.bye = 'Yah... oke deh.'; SFX.err(); sendAway(c);
   }
 }
 export function doHabis() {
   const c = active(); if (!c || c.stage !== 'order') return;
   const newOrder = [];
   for (const l of c.order) { const avail = (G.stock[l.id] || 0) + (G.tray[l.id] || 0); const q = Math.min(l.qty, avail); if (q > 0) newOrder.push({ id: l.id, qty: q }); }
-  G.rep = clamp(G.rep - 1, 0, 100);
+  G.rep = clamp(G.rep - 1, 0, 100); changeTrust(-.25);
   if (!newOrder.length) { returnTray(); G.stats.left++; c.bye = 'Yah, habis semua...'; SFX.err(); sendAway(c); toast('Semua pesanan habis. Segera restok!', '#ffd0d0'); return; }
   // buang yang berlebih di tray
   for (const id in G.tray) { const l = newOrder.find(x => x.id === id); const keep = l ? l.qty : 0; if (G.tray[id] > keep) { G.stock[id] += G.tray[id] - keep; G.tray[id] = keep; if (!keep) delete G.tray[id]; } }

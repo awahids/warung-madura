@@ -3,6 +3,7 @@ import { H, W, WIN_GOAL } from '../constants.js';
 import { BY, ITEMS } from '../data.js';
 import { ctx } from '../gfx.js';
 import { ico } from '../icons.js';
+import { catatan, chapterName, chapterOf, choiceOk, chooseEvent, closeStoryEvent, currentEvent, installment, orderBlocked, payDebt, story, trust } from '../logic/story.js';
 import { EXPRESS_MIN, orderCost, packPrice, placeOrder, reorder, usePhone } from '../logic/actions.js';
 import { FEATURE_LVL, ITEM_LVL, MAX_LEVEL, UNLOCK_LEVELS, discountOf, etaOf, featureOn, itemOn, level, levelBonus, rankOf, unlocksAt, xpAt } from '../logic/level.js';
 import { nextDay } from '../logic/day.js';
@@ -19,6 +20,7 @@ export function drawModals() {
   if (ui.modal === 'notebook') notebook();
   else if (ui.modal === 'phone') phone();
   else if (ui.modal === 'level') levelModal();
+  else if (ui.modal === 'event') eventModal();
   else if (ui.modal === 'summary') summary();
   else if (ui.modal === 'help') help();
   else if (ui.modal === 'pause') pauseMenu();
@@ -48,6 +50,8 @@ export function notebook() {
   T(`Kasbon belum dibayar: ${rp(debt)} (${G.debts.length} catatan)`, x + 36, by + 54, { s: 14, w: '600', c: '#7a3a1a' });
   const pend = G.deliveries.length ? 'Dalam perjalanan: ' + G.deliveries.map(d => Object.entries(d.items).map(([k, v]) => `${v} ${BY[k].name}`).join(', ')).join(' | ') : '';
   if (pend) T(pend.length > 100 ? pend.slice(0, 98) + '…' : pend, x + 36, by + 80, { s: 12, w: '600', c: '#3a5a8a' });
+  { const st = story(); T(st.easy ? 'Mode santai: tanpa cicilan' : st.lunas ? 'Utang ke Koh Awi lunas' : `Utang Koh Awi ${rp(st.debt)} · cicilan hari ke-${st.due}: ${rp(installment())}`, x + 36, by + 106, { s: 13, w: '700', c: '#7a3a1a' });
+    if (!st.lunas && st.debt > 0) button(x + w - 700, by + 18, 230, 54, 'BAYAR UTANG +50rb', () => payDebt(50000), { col: 'blue', s: 16, disabled: G.money < Math.min(50000, st.debt), tip: 'Cicil lebih awal ke Koh Awi' }); }
   button(x + w - 460, by + 18, 250, 54, 'PESAN LEWAT HP', () => { ui.modal = 'phone'; }, { col: 'green', s: 20 });
   button(x + w - 200, by + 18, 170, 54, 'TUTUP', () => { ui.modal = null; }, { col: 'wood', s: 20 });
 }
@@ -63,7 +67,8 @@ export function phone() {
   ctx.fillStyle = '#2f9e44'; ctx.fillRect(px + 12, py + 52, pw - 24, 52);
   T('GrosirKu · Pesan Barang', px + 28, py + 76, { s: 20, c: '#fff' });
   const disc = Math.round(discountOf(L) * 100);
-  T(`Kas ${rp(G.money)} · diskon level ${disc}% · kurir ±${G.express && featureOn('express') ? EXPRESS_MIN : etaOf(L)} mnt`, px + 28, py + 96, { s: 12, w: '600', c: '#e4ffe9' });
+  T(orderBlocked() ? 'PESANAN DITAHAN Koh Awi — lunasi cicilan dulu' : `Kas ${rp(G.money)} · diskon level ${disc}% · kurir ±${G.express && featureOn('express') ? EXPRESS_MIN : etaOf(L)} mnt`, px + 28, py + 96, { s: 12, w: '600', c: '#e4ffe9' });
+  if (orderBlocked()) { ctx.fillStyle = '#c0392b'; ctx.fillRect(px + 12, py + 104, pw - 24, 8); }
   button(px + pw - 128, py + 58, 100, 30, 'Medsos', usePhone, { col: 'blue', s: 13, tip: 'Scroll medsos — isi energi (jangan saat ada pembeli!)' });
   ITEMS.forEach((it, i) => {
     const ry = py + 112 + i * RH, q = G.cart[it.id] || 0, n = G.stock[it.id] || 0, on = itemOn(it.id);
@@ -88,6 +93,31 @@ export function phone() {
   button(px + 372, by, 104, 44, 'TUTUP', () => { ui.modal = null; }, { col: 'wood', s: 16 });
   if (!featureOn('reorder')) T(`Pesan ulang: Level ${FEATURE_LVL.reorder}`, px + 30, by + 62, { s: 12, w: '700', c: '#a05a1a' });
 }
+/** Dialog kejadian cerita: pilihan → akibat langsung. */
+export function eventModal() {
+  const ev = currentEvent(); if (!ev) { ui.modal = null; return; }
+  const st = story(), x = 270, w = 740, y = 70, h = 580;
+  panel(x, y, w, h);
+  ctx.fillStyle = '#c98a4b'; rr(ctx, x + 30, y + 24, 250, 28, 14); ctx.fill();
+  T(`BAB ${chapterOf()} · ${chapterName()}`.toUpperCase(), x + 155, y + 44, { s: 14, a: 'center', c: '#fff', stroke: '#6b3a14', sw: 3 });
+  T(ev.who, x + 36, y + 96, { s: 30, c: '#6b3a14' });
+  const lines = wrapText(ev.text, w - 80, 20, '600');
+  lines.forEach((l, i) => T(l, x + 40, y + 140 + i * 28, { s: 20, w: '600', c: '#3a210c' }));
+  const by = y + 140 + lines.length * 28 + 26;
+  if (!st.result) {
+    T('Apa yang kamu lakukan?', x + 40, by, { s: 14, w: '700', c: '#7a5a3a' });
+    ev.choices.forEach((c, i) => {
+      const ok = choiceOk(c);
+      button(x + 40, by + 16 + i * 66, w - 80, 56, c.t + (ok ? '' : ' (tidak cukup)'), () => chooseEvent(i), { col: ok ? 'wood' : 'grey', s: 18, disabled: !ok });
+    });
+  } else {
+    const rl = wrapText(st.result.text, w - 80, 19, '700');
+    rl.forEach((l, i) => T(l, x + 40, by + i * 27, { s: 19, w: '700', c: '#2a5a1a' }));
+    const ly = by + rl.length * 27 + 14;
+    st.result.lines.forEach((t, i) => { const neg = /^−|−/.test(t) || /menunggak|mundur/.test(t); T(t, x + 44, ly + i * 24, { s: 16, w: '700', c: neg ? '#b3281e' : '#2a6a2a' }); });
+    button(x + w / 2 - 110, y + h - 80, 220, 54, 'LANJUT', closeStoryEvent, { col: 'green', s: 22 });
+  }
+}
 /** Daftar yang dibuka tiap level. */
 export function levelModal() {
   const x = 190, y = 36, w = 900, h = 648, L = level(); panel(x, y, w, h);
@@ -110,10 +140,10 @@ export function levelModal() {
   T('XP: +10 tiap pembeli (+5 bila cepat, +3 bila dapat tip), +40 tiap misi selesai.', x + 36, y + h - 24, { s: 13, w: '600', c: '#7a5a3a' });
 }
 export function summary() {
-  const x = 330, y = 50, w = 620, h = 620, s = G.stats;
+  const x = 330, y = 12, w = 620, h = 696, s = G.stats, st = story(), lp = st.lastPay;
   panel(x, y, w, h);
-  T(G.endReason === 'faint' ? 'KAMU PINGSAN!' : 'WARUNG TUTUP', x + w / 2, y + 62, { s: 36, a: 'center', c: G.endReason === 'faint' ? '#b3281e' : '#6b3a14', stroke: '#fff3c8', sw: 2 });
-  T(`Rekap Hari ${G.day}`, x + w / 2, y + 90, { s: 16, a: 'center', c: '#7a5a3a', w: '600' });
+  T(G.endReason === 'faint' ? 'KAMU PINGSAN!' : 'WARUNG TUTUP', x + w / 2, y + 54, { s: 34, a: 'center', c: G.endReason === 'faint' ? '#b3281e' : '#6b3a14', stroke: '#fff3c8', sw: 2 });
+  T(`Rekap Hari ${G.day} · Bab ${chapterOf()} ${chapterName()}`, x + w / 2, y + 80, { s: 15, a: 'center', c: '#7a5a3a', w: '600' });
   const rows = [
     ['Pelanggan dilayani', s.served], ['Pelanggan kecewa', s.left], ['Omzet penjualan', rp(s.revenue)],
     ['Laba kotor', rp(s.profit)], ['Tip', rp(s.tips)], ['Belanja stok & promo', '-' + rp(s.spent)],
@@ -121,18 +151,37 @@ export function summary() {
   ];
   if (G.endReason === 'faint') rows.splice(7, 0, ['Biaya klinik', '-Rp 15.000']);
   rows.forEach((r, i) => {
-    const ry = y + 112 + i * 36; ctx.fillStyle = i % 2 ? 'rgba(255,255,255,.35)' : 'rgba(255,255,255,.6)'; rr(ctx, x + 30, ry, w - 60, 32, 8); ctx.fill();
-    T(r[0], x + 46, ry + 22, { s: 16, c: '#3a210c' }); T(String(r[1]), x + w - 46, ry + 22, { s: 17, a: 'right', c: String(r[1]).startsWith('-') ? '#b3281e' : '#2a6a2a' });
+    const ry = y + 94 + i * 28; ctx.fillStyle = i % 2 ? 'rgba(255,255,255,.35)' : 'rgba(255,255,255,.6)'; rr(ctx, x + 30, ry, w - 60, 25, 7); ctx.fill();
+    T(r[0], x + 44, ry + 18, { s: 15, c: '#3a210c' }); T(String(r[1]), x + w - 44, ry + 18, { s: 16, a: 'right', c: String(r[1]).startsWith('-') ? '#b3281e' : '#2a6a2a' });
   });
-  const by = y + 112 + rows.length * 36 + 10;
-  SP('coin', x + 60, by + 26, .9, .5, .5);
-  T('SALDO', x + 96, by + 18, { s: 12, c: '#7a5a3a' }); T(rp(G.money), x + 96, by + 44, { s: 30, c: '#b87a14', stroke: '#fff3c8', sw: 2 });
-  T(`Target juragan: ${rp(WIN_GOAL)}`, x + w - 40, by + 20, { s: 13, a: 'right', c: '#7a5a3a' });
-  ctx.fillStyle = '#d8c28c'; rr(ctx, x + w - 250, by + 28, 210, 12, 6); ctx.fill(); ctx.fillStyle = '#58b948'; rr(ctx, x + w - 250, by + 28, Math.max(8, 210 * clamp(G.money / WIN_GOAL, 0, 1)), 12, 6); ctx.fill();
-  const debt = G.debts.reduce((q, d) => q + d.amount, 0) + 0;
-  if (debt) T(`Kasbon beredar: ${rp(debt)}`, x + 46, by + 76, { s: 14, c: '#7a3a1a' });
-  button(x + 60, y + h - 80, 230, 54, 'HP · PESAN BARANG', () => { ui.modal = 'phone'; }, { col: 'wood', s: 17 });
-  button(x + w - 290, y + h - 80, 230, 54, 'TIDUR → HARI ' + (G.day + 1), nextDay, { col: 'green', s: 18 });
+  const by = y + 94 + rows.length * 28 + 6;
+  SP('coin', x + 60, by + 24, .8, .5, .5);
+  T('SALDO', x + 92, by + 14, { s: 11, c: '#7a5a3a' }); T(rp(G.money), x + 92, by + 40, { s: 27, c: '#b87a14', stroke: '#fff3c8', sw: 2 });
+  T(`Target juragan: ${rp(WIN_GOAL)}`, x + w - 40, by + 16, { s: 12, a: 'right', c: '#7a5a3a' });
+  ctx.fillStyle = '#d8c28c'; rr(ctx, x + w - 250, by + 24, 210, 11, 6); ctx.fill(); ctx.fillStyle = '#58b948'; rr(ctx, x + w - 250, by + 24, Math.max(8, 210 * clamp(G.money / WIN_GOAL, 0, 1)), 11, 6); ctx.fill();
+  // ---- tanggung jawab: cicilan, kepercayaan, kabar kampung, catatan
+  const sy = by + 56;
+  ctx.fillStyle = 'rgba(255,255,255,.5)'; rr(ctx, x + 24, sy, w - 48, 196, 10); ctx.fill(); ctx.strokeStyle = '#d6bf8a'; ctx.lineWidth = 2; ctx.stroke();
+  let line;
+  if (st.easy) line = ['Mode santai — tanpa cicilan', '#2a6a2a'];
+  else if (st.lunas) line = ['Utang ke Koh Awi LUNAS', '#2a8a2a'];
+  else if (lp && lp.ok) line = [`Cicilan ${rp(lp.amount)} dibayar · sisa utang ${rp(st.debt)}`, '#2a6a2a'];
+  else if (lp) line = [`Cicilan ${rp(lp.amount)} MENUNGGAK · bunga ${rp(lp.penalty)} · utang ${rp(st.debt)}`, '#b3281e'];
+  else line = [`Utang ${rp(st.debt)} · cicilan hari ke-${st.due}: ${rp(installment())}`, '#5a3a1a'];
+  T('Koh Awi', x + 40, sy + 24, { s: 13, w: '700', c: '#7a5a3a' }); T(line[0], x + 110, sy + 24, { s: 14, w: '700', c: line[1] });
+  T('Kepercayaan', x + 40, sy + 48, { s: 13, w: '700', c: '#7a5a3a' });
+  ctx.fillStyle = '#d8c28c'; rr(ctx, x + 130, sy + 38, 200, 12, 6); ctx.fill();
+  ctx.fillStyle = trust() >= 60 ? '#58b948' : trust() >= 35 ? '#e0b030' : '#d6483a'; rr(ctx, x + 130, sy + 38, Math.max(8, 200 * trust() / 100), 12, 6); ctx.fill();
+  T(`${Math.round(trust())}/100`, x + 340, sy + 49, { s: 13, w: '700', c: '#5a3a1a' });
+  T('Kabar kampung', x + 40, sy + 76, { s: 13, w: '700', c: '#7a5a3a' });
+  const news = st.kabar.slice(-3);
+  if (!news.length) T('Hari yang tenang.', x + 56, sy + 98, { s: 14, w: '600', c: '#7a6a5a' });
+  news.forEach((n, i) => T('• ' + (n.length > 78 ? n.slice(0, 76) + '…' : n), x + 40, sy + 98 + i * 22, { s: 14, w: '600', c: '#3a210c' }));
+  T('Pak Haji: ' + catatan(), x + 40, sy + 176, { s: 13, w: '600', c: '#6b3a14' });
+  const debtK = G.debts.reduce((q, d) => q + d.amount, 0);
+  if (debtK) T(`Kasbon warga beredar: ${rp(debtK)}`, x + w - 40, by + 52, { s: 12, a: 'right', c: '#7a3a1a' });
+  button(x + 40, y + h - 70, 230, 52, 'HP · PESAN BARANG', () => { ui.modal = 'phone'; }, { col: 'wood', s: 17 });
+  button(x + w - 270, y + h - 70, 230, 52, 'TIDUR → HARI ' + (G.day + 1), nextDay, { col: 'green', s: 18 });
 }
 export function help() {
   const x = 240, y = 50, w = 800, h = 620; panel(x, y, w, h);
@@ -156,14 +205,15 @@ export function help() {
   button(x + w / 2 - 100, y + h - 74, 200, 50, 'MENGERTI', () => { ui.modal = G.screen === 'play' && G.running ? null : null; }, { col: 'green' });
 }
 export function pauseMenu() {
-  const x = 440, y = 120, w = 400, h = 460; panel(x, y, w, h);
+  const x = 440, y = 100, w = 400, h = 520; panel(x, y, w, h);
   T('JEDA', x + w / 2, y + 60, { s: 36, a: 'center', c: '#6b3a14' });
   button(x + 50, y + 90, w - 100, 52, 'LANJUT', () => { ui.modal = null; }, { col: 'green' });
   button(x + 50, y + 156, w - 100, 46, 'Suara: ' + (G.sound ? 'NYALA' : 'MATI'), () => { G.sound = !G.sound; save(); }, { col: 'blue', s: 16 });
   button(x + 50, y + 214, w - 100, 46, featureOn('auto') ? 'Kembalian otomatis: ' + (G.auto ? 'ON' : 'OFF') : `Kembalian otomatis: Level ${FEATURE_LVL.auto}`, () => { G.auto = !G.auto; save(); }, { col: G.auto ? 'green' : 'grey', s: 15, disabled: !featureOn('auto') });
-  button(x + 50, y + 272, w - 100, 46, 'CARA MAIN', () => { ui.modal = 'help'; }, { col: 'wood', s: 16 });
-  button(x + 50, y + 330, w - 100, 46, 'MENU UTAMA', () => { save(); ui.modal = null; G.screen = 'title'; ui.hasSave = !!loadSave(); }, { col: 'red', s: 16 });
-  T('Kemajuan tersimpan tiap akhir hari.', x + w / 2, y + 410, { s: 13, a: 'center', c: '#7a5a3a', w: '600' });
+  button(x + 50, y + 272, w - 100, 46, 'Mode santai (tanpa cicilan): ' + (story().easy ? 'ON' : 'OFF'), () => { story().easy = !story().easy; save(); }, { col: story().easy ? 'green' : 'grey', s: 14, tip: 'Cicilan utang ditiadakan. Kepercayaan & kejadian tetap jalan.' });
+  button(x + 50, y + 330, w - 100, 46, 'CARA MAIN', () => { ui.modal = 'help'; }, { col: 'wood', s: 16 });
+  button(x + 50, y + 388, w - 100, 46, 'MENU UTAMA', () => { save(); ui.modal = null; G.screen = 'title'; ui.hasSave = !!loadSave(); }, { col: 'red', s: 16 });
+  T('Kemajuan tersimpan tiap akhir hari.', x + w / 2, y + 470, { s: 13, a: 'center', c: '#7a5a3a', w: '600' });
 }
 export function winModal() {
   const x = 340, y = 150, w = 600, h = 400; panel(x, y, w, h);

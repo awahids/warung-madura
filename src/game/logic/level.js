@@ -8,8 +8,8 @@ import { flt, toast } from '../widgets.js';
    Naik level → bonus kas, diskon grosir, dan kurir lebih cepat.
    ============================================================ */
 export const MAX_LEVEL = 20;
-/** Total XP untuk mencapai level L (L=2 → 100, L=3 → 300, L=4 → 600 …). */
-export const xpAt = L => 50 * (L - 1) * L;
+/** Total XP untuk mencapai level L (L=2 → 200, L=3 → 600, L=4 → 1200 …). Satu bab ≈ beberapa hari. */
+export const xpAt = L => 100 * (L - 1) * L;
 export const levelOf = xp => { let L = 1; while (L < MAX_LEVEL && xp >= xpAt(L + 1)) L++; return L; };
 export const level = () => levelOf(G.xp || 0);
 const RANKS = ['Pemula', 'Penjaga Warung', 'Pedagang Kecil', 'Pedagang Handal', 'Juragan Muda', 'Juragan', 'Juragan Besar', 'Raja Warung'];

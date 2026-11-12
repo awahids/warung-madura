@@ -3,6 +3,7 @@ import { DAY_START } from '../constants.js';
 import { BY } from '../data.js';
 import { returnTray, sendAway } from './customers.js';
 import { featureOn, itemOn, typeOn } from './level.js';
+import { changeTrust, dawnStory, repayChance, scheduleStory, settleInstallment } from './story.js';
 import { save } from '../persist.js';
 import { G, ui } from '../state.js';
 import { clamp, pick, ri, rnd, rp } from '../util.js';
@@ -21,18 +22,20 @@ export function startDay(loaded) {
   G.events = [];
   if (featureOn('kasbon')) G.events.push({ k: 'kasbon', t: rnd(10, 21), done: false });
   if (typeOn('hoodie') && (G.day >= 2 || Math.random() < .5)) G.events.push({ k: 'mystery', t: rnd(23.3, 24.8), done: false });
+  scheduleStory(G.events);
   // kasbon pagi
   G.morning = [];
   if (G.day > 1 && !loaded) {
     const keep = [];
     for (const d of G.debts) {
       const age = G.day - d.day;
-      if (Math.random() < .65) { G.money += d.amount; G.stats.kasbonPaid += d.amount; G.morning.push(`${d.who} bayar kasbon ${rp(d.amount)}`); }
-      else if (age >= 3) G.morning.push(`Kasbon ${d.who} ${rp(d.amount)} macet — diikhlaskan`);
+      if (Math.random() < repayChance()) { G.money += d.amount; changeTrust(.5); G.stats.kasbonPaid += d.amount; G.morning.push(`${d.who} bayar kasbon ${rp(d.amount)}`); }
+      else if (age >= 3) { changeTrust(-1); G.morning.push(`Kasbon ${d.who} ${rp(d.amount)} macet — diikhlaskan`); }
       else keep.push(d);
     }
     G.debts = keep;
   }
+  dawnStory();
   save();
 }
 export function genMissions() {
@@ -65,6 +68,7 @@ export function endDay(reason) {
 }
 export function finishClose() {
   G.doorState = 'closed'; G.door = 0; G.bonusMissions = 0;
+  settleInstallment();
   for (const m of G.missions) if (missionVal(m) >= m.target) { G.bonusMissions++; }
   G.stats.bonus = G.bonusMissions * 20000; G.money += G.stats.bonus;
   ui.modal = 'summary'; save();

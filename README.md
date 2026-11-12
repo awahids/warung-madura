@@ -52,6 +52,15 @@ Karena badannya pendek, pelanggan mengangkat tangan ke samping kepala saat memba
 - **Kurir** berjalan masuk saat kiriman tiba, menunggu di samping kardus, lalu pergi setelah barang diterima.
 - **Serah-terima**: uang terbang dari tangan pelanggan ke penjaga, kantong/barang terbang balik ke pelanggan. Slot antrean berjarak ≈1 m supaya kepala tidak saling menutupi.
 
+## Cerita & tanggung jawab (tahap A)
+Rancangan lengkap: `docs/STORY.md`. Yang sudah jalan:
+- **Utang ke Koh Awi** Rp 1.200.000, **cicilan tiap 3 hari** (Rp 90 rb di Bab 1, naik tiap bab; dibayar otomatis saat warung tutup bila kas cukup). Menunggak → bunga 5%, kepercayaan turun; 2× berturut-turut → pesanan stok ditahan. Bisa dicicil lebih awal lewat Buku Catatan (*Bayar utang +50rb*). *Mode santai* (menu Jeda) meniadakan cicilan.
+- **Kepercayaan warga** (0–100, bar tipis di bawah Reputasi): memengaruhi kesabaran pembeli (±12%) dan peluang kasbon dilunasi (45–85%). Naik dengan jujur & membantu; turun bila menolak, mengecewakan pembeli, atau menunggak.
+- **Kejadian harian dengan pilihan**: satu per hari (jam 11–19, saat tidak melayani). Bab 1–2 berurutan (Bang Jaka, kembalian, Koh Awi, Pak Haji; Bu Sri, Rani, Pak Darto, Bang Rizky), sisanya dari kolam acak. Akibat pilihan tampil langsung, dan **kabar lanjutan** datang di pagi hari berikutnya.
+- **Rekap malam**: status cicilan, kepercayaan, *Kabar kampung*, dan catatan Pak Haji per bab.
+- Bab mengikuti level: 1 (Lv1–2), 2 (Lv3–4), 3 (Lv5–6), 4 (Lv7), 5 (Lv8+). Konten ada di `src/game/story/events.js` (data murni), mesin di `src/game/logic/story.js`.
+- XP per level dinaikkan (`xpAt` = 100·(L−1)·L) supaya satu bab bertahan beberapa hari.
+
 ## Pembeli baru
 Tiga tipe pembeli baru (`TYPES` di `src/game/data.js`, tampilan di `LOOK`/`VARIANTS` pada `src/scene3d/people.js`, semuanya tampil di galeri `#/orang`):
 - **Adik Pelajar** (Lv 3, seragam putih-abu + dasi, ransel; variasi berhijab): jajan murah (keripik, air mineral, kerupuk, mie, cola), lebih ramai saat berangkat/pulang sekolah.
