@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { START_STOCK } from '../src/game/data';
 import { G, setG, ui } from '../src/game/state';
 import { freshState } from '../src/game/persist';
 import { ITEMS } from '../src/game/data';
@@ -8,10 +9,10 @@ import {
   spawnCustomer, active, addToTray, doHitung, trayMatches, giveBill, confirmChange,
   doKasbon, doHabis,
 } from '../src/game/logic/customers';
-import { orderCost, placeOrder, receiveDelivery } from '../src/game/logic/actions';
+import { orderCost, packPrice, placeOrder, receiveDelivery } from '../src/game/logic/actions';
 import { update } from '../src/game/update';
 
-function begin() { setG(freshState(G)); ui.modal = null; startDay(); G.door = 1; openShop(); G.firstCust = false; G.spawnCd = 1e9; }
+function begin() { setG(freshState(G)); G.xp = 1e6; G.stock = { ...START_STOCK }; ui.modal = null; startDay(); G.door = 1; openShop(); G.firstCust = false; G.spawnCd = 1e9; }
 function arrive() { for (let i = 0; i < 200 && !active(); i++) update(1 / 30); return active(); }
 
 describe('util', () => {
@@ -65,7 +66,7 @@ describe('stok grosir', () => {
   beforeEach(begin);
   it('pesan → kurir tiba → stok bertambah', () => {
     G.cart = { bensin: 2 };
-    expect(orderCost()).toBe(2 * ITEMS.find(i => i.id === 'bensin').packCost);
+    expect(orderCost()).toBe(2 * packPrice(ITEMS.find(i => i.id === 'bensin')));   // sudah termasuk diskon level
     const money = G.money, stock = G.stock.bensin;
     placeOrder(); expect(G.money).toBeLessThan(money);
     G.abs += 100; receiveDelivery();
@@ -128,5 +129,58 @@ describe('level & pesan lewat HP', () => {
     G.cart = { kopi: 2 }; const abs = G.abs; placeOrder();
     expect(G.deliveries[0].eta).toBe(abs + etaOf(6));
     expect(G.deliveries[0].items.kopi).toBe(20);
+  });
+});
+
+describe('level membuka barang, pembeli, dan fitur', () => {
+  beforeEach(() => { setG(freshState(G)); ui.modal = null; startDay(); });
+
+  it('level 1: hanya 6 barang dasar dan pembeli dasar', async () => {
+    const { itemOn, typeOn, featureOn } = await import('../src/game/logic/level');
+    expect(itemOn('kopi')).toBe(true); expect(itemOn('gas')).toBe(false); expect(itemOn('cola')).toBe(false);
+    expect(typeOn('ojol')).toBe(true); expect(typeOn('ibu')).toBe(false); expect(typeOn('juragan')).toBe(false);
+    expect(featureOn('promo')).toBe(false); expect(featureOn('kasbon')).toBe(false);
+    expect(G.stock.gas).toBeUndefined();
+    expect(G.events).toHaveLength(0);                       // belum ada kasbon / tamu misterius
+  });
+
+  it('pembeli hanya memesan barang yang sudah terbuka', () => {
+    for (let i = 0; i < 80; i++) {
+      G.cust = [];
+      spawnCustomer();
+      const c = G.cust[0];
+      expect(['ojol', 'pemuda', 'cowok']).toContain(c.type);
+      for (const l of c.order) expect(['kopi', 'rokok', 'aqua', 'mie', 'snack', 'kerupuk']).toContain(l.id);
+    }
+  });
+
+  it('barang terkunci tidak bisa dijual atau dipesan', async () => {
+    const { baseCost } = await import('../src/game/logic/actions');
+    spawnCustomer('ojol'); for (let i = 0; i < 200 && !active(); i++) update(1 / 30);
+    G.stock.gas = 5; addToTray('gas'); expect(G.tray.gas).toBeUndefined();
+    G.cart = { gas: 2 }; expect(baseCost()).toBe(0);
+  });
+
+  it('naik level membuka barang baru + stok perkenalan, pembeli, dan fitur', async () => {
+    const { addXp, xpAt, itemOn, typeOn, featureOn, unlocksAt } = await import('../src/game/logic/level');
+    const { usePromo } = await import('../src/game/logic/actions');
+    usePromo(); expect(G.promo).toBe(false);                // promo terkunci
+    addXp(xpAt(2));
+    expect(itemOn('cola')).toBe(true); expect(G.stock.cola).toBeGreaterThan(0);
+    expect(typeOn('ibu')).toBe(true); expect(featureOn('promo')).toBe(true);
+    G.money = 100000; usePromo(); expect(G.promo).toBe(true);
+    expect(unlocksAt(2).map(u => u.k).sort()).toEqual(['Barang', 'Fitur', 'Pembeli']);
+    addXp(xpAt(8) - G.xp);
+    expect(itemOn('gas')).toBe(true); expect(featureOn('express')).toBe(true);
+  });
+
+  it('pesan ulang dan kurir ekspres (level tinggi)', async () => {
+    const { addXp, xpAt } = await import('../src/game/logic/level');
+    const { placeOrder, reorder, orderCost, baseCost } = await import('../src/game/logic/actions');
+    addXp(xpAt(8)); G.money = 1e6;
+    G.cart = { kopi: 1 }; placeOrder(); expect(G.cart).toEqual({});
+    reorder(); expect(G.cart).toEqual({ kopi: 1 });
+    G.express = true; expect(orderCost()).toBe(baseCost() + Math.round(baseCost() * .15));
+    const abs = G.abs; placeOrder(); expect(G.deliveries[1].eta).toBe(abs + 30);
   });
 });

@@ -2,6 +2,7 @@ import { SFX } from '../audio.js';
 import { DAY_START } from '../constants.js';
 import { BY } from '../data.js';
 import { returnTray, sendAway } from './customers.js';
+import { featureOn, itemOn, typeOn } from './level.js';
 import { save } from '../persist.js';
 import { G, ui } from '../state.js';
 import { clamp, pick, ri, rnd, rp } from '../util.js';
@@ -17,8 +18,9 @@ export function startDay(loaded) {
   G.rain = Math.random() < .32 ? { from: rnd(8, 17), len: rnd(1.5, 3.2) } : null;
   G.stats = { xp: 0, served: 0, revenue: 0, profit: 0, spent: 0, tips: 0, left: 0, sold: {}, kasbonNew: 0, kasbonPaid: 0, bonus: 0 };
   G.missions = genMissions();
-  G.events = [{ k: 'kasbon', t: rnd(10, 21), done: false }];
-  if (G.day >= 2 || Math.random() < .5) G.events.push({ k: 'mystery', t: rnd(23.3, 24.8), done: false });
+  G.events = [];
+  if (featureOn('kasbon')) G.events.push({ k: 'kasbon', t: rnd(10, 21), done: false });
+  if (typeOn('hoodie') && (G.day >= 2 || Math.random() < .5)) G.events.push({ k: 'mystery', t: rnd(23.3, 24.8), done: false });
   // kasbon pagi
   G.morning = [];
   if (G.day > 1 && !loaded) {
@@ -35,7 +37,7 @@ export function startDay(loaded) {
 }
 export function genMissions() {
   const n = clamp(4 + Math.floor(G.day * 1.2), 5, 12);
-  const itemPool = ['kopi', 'rokok', 'aqua', 'mie', 'bensin', 'kerupuk', 'snack', 'cola'];
+  const itemPool = ['kopi', 'rokok', 'aqua', 'mie', 'bensin', 'kerupuk', 'snack', 'cola'].filter(itemOn);
   const id = pick(itemPool), cnt = id === 'bensin' ? ri(2, 4) : ri(4, 8);
   const rev = Math.round((120000 + G.day * 25000) / 10000) * 10000;
   return [

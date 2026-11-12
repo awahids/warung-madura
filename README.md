@@ -13,7 +13,8 @@ Simulasi warung Madura 2D yang berjalan di browser. Dibangun dengan **React + Vi
 Pintasan: `Esc` jeda, `Spasi` hitung.
 
 ## Level & pesan lewat HP
-- **Level juragan** (maks. 20): XP dari tiap pembeli yang dilayani (+10, +5 bila cepat, +3 bila dapat tip) dan misi harian (+40). Bar level ada di HUD. Naik level memberi **bonus kas** (Rp 10.000 × level), **diskon grosir** 2% per level (maks. 20%), dan **kurir lebih cepat** (90 menit → min. 45). XP tersimpan di save; rumus di `src/game/logic/level.js`.
+- **Level juragan** (maks. 20): XP dari tiap pembeli yang dilayani (+10, +5 bila cepat, +3 bila dapat tip) dan misi harian (+40). Bar level ada di HUD. Naik level memberi **bonus kas** (Rp 10.000 × level), **diskon grosir** 2% per level (maks. 20%), dan **kurir lebih cepat** (90 menit → min. 45). XP tersimpan di save; rumus di `src/game/logic/level.js`. Klik bar level di HUD untuk melihat isi tiap level.
+- **Yang dibuka per level** (tabel `ITEM_LVL` / `TYPE_LVL` / `FEATURE_LVL`): Lv 1 → 6 barang dasar (kopi, rokok, air mineral, mie, kerupuk, keripik) + Bang Ojol, Mas Dimas, Bang Rizky · Lv 2 → Cola, Bu Sri, Promo · Lv 3 → Bensin, Kasbon · Lv 4 → Galon, Pak Haji · Lv 5 → Minuman Energi, Pesan Ulang di HP · Lv 6 → Beras, Tamu Misterius, Kembalian Otomatis · Lv 8 → Gas Melon, Kurir Ekspres (30 menit, biaya +15%). Barang terkunci tidak dipesan pembeli, tidak bisa dijual/dipesan, dan diberi stok perkenalan saat terbuka.
 - **Pesan barang lewat HP**: klik HP di meja (atau tombol *HP · Pesan Barang* sebelum buka) → aplikasi **GrosirKu** untuk memilih paket dan memesan. Tombol *Medsos* di HP mengisi energi (membuat pembeli yang sedang dilayani lebih tidak sabar). Buku Catatan kini hanya untuk cek stok, harga, dan laba.
 
 ## Pasang sebagai aplikasi (PWA)

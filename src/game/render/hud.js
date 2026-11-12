@@ -4,7 +4,7 @@ import { ctx } from '../gfx.js';
 import { isRain, missionVal } from '../logic/day.js';
 import { level, progress, rankOf } from '../logic/level.js';
 import { save } from '../persist.js';
-import { SP } from '../sprites.js';
+import { SP, hit } from '../sprites.js';
 import { G, ui } from '../state.js';
 import { T, rp, rr, wrapText } from '../util.js';
 
@@ -44,6 +44,7 @@ export function drawHUD() {
     for (let k = 0; k < 10; k++) { const r = k % 2 ? 5 : 12, a = -Math.PI / 2 + k * Math.PI / 5; ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); }
     ctx.closePath(); ctx.fill(); ctx.stroke();
   });
+  hit(890, 4, 190, 42, () => { ui.modal = 'level'; SFX.click(); }, 'Lihat isi tiap level');
   if (G.energy < 25) { ctx.fillStyle = `rgba(255,60,40,${.35 + Math.sin(ui.frame / 8) * .25})`; ctx.fillRect(470 + 30, 25, 150, 16); }
   // tombol
   const hb = (name, x, fn, tip) => SP(name, x, 8, .9, 0, 0, { fn, tip, always: true, pad: ui.touch ? 10 : 0 });

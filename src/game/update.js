@@ -2,6 +2,7 @@ import { SFX } from './audio.js';
 import { DAY_END, DAY_START, HOUR_SEC, W } from './constants.js';
 import { RATE } from './data.js';
 import { angryLeave, checkMissions, spawnCustomer } from './logic/customers.js';
+import { typeOn } from './logic/level.js';
 import { endDay, finishClose, isRain, openShop } from './logic/day.js';
 import { G, fx, ui } from './state.js';
 import { clamp, lerp, pick, rnd } from './util.js';
@@ -57,7 +58,7 @@ export function update(dt) {
   // event
   for (const e of G.events) if (!e.done && G.h >= e.t && G.cust.length < 3) {
     e.done = true;
-    if (e.k === 'kasbon') spawnCustomer(pick(['ibu', 'cowok', 'pemuda']), 'kasbon');
+    if (e.k === 'kasbon') spawnCustomer(pick(['ibu', 'cowok', 'pemuda'].filter(typeOn)), 'kasbon');
     else { spawnCustomer('hoodie'); toast('Seseorang berhoodie dan bermasker muncul di tengah malam…', '#cfd8ff'); SFX.chirp(); }
   }
   // kesabaran

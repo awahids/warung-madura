@@ -1,5 +1,5 @@
 import { SFX } from '../audio.js';
-import { addXp } from './level.js';
+import { ITEM_LVL, addXp, featureOn, itemOn, typeOn } from './level.js';
 import { W, WIN_GOAL } from '../constants.js';
 import { BY, TYPES } from '../data.js';
 import { isRain, missionVal } from './day.js';
@@ -11,6 +11,7 @@ export function spawnCustomer(type, ev) {
   if (G.cust.length >= 3) return false;
   if (!type) {
     const w = { ojol: 3, pemuda: 3, cowok: 2.5, ibu: 3, juragan: .8 };
+    for (const t in w) if (!typeOn(t)) delete w[t];
     if (isRain()) { w.ojol *= 1.6; w.pemuda *= .6; }
     if (G.h < 9) { w.ojol *= 1.4; w.ibu *= 1.5; }
     if (G.h > 20) { w.pemuda *= 1.5; w.ibu *= .4; }
@@ -20,7 +21,8 @@ export function spawnCustomer(type, ev) {
   const order = []; const map = {};
   const lines = type === 'juragan' ? ri(2, 4) : type === 'hoodie' ? ri(2, 3) : ri(1, 3);
   for (let i = 0; i < lines; i++) {
-    const id = wpick(T0.w); const big = ['bensin', 'gas', 'galon', 'beras'].includes(id);
+    const wi = {}; for (const k in T0.w) if (itemOn(k)) wi[k] = T0.w[k];
+    const id = Object.keys(wi).length ? wpick(wi) : 'kopi'; const big = ['bensin', 'gas', 'galon', 'beras'].includes(id);
     let q = big ? (Math.random() < .2 ? 2 : 1) : id === 'rokok' ? ri(1, 4) : ri(1, 3);
     if (type === 'hoodie') q = Math.max(q, 2);
     map[id] = (map[id] || 0) + q;
@@ -59,7 +61,8 @@ export function returnTray() { for (const id in G.tray) G.stock[id] = (G.stock[i
 export function addToTray(id) {
   const c = active();
   if (!c || c.stage !== 'order') { SFX.err(); toast(c ? 'Selesaikan transaksi dulu.' : 'Belum ada pembeli di depan.', '#ffd0d0'); return; }
-  if ((G.stock[id] || 0) <= 0) { SFX.err(); toast(`${BY[id].name} habis! Pesan lewat Buku Catatan.`, '#ffd0d0'); return; }
+  if (!itemOn(id)) { SFX.err(); toast(`${BY[id].name} belum dijual — terbuka di Level ${ITEM_LVL[id]}.`, '#ffd0d0'); return; }
+  if ((G.stock[id] || 0) <= 0) { SFX.err(); toast(`${BY[id].name} habis! Pesan lewat HP.`, '#ffd0d0'); return; }
   G.stock[id]--; G.tray[id] = (G.tray[id] || 0) + 1; SFX.add();
   flt('+1', mouse.x, mouse.y - 10, '#fff');
 }
@@ -73,7 +76,7 @@ export function doHitung() {
   SFX.click();
   if (c.event === 'kasbon') { c.stage = 'kasbon'; return; }
   c.stage = 'pay'; c.given = 0;
-  if (c.change === 0 || G.auto) { c.quick = true; if (c.change > 0) toast('Kembalian otomatis dihitung.', '#cfe8ff'); completeSale(c, c.change); }
+  if (c.change === 0 || (G.auto && featureOn('auto'))) { c.quick = true; if (c.change > 0) toast('Kembalian otomatis dihitung.', '#cfe8ff'); completeSale(c, c.change); }
 }
 export function completeSale(c, given) {
   const gain = c.pay - given;
