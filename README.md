@@ -79,6 +79,14 @@ Buku Catatan → **Kasbon** (merah bila ada yang jatuh tempo). Kode: `src/game/l
 - Tiap catatan bisa ditagih **sekali sehari**: **Tagih** (halus, peluang ±25–55%, membuat pemain sedikit lelah, kepercayaan +0,5 bila berhasil) atau **Keras** (peluang ±60–95%, kepercayaan −1 bila berhasil, −2 dan reputasi −1 bila gagal). Peluang naik menurut umur kasbon dan kepercayaan warga dan ditampilkan di tiap baris.
 - **Ikhlaskan** menghapus catatan (kepercayaan +1,5, XP +5). Kasbon yang tidak ditagih tetap bisa dibayar sendiri tiap pagi atau macet setelah 3 hari. Pencapaian baru: *Penagih Santun* (5 tagih halus berhasil).
 
+## Pelanggan tetap (diingat)
+Buku Catatan → **Pelanggan Tetap**. Data tokoh di `src/game/story/regulars.js`, logika di `src/game/logic/regulars.js`.
+- **9 tokoh bernama** yang kadang menggantikan pembeli biasa tipenya: Bang Jaka (ojol), Bu Sri & Bu Wati (ibu), Mas Dimas (pemuda), Bang Rizky (cowok), Adik Rani (pelajar), Pak Darto (tukang), Pak Hasan (juragan), Mister Tom (turis). Peluang tampil 34–50% menurut kedekatan, paling banyak sekali sehari, tidak kembar di warung. Pembeli biasa kini bernama generik (*Ibu Warga*, *Pemuda Kampung*, dll.); penampilan 3D tiap tokoh tetap (variasi `look`).
+- **Kesukaan**: pesanan condong ke barang favorit tokoh (bobot ×2). **Sapaan** tokoh berubah setelah Akrab.
+- **Kedekatan** 0–100 → *Asing / Kenal (25) / Akrab (50) / Sahabat (75)*, tampil sebagai ★ di balon pesanan. Naik +2…+4 tiap layanan sukses (cepat, dapat tip), turun saat pembeli kecewa (−3), barang habis (−1), kasbon ditolak (−2), ditagih keras (−3/−6); naik saat kasbon dikasih (+1) atau diikhlaskan (+3). Beberapa pilihan kejadian cerita juga mengubahnya (mis. Bu Sri, Pak Darto, Bang Rizky).
+- **Manfaat per tingkat**: kesabaran +6%, peluang tip +10% dan tip lebih besar; **hadiah sekali** saat pertama jadi Sahabat (stok, uang, reputasi, XP, atau energi, sesuai tokoh). Pencapaian baru: *Sahabat Warung*, *Banyak Teman*.
+- Kunjungan, kedekatan, dan status hadiah tersimpan di save (`story.regs`).
+
 ## Pembeli baru
 Tiga tipe pembeli baru (`TYPES` di `src/game/data.js`, tampilan di `LOOK`/`VARIANTS` pada `src/scene3d/people.js`, semuanya tampil di galeri `#/orang`):
 - **Adik Pelajar** (Lv 3, seragam putih-abu + dasi, ransel; variasi berhijab): jajan murah (keripik, air mineral, kerupuk, mie, cola), lebih ramai saat berangkat/pulang sekolah.

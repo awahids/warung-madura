@@ -4,6 +4,7 @@ import { G, ui } from '../state.js';
 import { rp, clamp, pick, rnd } from '../util.js';
 import { flt, toast } from '../widgets.js';
 import { checkAchievements } from './achievements.js';
+import { bondByName } from './regulars.js';
 import { CATATAN, CHAPTERS, EPILOG, EPILOG_FLAG, POOL, SCRIPT } from '../story/events.js';
 import { addXp, level } from './level.js';
 
@@ -19,7 +20,7 @@ const INTEREST = .05;               // bunga tunggakan
 
 export function initStory(day = 1) {
   return { debt: DEBT0, due: day + CYCLE, arrears: 0, hold: 0, trust: 50, easy: false, lunas: false,
-    done: [], recent: [], flags: {}, queue: [], kabar: [], cur: null, result: null, lastPay: null, ending: null, chapterSeen: 0, paidCount: 0, collectCount: 0, ach: {} };
+    done: [], recent: [], flags: {}, queue: [], kabar: [], cur: null, result: null, lastPay: null, ending: null, chapterSeen: 0, paidCount: 0, collectCount: 0, regs: {}, ach: {} };
 }
 export const story = () => G.story || (G.story = initStory(G.day || 1));
 
@@ -74,7 +75,7 @@ export function payDebt(n = 50000) {
 }
 
 /* ---------- Penerapan efek ---------- */
-function applyFx(fx = {}) {
+export function applyFx(fx = {}) {
   const lines = [];
   if (fx.money) { G.money = Math.max(0, G.money + fx.money); lines.push(`${fx.money > 0 ? '+' : '−'}${rp(Math.abs(fx.money))}`); }
   if (fx.trust) { changeTrust(fx.trust); lines.push(`Kepercayaan ${fx.trust > 0 ? '+' : '−'}${Math.abs(fx.trust)}`); }
@@ -84,6 +85,7 @@ function applyFx(fx = {}) {
   if (fx.debt) { story().debt = Math.max(0, story().debt + fx.debt); lines.push(`Utang ${fx.debt > 0 ? '+' : '−'}${rp(Math.abs(fx.debt))}`); }
   if (fx.dueShift) { story().due += fx.dueShift; lines.push(`Cicilan mundur ${fx.dueShift} hari`); }
   if (fx.kasbon) { G.debts.push({ who: fx.kasbon.who, amount: fx.kasbon.amount, day: G.day }); lines.push(`Kasbon ${fx.kasbon.who} ${rp(fx.kasbon.amount)}`); }
+  if (fx.bond) for (const b of [].concat(fx.bond)) { bondByName(b.who, b.n); lines.push(`${b.who} ${b.n > 0 ? 'lebih dekat' : 'menjauh'}`); }
   if (fx.flag) story().flags[fx.flag] = true;
   if (fx.xp) addXp(fx.xp);
   return lines;

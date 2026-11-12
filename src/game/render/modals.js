@@ -4,6 +4,11 @@ import { BY, ITEMS } from '../data.js';
 import { ctx } from '../gfx.js';
 import { ico } from '../icons.js';
 import { cycleQuality, qualityLabel } from '../quality.js';
+import { favItems, regState, regTier, tierName } from '../logic/regulars.js';
+import { REGULARS, TIER_AT } from '../story/regulars.js';
+import { ATLAS } from '../atlas.js';
+import { TYPES } from '../data.js';
+import { TYPE_LVL, typeOn } from '../logic/level.js';
 import { ageOf, askedToday, chances, collect, forgive, kasbonLimit, outstanding, overdue } from '../logic/kasbon.js';
 import { ACH, unlocked, unlockedCount } from '../logic/achievements.js';
 import { INTRO } from '../story/events.js';
@@ -37,6 +42,7 @@ function drawModalBody() {
   else if (ui.modal === 'bab') babModal();
   else if (ui.modal === 'ach') achModal();
   else if (ui.modal === 'kasbon') kasbonModal();
+  else if (ui.modal === 'regulars') regularsModal();
   else if (ui.modal === 'summary') summary();
   else if (ui.modal === 'help') help();
   else if (ui.modal === 'pause') pauseMenu();
@@ -48,6 +54,7 @@ export function notebook() {
   panel(x, y, w, h, { fill: '#f7ecca' });
   ctx.strokeStyle = 'rgba(110,80,40,.18)'; ctx.lineWidth = 1; for (let ly = y + 110; ly < y + h - 30; ly += 28) { ctx.beginPath(); ctx.moveTo(x + 26, ly); ctx.lineTo(x + w - 26, ly); ctx.stroke(); }
   T('BUKU CATATAN', x + 34, y + 54, { s: 30, c: '#6b3a14' });
+  button(x + w - 330, y + 22, 250, 40, 'PELANGGAN TETAP', () => { ui.modal = 'regulars'; ui.regPage = 0; }, { col: 'wood', s: 15, tip: 'Kedekatan & kesukaan pelanggan tetap' });
   T('Cek stok & harga. Untuk memesan barang ke grosir, pakai HP.', x + 36, y + 80, { s: 14, w: '600', c: '#7a5a3a' });
   closeBtn(x + w - 36, y + 38, () => { ui.modal = null; });
   ITEMS.forEach((it, i) => {
@@ -140,6 +147,37 @@ export function eventModal() {
     const ly = by + rl.length * 27 + 14;
     st.result.lines.forEach((t, i) => { const neg = /^−|−/.test(t) || /menunggak|mundur/.test(t); T(t, x + 44, ly + i * 24, { s: 16, w: '700', c: neg ? '#b3281e' : '#2a6a2a' }); });
     button(x + w / 2 - 110, y + h - 80, 220, 54, 'LANJUT', closeStoryEvent, { col: 'green', s: 22 });
+  }
+}
+/** Buku pelanggan tetap: kedekatan, kesukaan, kunjungan, utang. */
+export function regularsModal() {
+  const x = 150, y = 36, w = 980, h = 648, PER = 6, CW = 450, CH = 124;
+  panel(x, y, w, h);
+  T('PELANGGAN TETAP', x + 36, y + 56, { s: 32, c: '#6b3a14' });
+  closeBtn(x + w - 40, y + 40, () => { ui.modal = 'notebook'; });
+  T('Layani dengan baik agar makin akrab: lebih sabar, lebih sering memberi tip, dan ada hadiah saat jadi Sahabat.', x + 36, y + 86, { s: 13, w: '600', c: '#7a5a3a' });
+  const pages = Math.ceil(REGULARS.length / PER); ui.regPage = clamp(ui.regPage || 0, 0, pages - 1);
+  REGULARS.slice(ui.regPage * PER, ui.regPage * PER + PER).forEach((r, i) => {
+    const col = i % 2, row = Math.floor(i / 2), cx = x + 30 + col * (CW + 20), cy = y + 104 + row * (CH + 10), on = typeOn(r.type), st = regState(r.id), tier = regTier(r.id);
+    ctx.fillStyle = on ? 'rgba(255,255,255,.55)' : 'rgba(225,220,205,.7)'; rr(ctx, cx, cy, CW, CH, 12); ctx.fill(); ctx.strokeStyle = on ? ['#c8c2b0', '#8ab8e0', '#7ac070', '#e0b030'][tier] : '#d6cdb8'; ctx.lineWidth = 3; ctx.stroke();
+    const a = ATLAS[TYPES[r.type].spr]; if (a) { ctx.globalAlpha = on ? 1 : .35; SP(TYPES[r.type].spr, cx + 44, cy + CH - 12, 78 / a[3], .5, 1); ctx.globalAlpha = 1; }
+    if (!on) { T(r.name, cx + 100, cy + 36, { s: 19, c: '#8a7a6a' }); T(`Belum dikenal · muncul di Level ${TYPE_LVL[r.type]}`, cx + 100, cy + 62, { s: 14, w: '700', c: '#a05a1a' }); return; }
+    T(r.name, cx + 100, cy + 32, { s: 20, c: '#3a210c' });
+    T(`${'★'.repeat(tier)}${'☆'.repeat(3 - tier)} ${tierName(tier)}`, cx + CW - 16, cy + 32, { s: 15, a: 'right', c: ['#8a8a8a', '#3a7ab8', '#2a8a2a', '#b88a10'][tier] });
+    const nxt = TIER_AT[tier + 1], lo = TIER_AT[tier], f = nxt === undefined ? 1 : (st.aff - lo) / (nxt - lo);
+    ctx.fillStyle = '#d8c28c'; rr(ctx, cx + 100, cy + 42, 200, 10, 5); ctx.fill(); ctx.fillStyle = ['#aab', '#5aa6e8', '#58b948', '#e0b030'][tier]; rr(ctx, cx + 100, cy + 42, Math.max(6, 200 * f), 10, 5); ctx.fill();
+    T(nxt === undefined ? 'maks.' : `${Math.round(st.aff)}/${nxt}`, cx + 310, cy + 52, { s: 12, w: '700', c: '#5a3a1a' });
+    T('Suka:', cx + 100, cy + 80, { s: 12, w: '700', c: '#7a5a3a' });
+    favItems(r).slice(0, 4).forEach((id, k) => { ctx.globalAlpha = itemOn(id) ? 1 : .35; ico(id, cx + 140 + k * 30, cy + 62, 26); ctx.globalAlpha = 1; });
+    const owed = G.debts.filter(d => d.who === r.name).reduce((q, d) => q + d.amount, 0);
+    T(st.visits ? `${st.visits}× datang · ${st.last === G.day ? 'hari ini' : `hari ke-${st.last}`}` : 'Belum pernah datang', cx + 100, cy + 108, { s: 12, w: '600', c: '#5a3a1a' });
+    if (owed) T(`Kasbon ${rp(owed)}`, cx + CW - 16, cy + 108, { s: 13, a: 'right', w: '700', c: '#b3281e' });
+    if (st.gift) T('★ hadiah Sahabat diterima', cx + CW - 16, cy + 80, { s: 11, a: 'right', w: '700', c: '#b88a10' });
+  });
+  if (pages > 1) {
+    button(x + 40, y + h - 66, 190, 46, '◀ Sebelumnya', () => { ui.regPage--; }, { col: 'grey', s: 15, disabled: ui.regPage <= 0 });
+    T(`${ui.regPage + 1}/${pages}`, x + w / 2, y + h - 36, { s: 16, a: 'center', c: '#555', w: '700' });
+    button(x + w - 230, y + h - 66, 190, 46, 'Berikutnya ▶', () => { ui.regPage++; }, { col: 'grey', s: 15, disabled: ui.regPage >= pages - 1 });
   }
 }
 /** Daftar kasbon & penagihan. */

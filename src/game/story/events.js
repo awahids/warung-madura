@@ -29,9 +29,9 @@ export const CATATAN = [
 /** Kejadian bab: dimainkan berurutan, satu per hari, mulai dari bab yang sedang berjalan. */
 export const SCRIPT = [
   { id: 'jaka_kopi', ch: 1, who: 'Bang Jaka', text: 'Bang Jaka mampir sebelum narik. "Kopi satu ya, Nak. Dompet saya ketinggalan di rumah, besok saya ganti."', choices: [
-    { t: 'Kasih saja, gratis', fx: { trust: 3, stock: { kopi: -1 }, xp: 5 }, res: 'Bang Jaka tersenyum lebar. "Kamu mirip Pak Haji."' },
-    { t: 'Catat kasbon Rp 2.000', fx: { kasbon: { who: 'Bang Jaka', amount: 2000 }, trust: 1, stock: { kopi: -1 } }, res: '"Siap, besok saya bayar." Dicatat di buku.' },
-    { t: '"Bayar dulu ya, Bang."', fx: { trust: -2 }, res: 'Bang Jaka menghela napas dan pergi tanpa kopi.' },
+    { t: 'Kasih saja, gratis', fx: { trust: 3, stock: { kopi: -1 }, xp: 5, bond: { who: 'Bang Jaka', n: 6 } }, res: 'Bang Jaka tersenyum lebar. "Kamu mirip Pak Haji."' },
+    { t: 'Catat kasbon Rp 2.000', fx: { kasbon: { who: 'Bang Jaka', amount: 2000 }, trust: 1, stock: { kopi: -1 }, bond: { who: 'Bang Jaka', n: 3 } }, res: '"Siap, besok saya bayar." Dicatat di buku.' },
+    { t: '"Bayar dulu ya, Bang."', fx: { trust: -2, bond: { who: 'Bang Jaka', n: -4 } }, res: 'Bang Jaka menghela napas dan pergi tanpa kopi.' },
   ] },
   { id: 'kembalian', ch: 1, who: 'Hati nurani', text: 'Kamu baru sadar: pembeli tadi menerima kembalian kurang Rp 5.000 dan tidak protes. Orangnya sudah berjalan ke ujung gang.', choices: [
     { t: 'Kejar dan beri kekurangannya', fx: { money: -5000, trust: 4, flag: 'jujur_kembalian' }, res: 'Ia kaget, lalu tertawa. "Jujur banget, Nak!" Cerita ini cepat menyebar di gang.', req: { money: 5000 } },
@@ -48,27 +48,27 @@ export const SCRIPT = [
     { t: '"Pak, saya capek..."', fx: { energy: 20 }, res: '"Istirahatlah. Capek itu tanda kau bersungguh-sungguh."' },
   ] },
   { id: 'busri_kasbon', ch: 2, who: 'Bu Sri', text: 'Bu Sri datang dengan wajah pucat. "Dek, Rani demam dari semalam. Ibu belum pegang uang. Boleh kasbon obat dan beras Rp 60.000?"', choices: [
-    { t: 'Beri penuh, Bu', fx: { kasbon: { who: 'Bu Sri', amount: 60000 }, trust: 4 }, res: 'Bu Sri menggenggam tanganmu. "Semoga warungmu laris, Dek."',
+    { t: 'Beri penuh, Bu', fx: { kasbon: { who: 'Bu Sri', amount: 60000 }, trust: 4, bond: { who: 'Bu Sri', n: 8 } }, res: 'Bu Sri menggenggam tanganmu. "Semoga warungmu laris, Dek."',
       later: [{ days: 2, text: 'Rani sudah sembuh. Bu Sri datang membawa kue dan membayar sebagian kasbon.', fx: { money: 20000, trust: 2 } }] },
-    { t: 'Beri separuh (Rp 30.000)', fx: { kasbon: { who: 'Bu Sri', amount: 30000 }, trust: 2 }, res: '"Terima kasih, Dek. Sebagian ini sudah sangat membantu."' },
-    { t: '"Maaf, Bu, belum bisa."', fx: { trust: -3 }, res: 'Bu Sri mengangguk pelan, lalu pulang. Gang terasa sunyi sebentar.' },
+    { t: 'Beri separuh (Rp 30.000)', fx: { kasbon: { who: 'Bu Sri', amount: 30000 }, trust: 2, bond: { who: 'Bu Sri', n: 4 } }, res: '"Terima kasih, Dek. Sebagian ini sudah sangat membantu."' },
+    { t: '"Maaf, Bu, belum bisa."', fx: { trust: -3, bond: { who: 'Bu Sri', n: -6 } }, res: 'Bu Sri mengangguk pelan, lalu pulang. Gang terasa sunyi sebentar.' },
   ] },
   { id: 'rani_kurang', ch: 2, who: 'Adik Rani', text: 'Rani membeli jajan Rp 6.000, tapi uangnya cuma Rp 5.000. "Kak, besok saya tambahin ya..."', choices: [
-    { t: 'Relakan kekurangannya', fx: { trust: 3 }, res: 'Rani berseri-seri. "Makasih, Kak!"' },
+    { t: 'Relakan kekurangannya', fx: { trust: 3, bond: { who: 'Adik Rani', n: 5 } }, res: 'Rani berseri-seri. "Makasih, Kak!"' },
     { t: 'Minta dilunasi besok', fx: {}, res: 'Rani mengangguk serius. "Pasti, Kak!"', later: [{ days: 1, text: 'Rani datang dengan bangga membawa Rp 1.000.', fx: { money: 1000, trust: 1 } }] },
   ] },
   { id: 'darto_pesan', ch: 2, who: 'Pak Darto', text: 'Pak Darto memesan 12 air mineral dan 8 mie cup untuk pekerja proyek (Rp 88.000). "Bayarnya akhir minggu ya, Dek. Proyek lagi seret."', choices: [
-    { t: 'Terima, bayar akhir minggu', fx: { stock: { aqua: -12, mie: -8 }, trust: 1, flag: 'darto_utang' }, res: 'Pak Darto menepuk pundakmu. "Nanti saya ingat, Dek."', req: { stock: { aqua: 12, mie: 8 } },
+    { t: 'Terima, bayar akhir minggu', fx: { stock: { aqua: -12, mie: -8 }, trust: 1, flag: 'darto_utang', bond: { who: 'Pak Darto', n: 3 } }, res: 'Pak Darto menepuk pundakmu. "Nanti saya ingat, Dek."', req: { stock: { aqua: 12, mie: 8 } },
       later: [{ days: 3, chance: .7, text: 'Pak Darto melunasi tepat waktu dan menambah pesanan.', fx: { money: 88000, trust: 2 }, elseText: 'Pak Darto minta tunggu seminggu lagi. Kamu menahan napas.', elseFx: { trust: -1 } }] },
-    { t: 'Minta uang muka separuh', fx: { stock: { aqua: -12, mie: -8 }, money: 44000 }, res: 'Pak Darto setuju. "Adil, Dek."', req: { stock: { aqua: 12, mie: 8 } },
+    { t: 'Minta uang muka separuh', fx: { stock: { aqua: -12, mie: -8 }, money: 44000, bond: { who: 'Pak Darto', n: 1 } }, res: 'Pak Darto setuju. "Adil, Dek."', req: { stock: { aqua: 12, mie: 8 } },
       later: [{ days: 3, text: 'Pak Darto melunasi sisanya.', fx: { money: 44000, trust: 1 } }] },
-    { t: 'Tolak, hanya tunai', fx: { trust: -1 }, res: 'Pak Darto mengangkat bahu dan membeli di warung seberang.' },
+    { t: 'Tolak, hanya tunai', fx: { trust: -1, bond: { who: 'Pak Darto', n: -3 } }, res: 'Pak Darto mengangkat bahu dan membeli di warung seberang.' },
   ] },
   { id: 'rizky_kasbon', ch: 2, who: 'Bang Rizky', text: 'Bang Rizky minta kasbon rokok, matanya menghindar. "Cuma sampai gajian, Bang."', choices: [
-    { t: 'Beri 5 batang (kasbon Rp 10.000)', fx: { kasbon: { who: 'Bang Rizky', amount: 10000 }, stock: { rokok: -5 } }, res: '"Makasih, Bang." Ia cepat-cepat pergi.' },
-    { t: 'Ajak ngobrol dulu', fx: { energy: -5, trust: 3 }, res: 'Ternyata ia baru kehilangan pekerjaan. Kamu menyarankan melamar di proyek Pak Darto.',
+    { t: 'Beri 5 batang (kasbon Rp 10.000)', fx: { kasbon: { who: 'Bang Rizky', amount: 10000 }, stock: { rokok: -5 }, bond: { who: 'Bang Rizky', n: 1 } }, res: '"Makasih, Bang." Ia cepat-cepat pergi.' },
+    { t: 'Ajak ngobrol dulu', fx: { energy: -5, trust: 3, bond: { who: 'Bang Rizky', n: 6 } }, res: 'Ternyata ia baru kehilangan pekerjaan. Kamu menyarankan melamar di proyek Pak Darto.',
       later: [{ days: 4, text: 'Rizky kini bekerja di proyek Pak Darto dan mampir membayar utang rokoknya.', fx: { money: 10000, trust: 2 } }] },
-    { t: 'Tolak halus', fx: { trust: -1 }, res: '"Oh... iya, Bang." Ia pergi tanpa menoleh.' },
+    { t: 'Tolak halus', fx: { trust: -1, bond: { who: 'Bang Rizky', n: -4 } }, res: '"Oh... iya, Bang." Ia pergi tanpa menoleh.' },
   ] },
 
   /* ---------------- Bab 3 — Musim Hujan ---------------- */
@@ -84,14 +84,14 @@ export const SCRIPT = [
     { t: 'Maaf, warung juga kebanjiran', fx: { trust: -2 }, res: 'Pak RT mengangguk. "Tidak apa-apa, Dek."' },
   ] },
   { id: 'darto_macet', ch: 3, when: { flag: 'darto_utang' }, who: 'Pak Darto', text: 'Pak Darto datang dengan topi di tangan. "Dek, proyek dibatalkan karena hujan. Utang Rp 88.000 itu belum bisa saya bayar... maaf sekali."', choices: [
-    { t: 'Ikhlaskan, semoga dapat proyek lagi', fx: { trust: 4 }, res: 'Matanya berkaca-kaca. "Saya tidak akan lupa, Dek."', later: [{ days: 5, text: 'Pak Darto dapat proyek baru dan membayar utangnya penuh, plus uang kopi.', fx: { money: 95000, trust: 2 } }] },
-    { t: 'Beri tempo dua minggu', fx: {}, res: '"Terima kasih, Dek. Dua minggu, saya janji."', later: [{ days: 6, chance: .6, text: 'Pak Darto melunasi tepat waktu.', fx: { money: 88000, trust: 1 }, elseText: 'Pak Darto minta waktu lagi. Kamu menghela napas.', elseFx: {} }] },
-    { t: 'Tagih sekarang', fx: { trust: -4 }, res: 'Ia membayar separuh dari tabungan terakhir. Suasana jadi dingin.', req: {}, later: [{ days: 0, text: 'Pak Darto membayar Rp 44.000 dengan wajah murung.', fx: { money: 44000 } }] },
+    { t: 'Ikhlaskan, semoga dapat proyek lagi', fx: { trust: 4, bond: { who: 'Pak Darto', n: 6 } }, res: 'Matanya berkaca-kaca. "Saya tidak akan lupa, Dek."', later: [{ days: 5, text: 'Pak Darto dapat proyek baru dan membayar utangnya penuh, plus uang kopi.', fx: { money: 95000, trust: 2 } }] },
+    { t: 'Beri tempo dua minggu', fx: { bond: { who: 'Pak Darto', n: 2 } }, res: '"Terima kasih, Dek. Dua minggu, saya janji."', later: [{ days: 6, chance: .6, text: 'Pak Darto melunasi tepat waktu.', fx: { money: 88000, trust: 1 }, elseText: 'Pak Darto minta waktu lagi. Kamu menghela napas.', elseFx: {} }] },
+    { t: 'Tagih sekarang', fx: { trust: -4, bond: { who: 'Pak Darto', n: -6 } }, res: 'Ia membayar separuh dari tabungan terakhir. Suasana jadi dingin.', req: {}, later: [{ days: 0, text: 'Pak Darto membayar Rp 44.000 dengan wajah murung.', fx: { money: 44000 } }] },
   ] },
   { id: 'turis_hujan', ch: 3, who: 'Mister Tom', text: 'Hujan deras. Mister Tom dan teman-temannya berteduh di teras dan ingin membeli banyak minuman. Di dalam, Bu Sri dan pelanggan tetap sudah menunggu cukup lama.', choices: [
-    { t: 'Layani turis dulu (uang besar)', fx: { money: 60000, trust: -2 }, res: 'Mereka senang dan memberi tip. Pelanggan tetap mengerutkan kening.' },
-    { t: 'Pelanggan tetap dulu', fx: { money: 10000, trust: 3 }, res: 'Bu Sri tersenyum. Mister Tom menunggu sambil memotret hujan.' },
-    { t: 'Bagi dua, layani cepat', fx: { money: 35000, energy: -10, trust: 1 }, res: 'Kamu kewalahan, tapi semua puas. Mister Tom memuji: "Very fast!"' },
+    { t: 'Layani turis dulu (uang besar)', fx: { money: 60000, trust: -2, bond: { who: 'Mister Tom', n: 4 } }, res: 'Mereka senang dan memberi tip. Pelanggan tetap mengerutkan kening.' },
+    { t: 'Pelanggan tetap dulu', fx: { money: 10000, trust: 3, bond: [{ who: 'Bu Sri', n: 3 }, { who: 'Mister Tom', n: -1 }] }, res: 'Bu Sri tersenyum. Mister Tom menunggu sambil memotret hujan.' },
+    { t: 'Bagi dua, layani cepat', fx: { money: 35000, energy: -10, trust: 1, bond: [{ who: 'Bu Sri', n: 1 }, { who: 'Mister Tom', n: 2 }] }, res: 'Kamu kewalahan, tapi semua puas. Mister Tom memuji: "Very fast!"' },
   ] },
   { id: 'haji_hujan_lunas', ch: 3, group: 'haji3', when: { lunas: true }, who: 'Pak Haji (telepon)', text: 'Suara Pak Haji lebih kuat dari biasanya. "Koh Awi cerita utangmu lunas. Aku bangga, Nak. Sekarang uangmu milikmu, dan tanggung jawabmu untuk warga."', choices: [
     { t: '"Terima kasih, Pak. Saya masih belajar."', fx: { trust: 3, xp: 40 }, res: '"Belajar itu tidak ada habisnya. Teruskan."' },

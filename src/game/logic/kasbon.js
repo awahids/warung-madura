@@ -4,6 +4,7 @@ import { rp, clamp } from '../util.js';
 import { flt, toast } from '../widgets.js';
 import { checkAchievements } from './achievements.js';
 import { addXp, level } from './level.js';
+import { bondByName } from './regulars.js';
 import { changeTrust, repayChance, story } from './story.js';
 
 /* ============================================================
@@ -37,10 +38,10 @@ export function collect(d, hard = false) {
   let text;
   if (ok) {
     remove(d); G.money += d.amount; if (G.stats) G.stats.kasbonPaid += d.amount; SFX.coin(); flt('+' + rp(d.amount), 640, 300, '#9dff8c');
-    changeTrust(hard ? -1 : .5);
+    changeTrust(hard ? -1 : .5); if (hard) bondByName(d.who, -3);
     text = hard ? `${d.who} membayar ${rp(d.amount)} dengan wajah masam.` : `${d.who} membayar ${rp(d.amount)}. "Maaf ya, lupa!"`;
   } else {
-    if (hard) { changeTrust(-2); G.rep = clamp(G.rep - 1, 0, 100); SFX.err(); text = `${d.who} tersinggung ditagih keras dan belum membayar.`; }
+    if (hard) { changeTrust(-2); bondByName(d.who, -6); G.rep = clamp(G.rep - 1, 0, 100); SFX.err(); text = `${d.who} tersinggung ditagih keras dan belum membayar.`; }
     else { SFX.click(); text = `${d.who} berjanji akan membayar nanti.`; }
   }
   toast(text, ok ? '#9dff8c' : '#ffd0d0'); checkAchievements();
@@ -49,6 +50,6 @@ export function collect(d, hard = false) {
 /** Ikhlaskan: hapus catatan, kepercayaan naik. */
 export function forgive(d) {
   if (!G.debts.includes(d)) return;
-  remove(d); changeTrust(1.5); addXp(5); SFX.good();
+  remove(d); changeTrust(1.5); bondByName(d.who, 3); addXp(5); SFX.good();
   toast(`Kamu mengikhlaskan kasbon ${d.who} ${rp(d.amount)}.`, '#cfe8ff');
 }

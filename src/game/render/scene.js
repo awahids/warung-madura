@@ -11,6 +11,7 @@ import { darkness, drawBackground } from './background.js';
 import { drawTray } from './tray.js';
 import { SP, badge } from '../sprites.js';
 import { G, ui } from '../state.js';
+import { regTier } from '../logic/regulars.js';
 import { T, clamp, rp, rr, wrapText } from '../util.js';
 
 export function drawCustomer(c) {
@@ -34,7 +35,7 @@ export function drawBubble(c, at) {
   ctx.strokeStyle = '#5a3a1a'; ctx.beginPath(); ctx.moveTo(x, y + 58); ctx.lineTo(x - 18, y + 76); ctx.lineTo(x, y + 86); ctx.stroke();
   ctx.fillStyle = '#fffaf0'; ctx.fillRect(x - 1, y + 61, 3, 22);
   let cy = y + 24;
-  T(c.name + (c.event === 'kasbon' ? '  · KASBON' : ''), x + 14, cy, { s: 15, c: c.event === 'kasbon' ? '#c0392b' : '#8a5424' }); cy += 6;
+  T(c.name + (c.reg ? ' ' + '★'.repeat(regTier(c.reg)) : '') + (c.event === 'kasbon' ? '  · KASBON' : ''), x + 14, cy, { s: 15, c: c.event === 'kasbon' ? '#c0392b' : '#8a5424' }); cy += 6;
   sayL.forEach(l => { cy += 18; T(l, x + 14, cy, { s: 14, w: '600', c: '#3a2a1a' }); });
   cy += 10;
   for (const l of c.order) {

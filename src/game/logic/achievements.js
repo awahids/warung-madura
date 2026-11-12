@@ -2,6 +2,7 @@ import { SFX } from '../audio.js';
 import { G } from '../state.js';
 import { toast } from '../widgets.js';
 import { addXp, level } from './level.js';
+import { giftCount, regularsAtLeast } from './regulars.js';
 import { story } from './story.js';
 
 /* Pencapaian: dicek tiap akhir hari, setelah pilihan cerita, dan saat membayar utang. Hadiah +25 XP. */
@@ -14,6 +15,8 @@ export const ACH = [
   { id: 'cicilan', name: 'Cicilan Lancar', desc: 'Bayar cicilan tiga kali tanpa menunggak.', test: () => story().paidCount >= 3 },
   { id: 'lunas', name: 'Bebas Utang', desc: 'Lunasi utang ke Koh Awi.', test: () => story().lunas },
   { id: 'penagih', name: 'Penagih Santun', desc: 'Tagih 5 kasbon dengan baik-baik sampai dibayar.', test: () => (story().collectCount || 0) >= 5 },
+  { id: 'sahabat', name: 'Sahabat Warung', desc: 'Jadi Sahabat bagi satu pelanggan tetap.', test: () => giftCount() >= 1 },
+  { id: 'banyak_teman', name: 'Banyak Teman', desc: 'Akrab dengan 4 pelanggan tetap.', test: () => regularsAtLeast(2) >= 4 },
   { id: 'dipercaya', name: 'Dipercaya Warga', desc: 'Kepercayaan warga mencapai 80.', test: () => story().trust >= 80 },
   { id: 'jujur', name: 'Jujur Sampai Receh', desc: 'Kembalikan kembalian yang kurang.', test: () => !!story().flags.jujur_kembalian },
   { id: 'tamu_jujur', name: 'Tidak Tergoda', desc: 'Tolak tawaran barang gelap si tamu bertudung.', test: () => !!story().flags.tamu_jujur },

@@ -70,7 +70,7 @@ export function crowdFromGame(nextId) {
     if (!leaving && c.stage === 'pay' && c.state === 'wait') pose = 'pay';          // mengulurkan uang
     else if (leaving && c.took) { if (c.leaveT < takeAt) pose = 'pay'; else { pose = c.leaveT - takeAt <= 1.1 ? 'take' : 'idle'; pt = c.leaveT - takeAt; } }
     out.push({
-      key: c.k3, type: c.type, x: toWorldX(c.x), z: !leaving && c.idx > 0 ? 1.15 : .55,
+      key: c.k3, type: c.type, look: c.look, x: toWorldX(c.x), z: !leaving && c.idx > 0 ? 1.15 : .55,
       moving: entering || leavingMove, dir: leaving ? (c.x < W / 2 ? -1 : 1) : Math.sign((c.tx ?? c.x) - c.x) || 1, turn: 0,
       pose, pt, carry: leaving && c.took ? c.carry : null, mood: moodOf(c, leaving),
     });

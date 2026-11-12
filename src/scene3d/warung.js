@@ -486,7 +486,7 @@ export function createWarung(canvas, opts = {}) {
     for (const it of list) {
       let e = crowd.get(it.key);
       if (!e) {
-        const g = personFor(it.type, parseInt(it.key.slice(1), 10) || 0); g.position.set(it.x, 0, it.z); scene.add(g); if (quality === 'low') applyQ(g);
+        const g = personFor(it.type, it.look ?? (parseInt(it.key.slice(1), 10) || 0)); g.position.set(it.x, 0, it.z); scene.add(g); if (quality === 'low') applyQ(g);
         const bill = makeBill(); bill.position.set(0, -HOLD - .03, -.05); bill.rotation.x = Math.PI / 2; bill.visible = false; g.userData.elbows[1].add(bill);
         e = { g, bill, ang: it.moving ? (it.dir > 0 ? -Math.PI / 2 : Math.PI / 2) : 0, lean: 0, a0: 0, a1: 0, b0: 0, b1: 0, s0: 0, s1: 0, g0: .28, g1: .28, holder: null, holderKind: null }; crowd.set(it.key, e);
       }

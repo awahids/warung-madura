@@ -346,7 +346,7 @@ describe('validasi data cerita', () => {
     const E = await import('../src/game/story/events'), L = await import('../src/game/logic/level'), D = await import('../src/game/data');
     const all = [...E.SCRIPT, ...E.POOL], ids = all.map(e => e.id);
     expect(new Set(ids).size).toBe(ids.length);
-    const FX = ['money', 'trust', 'rep', 'energy', 'xp', 'stock', 'flag', 'debt', 'dueShift', 'kasbon'], WHEN = ['lunas', 'flag', 'noFlag', 'trustMin', 'trustMax'];
+    const FX = ['money', 'trust', 'rep', 'energy', 'xp', 'stock', 'flag', 'debt', 'dueShift', 'kasbon', 'bond'], R = await import('../src/game/story/regulars'), names = R.REGULARS.map(r => r.name), WHEN = ['lunas', 'flag', 'noFlag', 'trustMin', 'trustMax'];
     const chStart = { 1: 1, 2: 3, 3: 5, 4: 7, 5: 8 };
     const setFlags = new Set(); all.forEach(e => e.choices.forEach(c => c.fx && c.fx.flag && setFlags.add(c.fx.flag)));
     expect(E.POOL.length).toBeGreaterThanOrEqual(20);
@@ -360,6 +360,7 @@ describe('validasi data cerita', () => {
         for (const k of Object.keys(c.fx || {})) expect(FX).toContain(k);
         for (const src of [c.fx && c.fx.stock, c.req && c.req.stock]) for (const id of Object.keys(src || {})) { expect(D.BY[id]).toBeTruthy(); expect(L.ITEM_LVL[id]).toBeLessThanOrEqual(lvl); }
         if (c.fx && c.fx.kasbon) expect(c.fx.kasbon.amount).toBeGreaterThan(0);
+        for (const b of [].concat((c.fx && c.fx.bond) || [])) { expect(names).toContain(b.who); expect(typeof b.n).toBe('number'); }
         for (const l of c.later || []) { expect(l.days).toBeGreaterThanOrEqual(0); expect(typeof l.text).toBe('string'); if (l.chance !== undefined) { expect(l.chance).toBeGreaterThan(0); expect(l.chance).toBeLessThan(1); if (l.elseText) expect(typeof l.elseText).toBe('string'); } }
       }
     }
@@ -469,5 +470,73 @@ describe('daftar kasbon & penagihan', () => {
     const K = await import('../src/game/logic/kasbon'), A = await import('../src/game/logic/achievements'); const r = vi.spyOn(Math, 'random').mockReturnValue(0);
     for (let i = 0; i < 4; i++) K.collect(debt('Warga' + i, 1000), false);
     expect(A.unlocked('penagih')).toBe(false); K.collect(debt('Warga5', 1000), false); expect(A.unlocked('penagih')).toBe(true); r.mockRestore();
+  });
+});
+
+describe('pelanggan tetap', () => {
+  beforeEach(() => { setG(freshState(G)); G.xp = 1e6; G.stock = { ...START_STOCK }; ui.modal = null; startDay(); G.story.chapterSeen = 99; G.debts = []; });
+
+  it('data tokoh konsisten: tipe, barang kesukaan, hadiah, nama unik', async () => {
+    const R = await import('../src/game/story/regulars'), D = await import('../src/game/data'), L = await import('../src/game/logic/level');
+    expect(R.REGULARS).toHaveLength(9); expect(new Set(R.REGULARS.map(r => r.name)).size).toBe(9); expect(new Set(R.REGULARS.map(r => r.id)).size).toBe(9);
+    for (const r of R.REGULARS) {
+      expect(D.TYPES[r.type]).toBeTruthy(); expect(r.say.length).toBeGreaterThanOrEqual(2); expect(r.akrab.length).toBeGreaterThanOrEqual(2);
+      for (const id of Object.keys(r.fav)) expect(D.BY[id]).toBeTruthy();
+      expect(Object.keys(r.reward.fx).length).toBeGreaterThan(0); expect(L.TYPE_LVL[r.type]).toBeGreaterThanOrEqual(1);
+    }
+    expect(Object.values(D.TYPES).map(t => t.name)).not.toContain('Bu Sri');       // nama tokoh hanya untuk pelanggan tetap
+  });
+
+  it('kedekatan: tingkat naik/turun, hadiah Sahabat hanya sekali', async () => {
+    const P = await import('../src/game/logic/regulars'), S = await import('../src/game/logic/story');
+    expect(P.regTier('sri')).toBe(0); expect(P.tierName(0)).toBe('Asing'); expect(P.patienceMul('sri')).toBeCloseTo(1);
+    P.bond('sri', 6); expect(P.regTier('sri')).toBe(1); expect(S.story().kabar.some(k => k.includes('Bu Sri'))).toBe(true);
+    P.bond('sri', 25); expect(P.regTier('sri')).toBe(2); expect(P.patienceMul('sri')).toBeCloseTo(1.12);
+    const kerupuk = G.stock.kerupuk; P.bond('sri', 25); expect(P.regTier('sri')).toBe(3); expect(G.stock.kerupuk).toBe(kerupuk + 10);   // hadiah Sahabat
+    P.bond('sri', -30); P.bond('sri', 40); expect(G.stock.kerupuk).toBe(kerupuk + 10);                                                // tidak diberi dua kali
+    P.bond('sri', -500); expect(P.regState('sri').aff).toBe(0);
+  });
+
+  it('pembeli tipe ibu bisa menjadi Bu Sri/Bu Wati: nama, penampilan, sapaan, kesabaran, kunjungan', async () => {
+    const P = await import('../src/game/logic/regulars'), D = await import('../src/game/data'), S = await import('../src/game/logic/story'); const r = vi.spyOn(Math, 'random');
+    r.mockReturnValue(0);                                                   // selalu lolos peluang tampil
+    P.bond('sri', 60); const sriTier = P.regTier('sri'); expect(sriTier).toBe(3);
+    G.cust = []; spawnCustomer('ibu'); const c = G.cust[0]; r.mockRestore();
+    expect(['sri', 'wati']).toContain(c.reg); expect(c.name).toBe(c.reg === 'sri' ? 'Bu Sri' : 'Bu Wati'); expect(c.look).toBe(c.reg === 'sri' ? 0 : 1);
+    expect(P.regState(c.reg).visits).toBe(1); expect(P.regState(c.reg).last).toBe(G.day);
+    expect(c.max).toBeCloseTo(D.TYPES.ibu.patience * S.trustMul() * P.patienceMul(c.reg));   // kesabaran naik menurut kepercayaan dan tingkat
+  });
+
+  it('pelanggan tetap tidak datang dua kali sehari dan tidak kembar di warung', async () => {
+    const P = await import('../src/game/logic/regulars'); const r = vi.spyOn(Math, 'random').mockReturnValue(0);
+    G.cust = []; spawnCustomer('pelajar'); const first = G.cust[0]; expect(first.reg).toBe('rani');
+    G.cust = []; G.leaving = []; spawnCustomer('pelajar'); expect(G.cust[0].reg).toBeNull();            // Rani sudah datang hari ini
+    G.day++; G.cust = []; spawnCustomer('pelajar'); expect(G.cust[0].reg).toBe('rani'); r.mockRestore();
+    expect(P.regState('rani').visits).toBe(2);
+  });
+
+  it('hasil layanan mengubah kedekatan: sukses +, kecewa/kasbon ditolak −', async () => {
+    const P = await import('../src/game/logic/regulars'); const r = vi.spyOn(Math, 'random').mockReturnValue(0);
+    G.cust = []; spawnCustomer('ojol'); r.mockRestore(); for (let i = 0; i < 300 && !active(); i++) update(1 / 30);
+    const c = active(), a0 = P.regState('jaka').aff; expect(c.reg).toBe('jaka');
+    c.order = [{ id: 'kopi', qty: 1 }]; c.total = 2000; c.pay = 2000; c.change = 0; addToTray('kopi'); doHitung();
+    expect(P.regState('jaka').aff).toBeGreaterThan(a0 + 1.5);
+    G.cust = []; G.leaving = []; const r2 = vi.spyOn(Math, 'random').mockReturnValue(0); G.day++; spawnCustomer('cowok'); r2.mockRestore();
+    const rz = G.cust[0]; const b0 = P.regState('rizky').aff; expect(rz.reg).toBe('rizky'); rz.patience = 0; rz.state = 'wait'; rz.idx = 0; const { angryLeave } = await import('../src/game/logic/customers'); angryLeave(rz);
+    expect(P.regState('rizky').aff).toBe(b0 - 3);
+  });
+
+  it('pilihan cerita memengaruhi kedekatan; kasbon tertagih/diikhlaskan menurut nama', async () => {
+    const P = await import('../src/game/logic/regulars'), S = await import('../src/game/logic/story'), K = await import('../src/game/logic/kasbon');
+    S.openStoryEvent('busri_kasbon'); const a = P.regState('sri').aff; S.chooseEvent(0); expect(P.regState('sri').aff).toBe(a + 8); S.closeStoryEvent();
+    const d = { who: 'Bu Sri', amount: 10000, day: G.day }; G.debts.push(d); const b = P.regState('sri').aff; K.forgive(d); expect(P.regState('sri').aff).toBe(b + 3);
+    const d2 = { who: 'Bu Sri', amount: 10000, day: G.day }; G.debts.push(d2); const c = P.regState('sri').aff, r = vi.spyOn(Math, 'random').mockReturnValue(.999); K.collect(d2, true); r.mockRestore();
+    expect(P.regState('sri').aff).toBe(c - 6);
+  });
+
+  it('pencapaian Sahabat Warung dan Banyak Teman', async () => {
+    const P = await import('../src/game/logic/regulars'), A = await import('../src/game/logic/achievements');
+    P.bond('jaka', 60); expect(A.unlocked('sahabat')).toBe(true); expect(A.unlocked('banyak_teman')).toBe(false);
+    ['sri', 'dimas', 'rizky'].forEach(id => P.bond(id, 35)); expect(A.unlocked('banyak_teman')).toBe(true);
   });
 });
