@@ -2,6 +2,7 @@ import { SFX } from '../audio.js';
 import { HUD_H, W } from '../constants.js';
 import { ctx } from '../gfx.js';
 import { isRain, missionVal } from '../logic/day.js';
+import { level, progress, rankOf } from '../logic/level.js';
 import { save } from '../persist.js';
 import { SP } from '../sprites.js';
 import { G, ui } from '../state.js';
@@ -35,6 +36,13 @@ export function drawHUD() {
     ctx.fillStyle = '#7ddc5a'; ctx.beginPath(); ctx.arc(cx, cy, 12, 0, 7); ctx.fill(); ctx.strokeStyle = '#2a6a1a'; ctx.lineWidth = 2; ctx.stroke();
     ctx.fillStyle = '#1a3a0a'; ctx.fillRect(cx - 5, cy - 4, 3, 4); ctx.fillRect(cx + 3, cy - 4, 3, 4);
     ctx.beginPath(); ctx.arc(cx, cy + 1, 6, .15 * Math.PI, .85 * Math.PI); ctx.stroke();
+  });
+  // level juragan + bar XP
+  const L = level();
+  bar(890, `LV ${L} · ${rankOf(L).toUpperCase()}`, progress() * 100, '#7fd0ff', '#2d78c8', (cx, cy) => {
+    ctx.fillStyle = '#ffd23a'; ctx.strokeStyle = '#8a5a14'; ctx.lineWidth = 2; ctx.beginPath();
+    for (let k = 0; k < 10; k++) { const r = k % 2 ? 5 : 12, a = -Math.PI / 2 + k * Math.PI / 5; ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); }
+    ctx.closePath(); ctx.fill(); ctx.stroke();
   });
   if (G.energy < 25) { ctx.fillStyle = `rgba(255,60,40,${.35 + Math.sin(ui.frame / 8) * .25})`; ctx.fillRect(470 + 30, 25, 150, 16); }
   // tombol

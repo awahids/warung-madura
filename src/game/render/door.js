@@ -25,9 +25,10 @@ export function drawDoor() {
     T('(drag ke atas atau klik berkali-kali)', 640, top + 262, { s: 15, a: 'center', c: '#e8eef2', stroke: '#2a3138', sw: 4 });
     ctx.fillStyle = '#ffd23a'; ctx.strokeStyle = '#2a3138'; ctx.lineWidth = 4; ctx.beginPath(); const ay = yb - 70 + bob; ctx.moveTo(640, ay - 40); ctx.lineTo(690, ay + 10); ctx.lineTo(660, ay + 10); ctx.lineTo(660, ay + 40); ctx.lineTo(620, ay + 40); ctx.lineTo(620, ay + 10); ctx.lineTo(590, ay + 10); ctx.closePath(); ctx.fill(); ctx.stroke();
     // info stok singkat + tombol buku
-    button(470, top + 300, 340, 50, 'BUKU CATATAN · Cek Stok & Pesan', () => { ui.modal = 'notebook'; }, { col: 'wood', s: 16 });
-    if (G.deliveries.length) T(`${G.deliveries.length} pesanan menunggu kurir`, 640, top + 372, { s: 14, a: 'center', c: '#fff', stroke: '#2a3138', sw: 3 });
-    if (G.morning.length) G.morning.forEach((m, i) => T(m, 640, top + 400 + i * 22, { s: 14, a: 'center', c: '#fff6c0', stroke: '#2a3138', sw: 3 }));
+    button(470, top + 300, 340, 50, 'BUKU CATATAN · Cek Stok', () => { ui.modal = 'notebook'; }, { col: 'wood', s: 16 });
+    button(470, top + 358, 340, 50, 'HP · Pesan Barang ke Grosir', () => { ui.modal = 'phone'; }, { col: 'green', s: 16 });
+    if (G.deliveries.length) T(`${G.deliveries.length} pesanan menunggu kurir`, 640, top + 430, { s: 14, a: 'center', c: '#fff', stroke: '#2a3138', sw: 3 });
+    if (G.morning.length) G.morning.forEach((m, i) => T(m, 640, top + 458 + i * 22, { s: 14, a: 'center', c: '#fff6c0', stroke: '#2a3138', sw: 3 }));
   }
 }
 

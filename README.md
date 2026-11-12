@@ -12,6 +12,10 @@ Simulasi warung Madura 2D yang berjalan di browser. Dibangun dengan **React + Vi
 
 Pintasan: `Esc` jeda, `Spasi` hitung.
 
+## Level & pesan lewat HP
+- **Level juragan** (maks. 20): XP dari tiap pembeli yang dilayani (+10, +5 bila cepat, +3 bila dapat tip) dan misi harian (+40). Bar level ada di HUD. Naik level memberi **bonus kas** (Rp 10.000 × level), **diskon grosir** 2% per level (maks. 20%), dan **kurir lebih cepat** (90 menit → min. 45). XP tersimpan di save; rumus di `src/game/logic/level.js`.
+- **Pesan barang lewat HP**: klik HP di meja (atau tombol *HP · Pesan Barang* sebelum buka) → aplikasi **GrosirKu** untuk memilih paket dan memesan. Tombol *Medsos* di HP mengisi energi (membuat pembeli yang sedang dilayani lebih tidak sabar). Buku Catatan kini hanya untuk cek stok, harga, dan laba.
+
 ## Pasang sebagai aplikasi (PWA)
 Game ini PWA: bisa dipasang ke layar utama dan dimainkan **offline** setelah dibuka sekali.
 - **Android/Chrome & desktop:** ketuk tombol **Pasang aplikasi** di bagian bawah, atau menu browser → *Install app*.

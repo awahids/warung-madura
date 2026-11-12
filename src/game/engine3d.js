@@ -5,7 +5,7 @@ import { BY } from './data.js';
 import { IMG, ctx, setCtx } from './gfx.js';
 import { makeIcons } from './icons.js';
 import { addToTray, doHitung } from './logic/customers.js';
-import { drinkKopi, receiveDelivery, usePhone as tapPhone, usePromo as tapPromo } from './logic/actions.js';
+import { drinkKopi, receiveDelivery, usePromo as tapPromo } from './logic/actions.js';
 import { isRain } from './logic/day.js';
 import { attachInput } from './input.js';
 import { loadSave } from './persist.js';
@@ -33,9 +33,9 @@ const describe = act => {
   switch (act.type) {
     case 'item': { const it = BY[act.id]; return `${it.name} · ${rp(it.price)} · stok ${G.stock[act.id] || 0}`; }
     case 'hitung': return 'Kalkulator — hitung belanjaan';
-    case 'hp': return 'Main HP — isi ulang energi (jangan saat ada pembeli!)';
+    case 'hp': return 'HP — pesan barang ke grosir / main medsos';
     case 'kopi-minum': return 'Seduh kopi — +18 energi (pakai 1 kopi sachet)';
-    case 'buku': return 'Buku Catatan — pesan barang ke agen grosir';
+    case 'buku': return 'Buku Catatan — cek stok & harga';
     case 'promo': return G.promo ? 'Promo sedang aktif' : 'Pasang promo Rp 20.000 (pembeli lebih ramai)';
     case 'paket': return 'Kardus dari kurir — klik untuk terima barang';
     default: return '';
@@ -44,11 +44,11 @@ const describe = act => {
 /** Jalankan aksi game untuk objek 3D yang diklik. */
 export function runAct(act, scene) {
   if (act.type === 'buku') { ui.modal = 'notebook'; SFX.click(); return; }
+  if (act.type === 'hp') { ui.modal = 'phone'; SFX.click(); scene && scene.penjagaAct('phone'); return; }
   if (!canAct()) return;
   switch (act.type) {
     case 'item': addToTray(act.id); break;
     case 'hitung': doHitung(); break;
-    case 'hp': tapPhone(); scene && scene.penjagaAct('phone'); break;
     case 'kopi-minum': { const cd = G.drinkCd; drinkKopi(); if (G.drinkCd > cd) scene && scene.penjagaAct('drink'); break; }
     case 'promo': tapPromo(); break;
     case 'paket': receiveDelivery(); break;

@@ -1,4 +1,5 @@
 import { SFX } from '../audio.js';
+import { addXp } from './level.js';
 import { W, WIN_GOAL } from '../constants.js';
 import { BY, TYPES } from '../data.js';
 import { isRain, missionVal } from './day.js';
@@ -90,6 +91,7 @@ export function completeSale(c, given) {
   else if (given === c.change && c.change > 0 && Math.random() < .25) { tip = ri(1, 3) * 1000; G.money += tip; G.stats.tips += tip; flt('Tip +' + rp(tip), 660, 340, '#ffe45c'); c.bye = 'Makasih, Bang!'; }
   else c.bye = c.type === 'juragan' ? 'Barakallah, Nak.' : pick(['Makasih ya!', 'Mantap, Bang!', 'Sip, makasih!']);
   if (given > c.change) toast(`Kembalian kelebihan ${rp(given - c.change)}!`, '#ffd0d0');
+  addXp(10 + (fast ? 5 : 0) + (tip ? 3 : 0));
   sendAway(c);
   checkMissions(); checkWin();
 }
@@ -140,7 +142,7 @@ export function confirmChange() {
   completeSale(c, c.given);
 }
 export function checkMissions() {
-  for (const m of G.missions) if (!m.done && missionVal(m) >= m.target) { m.done = true; SFX.good(); toast(`Misi selesai: ${m.text}!`, '#9dff8c'); }
+  for (const m of G.missions) if (!m.done && missionVal(m) >= m.target) { m.done = true; SFX.good(); toast(`Misi selesai: ${m.text}! +40 XP`, '#9dff8c'); addXp(40); }
 }
 export function checkWin() { if (!G.won && G.money >= WIN_GOAL) { G.won = true; ui.modal = 'win'; SFX.good(); } }
 

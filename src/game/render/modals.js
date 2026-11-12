@@ -3,7 +3,8 @@ import { H, W, WIN_GOAL } from '../constants.js';
 import { BY, ITEMS } from '../data.js';
 import { ctx } from '../gfx.js';
 import { ico } from '../icons.js';
-import { orderCost, placeOrder } from '../logic/actions.js';
+import { orderCost, packPrice, placeOrder, usePhone } from '../logic/actions.js';
+import { discountOf, etaOf, level, rankOf } from '../logic/level.js';
 import { nextDay } from '../logic/day.js';
 import { loadSave, save } from '../persist.js';
 import { SP } from '../sprites.js';
@@ -16,6 +17,7 @@ export function drawModals() {
   ui.hits.length = 0; ui.tooltip = '';
   ctx.fillStyle = 'rgba(10,5,0,.62)'; ctx.fillRect(0, 0, W, H);
   if (ui.modal === 'notebook') notebook();
+  else if (ui.modal === 'phone') phone();
   else if (ui.modal === 'summary') summary();
   else if (ui.modal === 'help') help();
   else if (ui.modal === 'pause') pauseMenu();
@@ -27,31 +29,57 @@ export function notebook() {
   panel(x, y, w, h, { fill: '#f7ecca' });
   ctx.strokeStyle = 'rgba(110,80,40,.18)'; ctx.lineWidth = 1; for (let ly = y + 110; ly < y + h - 30; ly += 28) { ctx.beginPath(); ctx.moveTo(x + 26, ly); ctx.lineTo(x + w - 26, ly); ctx.stroke(); }
   T('BUKU CATATAN', x + 34, y + 54, { s: 30, c: '#6b3a14' });
-  T('Pesan barang ke agen grosir · tiba ± 1,5 jam (klik kardus di kiri bawah)', x + 36, y + 80, { s: 14, w: '600', c: '#7a5a3a' });
+  T('Cek stok & harga. Untuk memesan barang ke grosir, pakai HP.', x + 36, y + 80, { s: 14, w: '600', c: '#7a5a3a' });
   closeBtn(x + w - 36, y + 38, () => { ui.modal = null; });
   ITEMS.forEach((it, i) => {
     const col = i % 2, row = Math.floor(i / 2), rx = x + 30 + col * 500, ry = y + 100 + row * 66;
     ctx.fillStyle = 'rgba(255,255,255,.55)'; rr(ctx, rx, ry, 480, 58, 10); ctx.fill(); ctx.strokeStyle = '#d6bf8a'; ctx.lineWidth = 2; ctx.stroke();
     ico(it.id, rx + 8, ry + 5, 48);
     T(it.name, rx + 66, ry + 24, { s: 16, c: '#3a210c' });
-    T(`isi ${it.pack} · ${rp(it.packCost)}/paket · jual ${rp(it.price)}`, rx + 66, ry + 44, { s: 12, w: '600', c: '#7a5a3a' });
-    T(`stok ${G.stock[it.id] || 0}`, rx + 356, ry + 18, { s: 13, a: 'right', c: (G.stock[it.id] || 0) <= 2 ? '#c0392b' : '#3a6a2a' });
-    const q = G.cart[it.id] || 0;
-    button(rx + 366, ry + 14, 30, 30, '−', () => { if (q > 0) G.cart[it.id] = q - 1; }, { col: 'red', s: 20, disabled: q <= 0 });
-    T(String(q), rx + 415, ry + 36, { s: 20, a: 'center', c: '#3a210c' });
-    button(rx + 436, ry + 14, 30, 30, '+', () => { G.cart[it.id] = q + 1; }, { col: 'green', s: 20 });
+    T(`jual ${rp(it.price)} · modal ${rp(Math.round(it.cost))}/pcs · laba ${rp(Math.round(it.price - it.cost))}`, rx + 66, ry + 44, { s: 12, w: '600', c: '#7a5a3a' });
+    const n = G.stock[it.id] || 0;
+    T(`stok ${n}`, rx + 462, ry + 36, { s: 20, a: 'right', c: n <= 2 ? '#c0392b' : '#3a6a2a' });
   });
-  const cost = orderCost(), by = y + h - 130;
-  T('Total pesanan:', x + 36, by + 28, { s: 18, c: '#5a3a1a' });
-  T(rp(cost), x + 190, by + 30, { s: 28, c: cost > G.money ? '#c0392b' : '#2a6a2a' });
-  T('Uang kas: ' + rp(G.money), x + 36, by + 58, { s: 15, c: '#5a3a1a' });
+  const by = y + h - 130;
+  T('Uang kas: ' + rp(G.money), x + 36, by + 28, { s: 18, c: '#5a3a1a' });
   const debt = G.debts.reduce((s, d) => s + d.amount, 0);
-  T(`Kasbon belum dibayar: ${rp(debt)} (${G.debts.length} catatan)`, x + 36, by + 82, { s: 14, w: '600', c: '#7a3a1a' });
+  T(`Kasbon belum dibayar: ${rp(debt)} (${G.debts.length} catatan)`, x + 36, by + 54, { s: 14, w: '600', c: '#7a3a1a' });
   const pend = G.deliveries.length ? 'Dalam perjalanan: ' + G.deliveries.map(d => Object.entries(d.items).map(([k, v]) => `${v} ${BY[k].name}`).join(', ')).join(' | ') : '';
-  if (pend) T(pend.length > 100 ? pend.slice(0, 98) + '…' : pend, x + 36, by + 104, { s: 12, w: '600', c: '#3a5a8a' });
-  button(x + w - 400, by + 18, 190, 54, 'PESAN', placeOrder, { col: 'green', s: 22, disabled: !cost || cost > G.money });
+  if (pend) T(pend.length > 100 ? pend.slice(0, 98) + '…' : pend, x + 36, by + 80, { s: 12, w: '600', c: '#3a5a8a' });
+  button(x + w - 460, by + 18, 250, 54, 'PESAN LEWAT HP', () => { ui.modal = 'phone'; }, { col: 'green', s: 20 });
   button(x + w - 200, by + 18, 170, 54, 'TUTUP', () => { ui.modal = null; }, { col: 'wood', s: 20 });
-  button(x + w - 400, by + 80, 190, 36, 'KOSONGKAN', () => { G.cart = {}; }, { col: 'blue', s: 14 });
+}
+/** HP: aplikasi grosir untuk memesan stok (harga turun seiring level) + medsos untuk isi energi. */
+export function phone() {
+  const L = level(), px = 390, py = 8, pw = 500, ph = 704;
+  ctx.fillStyle = 'rgba(0,0,0,.45)'; rr(ctx, px + 6, py + 10, pw, ph, 44); ctx.fill();
+  ctx.fillStyle = '#15171c'; rr(ctx, px, py, pw, ph, 44); ctx.fill(); ctx.strokeStyle = '#3a3f4a'; ctx.lineWidth = 3; ctx.stroke();
+  ctx.fillStyle = '#f4f6f8'; rr(ctx, px + 12, py + 12, pw - 24, ph - 24, 34); ctx.fill();
+  const hh = Math.floor(G.h) % 24, mm = Math.floor((G.h % 1) * 60);
+  T(`${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`, px + 40, py + 42, { s: 14, c: '#333' });
+  T(`Lv ${L}`, px + pw - 40, py + 42, { s: 14, a: 'right', c: '#333' });
+  ctx.fillStyle = '#2f9e44'; ctx.fillRect(px + 12, py + 52, pw - 24, 52);
+  T('GrosirKu · Pesan Barang', px + 28, py + 76, { s: 20, c: '#fff' });
+  const disc = Math.round(discountOf(L) * 100);
+  T(`Kas ${rp(G.money)} · diskon level ${disc}% · kurir ±${etaOf(L)} mnt`, px + 28, py + 96, { s: 12, w: '600', c: '#e4ffe9' });
+  button(px + pw - 128, py + 58, 100, 30, 'Medsos', usePhone, { col: 'blue', s: 13, tip: 'Scroll medsos — isi energi (jangan saat ada pembeli!)' });
+  ITEMS.forEach((it, i) => {
+    const ry = py + 112 + i * 40, q = G.cart[it.id] || 0, n = G.stock[it.id] || 0;
+    ctx.fillStyle = i % 2 ? '#e9eef2' : '#fff'; rr(ctx, px + 20, ry, pw - 40, 37, 8); ctx.fill();
+    ico(it.id, px + 24, ry + 2, 32);
+    T(it.name, px + 62, ry + 16, { s: 13, c: '#222' });
+    T(`isi ${it.pack} · ${rp(packPrice(it))}`, px + 62, ry + 31, { s: 11, w: '600', c: '#667' });
+    T(`stok ${n}`, px + 318, ry + 24, { s: 12, a: 'center', c: n <= 2 ? '#c0392b' : '#3a6a2a' });
+    button(px + 344, ry + 4, 28, 28, '−', () => { if (q > 0) G.cart[it.id] = q - 1; }, { col: 'red', s: 18, disabled: q <= 0 });
+    T(String(q), px + 392, ry + 25, { s: 18, a: 'center', c: '#222' });
+    button(px + 412, ry + 4, 28, 28, '+', () => { G.cart[it.id] = q + 1; }, { col: 'green', s: 18 });
+  });
+  const cost = orderCost(), fy = py + 112 + ITEMS.length * 40 + 8;
+  T('Total', px + 30, fy + 26, { s: 16, c: '#333' }); T(rp(cost), px + pw - 30, fy + 28, { s: 24, a: 'right', c: cost > G.money ? '#c0392b' : '#1f7a2f' });
+  const by = fy + 42;
+  button(px + 24, by, 190, 44, 'PESAN', placeOrder, { col: 'green', s: 20, disabled: !cost || cost > G.money });
+  button(px + 224, by, 120, 44, 'KOSONG', () => { G.cart = {}; }, { col: 'blue', s: 14 });
+  button(px + 354, by, 122, 44, 'TUTUP', () => { ui.modal = null; }, { col: 'wood', s: 16 });
 }
 export function summary() {
   const x = 330, y = 50, w = 620, h = 620, s = G.stats;
@@ -61,9 +89,9 @@ export function summary() {
   const rows = [
     ['Pelanggan dilayani', s.served], ['Pelanggan kecewa', s.left], ['Omzet penjualan', rp(s.revenue)],
     ['Laba kotor', rp(s.profit)], ['Tip', rp(s.tips)], ['Belanja stok & promo', '-' + rp(s.spent)],
-    ['Bonus misi (' + (G.bonusMissions || 0) + '/3)', '+' + rp(s.bonus)], ['Kasbon baru', rp(s.kasbonNew)],
+    ['Bonus misi & level', '+' + rp(s.bonus)], ['XP didapat · Level ' + level() + ' ' + rankOf(level()), '+' + (s.xp || 0)], ['Kasbon baru', rp(s.kasbonNew)],
   ];
-  if (G.endReason === 'faint') rows.splice(6, 0, ['Biaya klinik', '-Rp 15.000']);
+  if (G.endReason === 'faint') rows.splice(7, 0, ['Biaya klinik', '-Rp 15.000']);
   rows.forEach((r, i) => {
     const ry = y + 112 + i * 36; ctx.fillStyle = i % 2 ? 'rgba(255,255,255,.35)' : 'rgba(255,255,255,.6)'; rr(ctx, x + 30, ry, w - 60, 32, 8); ctx.fill();
     T(r[0], x + 46, ry + 22, { s: 16, c: '#3a210c' }); T(String(r[1]), x + w - 46, ry + 22, { s: 17, a: 'right', c: String(r[1]).startsWith('-') ? '#b3281e' : '#2a6a2a' });
@@ -75,7 +103,7 @@ export function summary() {
   ctx.fillStyle = '#d8c28c'; rr(ctx, x + w - 250, by + 28, 210, 12, 6); ctx.fill(); ctx.fillStyle = '#58b948'; rr(ctx, x + w - 250, by + 28, Math.max(8, 210 * clamp(G.money / WIN_GOAL, 0, 1)), 12, 6); ctx.fill();
   const debt = G.debts.reduce((q, d) => q + d.amount, 0) + 0;
   if (debt) T(`Kasbon beredar: ${rp(debt)}`, x + 46, by + 76, { s: 14, c: '#7a3a1a' });
-  button(x + 60, y + h - 80, 230, 54, 'BUKU CATATAN', () => { ui.modal = 'notebook'; }, { col: 'wood', s: 18 });
+  button(x + 60, y + h - 80, 230, 54, 'HP · PESAN BARANG', () => { ui.modal = 'phone'; }, { col: 'wood', s: 17 });
   button(x + w - 290, y + h - 80, 230, 54, 'TIDUR → HARI ' + (G.day + 1), nextDay, { col: 'green', s: 18 });
 }
 export function help() {
@@ -87,10 +115,10 @@ export function help() {
     ['2', 'Pembeli datang & menyebut pesanan. Klik barang di rak/etalase/gantungan sesuai pesanan — masuk ke nampan.'],
     ['3', 'Tekan HITUNG (atau klik kalkulator). Kalau uangnya lebih, beri kembalian: klik pecahan uang sampai pas, lalu BERI.'],
     ['4', 'Pembeli sabar terbatas. Pembeli senang → reputasi naik → warung makin ramai. Stok habis? Tekan MAAF, HABIS.'],
-    ['5', 'Buku Catatan: pesan barang ke grosir. Kurir tiba ± 1,5 jam; klik kardus di kiri bawah untuk menerima.'],
-    ['6', 'Kewarasan turun terus, apalagi malam. Isi lewat HP (jangan saat ada pembeli) atau seduh kopi (gelas hijau).'],
+    ['5', 'Pesan barang lewat HP (aplikasi GrosirKu). Buku Catatan untuk cek stok. Kurir tiba ± 1,5 jam; klik kardus di kiri bawah untuk menerima.'],
+    ['6', 'Kewarasan turun terus, apalagi malam. Isi lewat Medsos di HP (jangan saat ada pembeli) atau seduh kopi (gelas hijau).'],
     ['7', 'Tengah hari kadang ada kasbon: terima = dibayar besok (65%), tolak = reputasi turun. Malam hari waspada tamu misterius…'],
-    ['8', 'Selesaikan 3 misi harian untuk bonus. Pasang PROMO untuk ramaikan warung. Target: kumpulkan ' + rp(WIN_GOAL) + '!'],
+    ['8', 'Selesaikan 3 misi harian untuk bonus. Pasang PROMO. Layani pembeli & selesaikan misi untuk XP: naik LEVEL = bonus kas, diskon grosir, kurir lebih cepat. Target: kumpulkan ' + rp(WIN_GOAL) + '!'],
   ];
   let yy = y + 96;
   L.forEach(([n, t]) => {

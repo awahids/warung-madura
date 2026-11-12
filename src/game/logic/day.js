@@ -15,7 +15,7 @@ export function startDay(loaded) {
   G.door = 0; G.doorState = 'closed'; G.running = false; G.closing = false;
   G.cust = []; G.leaving = []; G.tray = {}; G.promo = false; G.spawnCd = 3; G.idle = 0; G.cart = {};
   G.rain = Math.random() < .32 ? { from: rnd(8, 17), len: rnd(1.5, 3.2) } : null;
-  G.stats = { served: 0, revenue: 0, profit: 0, spent: 0, tips: 0, left: 0, sold: {}, kasbonNew: 0, kasbonPaid: 0, bonus: 0 };
+  G.stats = { xp: 0, served: 0, revenue: 0, profit: 0, spent: 0, tips: 0, left: 0, sold: {}, kasbonNew: 0, kasbonPaid: 0, bonus: 0 };
   G.missions = genMissions();
   G.events = [{ k: 'kasbon', t: rnd(10, 21), done: false }];
   if (G.day >= 2 || Math.random() < .5) G.events.push({ k: 'mystery', t: rnd(23.3, 24.8), done: false });

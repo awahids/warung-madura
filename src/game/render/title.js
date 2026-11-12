@@ -15,7 +15,7 @@ export function drawTitleUI() {
   T('WARUNG', 60, ty + 92, { s: 96, c: '#fff', stroke: '#7a1d10', sw: 14, w: '900' });
   T('Simulasi Warung Madura 24 Jam', 66, ty + 134, { s: 24, c: '#fff', stroke: '#2a3a5a', sw: 5 });
   button(66, 340, 300, 62, 'MAIN BARU', () => { setG(freshState(G)); startDay(); ui.modal = null; }, { col: 'green', s: 26 });
-  button(66, 418, 300, 54, 'LANJUTKAN', () => { const s = loadSave(); if (!s) return; setG(freshState(G)); Object.assign(G, { day: s.day, money: s.money, rep: s.rep, stock: s.stock, debts: s.debts || [], deliveries: [], totalProfit: s.totalProfit || 0, won: !!s.won, sound: s.sound !== false, auto: !!s.auto }); G.deliveries = (s.deliveries || []).map(d => ({ items: d.items, eta: 0 })); G.firstCust = false; startDay(true); G.deliveries.forEach(d => d.eta = G.abs + 30); ui.modal = null; }, { col: 'blue', s: 22, disabled: !ui.hasSave });
+  button(66, 418, 300, 54, 'LANJUTKAN', () => { const s = loadSave(); if (!s) return; setG(freshState(G)); Object.assign(G, { day: s.day, xp: s.xp || 0, money: s.money, rep: s.rep, stock: s.stock, debts: s.debts || [], deliveries: [], totalProfit: s.totalProfit || 0, won: !!s.won, sound: s.sound !== false, auto: !!s.auto }); G.deliveries = (s.deliveries || []).map(d => ({ items: d.items, eta: 0 })); G.firstCust = false; startDay(true); G.deliveries.forEach(d => d.eta = G.abs + 30); ui.modal = null; }, { col: 'blue', s: 22, disabled: !ui.hasSave });
   button(66, 486, 300, 50, 'CARA MAIN', () => { ui.modal = 'help'; }, { col: 'wood', s: 20 });
 }
 

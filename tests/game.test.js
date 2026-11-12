@@ -105,3 +105,28 @@ describe('simulasi bot 3 hari', () => {
     expect(G.money).toBeGreaterThan(0);
   });
 });
+
+describe('level & pesan lewat HP', () => {
+  beforeEach(() => { setG(freshState(G)); ui.modal = null; startDay(); });
+
+  it('XP menaikkan level dan memberi bonus kas', async () => {
+    const { addXp, level, xpAt, discountOf, etaOf } = await import('../src/game/logic/level');
+    expect(level()).toBe(1);
+    const money = G.money; addXp(xpAt(2));
+    expect(level()).toBe(2); expect(G.money).toBe(money + 20000);
+    addXp(xpAt(4) - G.xp); expect(level()).toBe(4);
+    expect(discountOf(4)).toBeCloseTo(.06); expect(etaOf(4)).toBe(78);
+  });
+
+  it('diskon level dan kurir lebih cepat saat memesan', async () => {
+    const { addXp, xpAt, etaOf } = await import('../src/game/logic/level');
+    const { packPrice, orderCost, placeOrder } = await import('../src/game/logic/actions');
+    const { ITEMS } = await import('../src/game/data');
+    G.cart = { kopi: 2 }; expect(orderCost()).toBe(24000);
+    addXp(xpAt(6)); G.money = 1e6;
+    expect(packPrice(ITEMS[0])).toBe(10800);               // 12000 − 10%
+    G.cart = { kopi: 2 }; const abs = G.abs; placeOrder();
+    expect(G.deliveries[0].eta).toBe(abs + etaOf(6));
+    expect(G.deliveries[0].items.kopi).toBe(20);
+  });
+});
