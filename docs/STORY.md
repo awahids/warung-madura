@@ -1,6 +1,6 @@
 # Juragan Warung — Desain Cerita & Tanggung Jawab (DRAFT untuk ditinjau)
 
-> Status: **disetujui; tahap A (fondasi) B (Bab 3–5 + epilog), dan D (kolam harian 20 kejadian) sudah diimplementasikan**; tahap E (penyempurnaan: suara, animasi, pencapaian, penyetelan angka lewat uji main) menyusul. Angka final bisa berbeda dari tabel di bawah (mis. cicilan Bab 1 = Rp 90.000; pesanan ditahan mulai tunggakan ke-2) — lihat README dan `src/game/logic/story.js`.
+> Status: **disetujui; tahap A (fondasi) B (Bab 3–5 + epilog), dan D (kolam harian 20 kejadian) sudah diimplementasikan**, dan E (suara, animasi, kartu bab, pencapaian) sudah diimplementasikan. Yang tersisa: penyetelan angka (cicilan, kepercayaan, XP) berdasarkan uji main manusia. Angka final bisa berbeda dari tabel di bawah (mis. cicilan Bab 1 = Rp 90.000; pesanan ditahan mulai tunggakan ke-2) — lihat README dan `src/game/logic/story.js`.
 > Semua angka adalah titik awal dan akan disetel lewat uji main.
 
 ## 1. Premis

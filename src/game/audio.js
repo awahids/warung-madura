@@ -28,5 +28,10 @@ export const SFX = {
   good: () => { tone(523, .1, 'triangle', .06); tone(659, .1, 'triangle', .06, .1); tone(784, .2, 'triangle', .06, .2); },
   chirp: () => { tone(4200, .05, 'sine', .012); tone(4400, .05, 'sine', .012, .08); tone(4200, .05, 'sine', .012, .16); },
   phone: () => tone(1200, .04, 'square', .02),
+  up: () => { tone(660, .08, 'triangle', .05); tone(880, .14, 'triangle', .05, .08); },
+  down: () => { tone(330, .1, 'triangle', .05); tone(220, .2, 'triangle', .05, .1); },
+  chapter: () => { [392, 523, 659, 784, 1047].forEach((f, i) => tone(f, .28, 'triangle', .06, i * .13)); tone(1047, .7, 'sine', .04, .65); },
+  ach: () => { [880, 1175, 1568].forEach((f, i) => tone(f, .12, 'sine', .05, i * .07)); },
+  ending: () => { [523, 659, 784, 1047, 784, 1047, 1319].forEach((f, i) => tone(f, .34, 'triangle', .06, i * .2)); },
   gulp: () => { tone(300, .1, 'sine', .08, 0, -80); tone(260, .1, 'sine', .08, .14, -80); },
 };

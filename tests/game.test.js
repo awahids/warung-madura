@@ -13,7 +13,7 @@ import {
 import { orderCost, packPrice, placeOrder, receiveDelivery } from '../src/game/logic/actions';
 import { update } from '../src/game/update';
 
-function begin() { setG(freshState(G)); G.xp = 1e6; G.stock = { ...START_STOCK }; ui.modal = null; startDay(); G.door = 1; openShop(); G.firstCust = false; G.spawnCd = 1e9; }
+function begin() { setG(freshState(G)); G.story.chapterSeen = 99; G.xp = 1e6; G.stock = { ...START_STOCK }; ui.modal = null; startDay(); G.door = 1; openShop(); G.firstCust = false; G.spawnCd = 1e9; }
 function arrive() { for (let i = 0; i < 200 && !active(); i++) update(1 / 30); return active(); }
 
 describe('util', () => {
@@ -143,7 +143,7 @@ describe('level membuka barang, pembeli, dan fitur', () => {
     expect(typeOn('ojol')).toBe(true); expect(typeOn('ibu')).toBe(false); expect(typeOn('juragan')).toBe(false);
     expect(featureOn('promo')).toBe(false); expect(featureOn('kasbon')).toBe(false);
     expect(G.stock.gas).toBeUndefined();
-    expect(G.events.filter(e => e.k !== 'story')).toHaveLength(0);   // belum ada kasbon / tamu misterius
+    expect(G.events.filter(e => e.k !== 'story' && e.k !== 'bab')).toHaveLength(0);   // belum ada kasbon / tamu misterius
   });
 
   it('pembeli hanya memesan barang yang sudah terbuka', () => {
@@ -315,8 +315,8 @@ describe('cerita Bab 3–5 dan epilog', () => {
   it('kejadian tamu bertudung dijadwalkan tengah malam', async () => {
     const S = await import('../src/game/logic/story'), E = await import('../src/game/story/events'), L = await import('../src/game/logic/level');
     L.addXp(L.xpAt(7)); S.story().done = E.SCRIPT.filter(e => e.ch <= 3).map(e => e.id);
-    const ev = []; S.scheduleStory(ev); expect(ev[0].id).toBe('tamu_1'); expect(ev[0].t).toBeGreaterThanOrEqual(23.2);
-    S.story().done.push('tamu_1', 'tamu_2', 'tamu_3'); const ev2 = []; S.scheduleStory(ev2); expect(ev2[0].t).toBeLessThan(19);   // kejadian siang / kolam acak
+    const ev = []; S.scheduleStory(ev); const night = ev.find(e => e.k === 'story'); expect(night.id).toBe('tamu_1'); expect(night.t).toBeGreaterThanOrEqual(23.2);
+    S.story().done.push('tamu_1', 'tamu_2', 'tamu_3'); const ev2 = []; S.scheduleStory(ev2); expect(ev2.find(e => e.k === 'story').t).toBeLessThan(19);   // kejadian siang / kolam acak
   });
 
   it('epilog: dipercaya / untung / bertahan', async () => {
@@ -365,5 +365,41 @@ describe('validasi data cerita', () => {
     }
     // grup penutup: tiap kejadian final punya grup, dan syarat trust tidak saling tumpang tindih
     const fin = E.SCRIPT.filter(e => e.final); expect(fin.length).toBe(3); fin.forEach(e => expect(e.group).toBe('akhir'));
+  });
+});
+
+describe('tahap E: kartu bab & pencapaian', () => {
+  beforeEach(() => { setG(freshState(G)); ui.modal = null; startDay(); });
+
+  it('kartu pembuka bab dijadwalkan sekali per bab dan tampil saat warung buka', async () => {
+    const S = await import('../src/game/logic/story'), E = await import('../src/game/story/events'), L = await import('../src/game/logic/level');
+    expect(E.INTRO).toHaveLength(5); E.INTRO.forEach(i => { expect(i.text.length).toBeGreaterThan(40); expect(i.goal.length).toBeGreaterThan(10); });
+    expect(G.events.some(e => e.k === 'bab')).toBe(true);              // Bab 1 belum pernah ditampilkan
+    G.door = 1; openShop(); G.firstCust = false; G.spawnCd = 1e9; for (let i = 0; i < 60 && ui.modal !== 'bab'; i++) update(1 / 30);
+    expect(ui.modal).toBe('bab'); expect(S.story().chapterSeen).toBe(1); ui.modal = null;
+    startDay(); expect(G.events.some(e => e.k === 'bab')).toBe(false);   // tidak muncul lagi
+    L.addXp(L.xpAt(3)); startDay(); expect(G.events.some(e => e.k === 'bab')).toBe(true);   // Bab 2
+  });
+
+  it('pencapaian terbuka sekali, memberi XP, dan tersimpan', async () => {
+    const A = await import('../src/game/logic/achievements'), S = await import('../src/game/logic/story');
+    G.stats.served = 1; const xp0 = G.xp; A.checkAchievements();
+    expect(A.unlocked('pertama')).toBe(true); expect(G.xp).toBe(xp0 + 25);
+    A.checkAchievements(); expect(G.xp).toBe(xp0 + 25);                // tidak ganda
+    S.story().flags.tamu_jujur = true; S.story().paidCount = 3; A.checkAchievements();
+    expect(A.unlocked('tamu_jujur')).toBe(true); expect(A.unlocked('cicilan')).toBe(true); expect(A.unlocked('lunas')).toBe(false);
+    expect(A.unlockedCount()).toBe(3); expect(JSON.parse(JSON.stringify(S.story())).ach.pertama).toBeGreaterThan(0);
+  });
+
+  it('pilihan jujur menyalakan flag dan pencapaian; membayar cicilan menambah hitungan', async () => {
+    const A = await import('../src/game/logic/achievements'), S = await import('../src/game/logic/story'), { finishClose } = await import('../src/game/logic/day');
+    S.story().done = ['jaka_kopi']; G.money = 100000; S.openStoryEvent('kembalian'); S.chooseEvent(0);
+    expect(S.story().flags.jujur_kembalian).toBe(true); expect(A.unlocked('jujur')).toBe(true);
+    G.day = 4; G.money = 500000; finishClose(); expect(S.story().paidCount).toBe(1);
+  });
+
+  it('perubahan kepercayaan memunculkan teks melayang', async () => {
+    const S = await import('../src/game/logic/story'), { fx } = await import('../src/game/state'); fx.floats.length = 0;
+    S.changeTrust(.5); expect(fx.floats).toHaveLength(0); S.changeTrust(3); expect(fx.floats.at(-1).s).toBe('Percaya +3'); S.changeTrust(-2); expect(fx.floats.at(-1).s).toBe('Percaya −2');
   });
 });

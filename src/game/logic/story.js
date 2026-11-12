@@ -2,7 +2,8 @@ import { SFX } from '../audio.js';
 import { BY } from '../data.js';
 import { G, ui } from '../state.js';
 import { rp, clamp, pick, rnd } from '../util.js';
-import { toast } from '../widgets.js';
+import { flt, toast } from '../widgets.js';
+import { checkAchievements } from './achievements.js';
 import { CATATAN, CHAPTERS, EPILOG, EPILOG_FLAG, POOL, SCRIPT } from '../story/events.js';
 import { addXp, level } from './level.js';
 
@@ -18,7 +19,7 @@ const INTEREST = .05;               // bunga tunggakan
 
 export function initStory(day = 1) {
   return { debt: DEBT0, due: day + CYCLE, arrears: 0, hold: 0, trust: 50, easy: false, lunas: false,
-    done: [], recent: [], flags: {}, queue: [], kabar: [], cur: null, result: null, lastPay: null, ending: null };
+    done: [], recent: [], flags: {}, queue: [], kabar: [], cur: null, result: null, lastPay: null, ending: null, chapterSeen: 0, paidCount: 0, ach: {} };
 }
 export const story = () => G.story || (G.story = initStory(G.day || 1));
 
@@ -30,7 +31,10 @@ export const installment = () => Math.min(INSTALL[chapterOf() - 1], story().debt
 
 /* ---------- Kepercayaan warga ---------- */
 export const trust = () => story().trust;
-export function changeTrust(n) { const s = story(); s.trust = clamp(Math.round((s.trust + n) * 10) / 10, 0, 100); }
+export function changeTrust(n) {
+  const s = story(), before = s.trust; s.trust = clamp(Math.round((s.trust + n) * 10) / 10, 0, 100);
+  const d = s.trust - before; if (Math.abs(d) >= 1) flt(`Percaya ${d > 0 ? '+' : '−'}${Math.round(Math.abs(d))}`, 800, 84, d > 0 ? '#9dd0ff' : '#ff9a8a');
+}
 /** Pengali kesabaran pembeli: 0,88 (percaya 0) … 1,12 (percaya 100). */
 export const trustMul = () => 1 + (trust() - 50) / 50 * .12;
 /** Peluang kasbon dilunasi esok hari: 45% (percaya 0) … 85% (percaya 100); 65% pada 50. */
@@ -46,7 +50,7 @@ export function settleInstallment() {
   if (s.easy || s.lunas || G.day < s.due) return;
   const amt = installment();
   if (G.money >= amt) {
-    G.money -= amt; s.debt -= amt; s.arrears = 0; s.due = G.day + CYCLE; s.hold = 0;
+    G.money -= amt; s.debt -= amt; s.arrears = 0; s.due = G.day + CYCLE; s.hold = 0; s.paidCount = (s.paidCount || 0) + 1;
     s.lastPay = { ok: true, amount: amt };
     if (s.debt <= 0) { s.debt = 0; s.lunas = true; s.lastPay.lunas = true; changeTrust(5); SFX.good(); toast('UTANG LUNAS! Koh Awi menyalami tanganmu.', '#ffe45c'); s.kabar.push('Utang ke Koh Awi lunas. Warga ikut senang.'); }
     else toast(`Cicilan ${rp(amt)} dibayar. Sisa utang ${rp(s.debt)}.`, '#cfe8ff');
@@ -64,7 +68,7 @@ export function payDebt(n = 50000) {
   const s = story(); if (s.lunas || s.debt <= 0) return false;
   const amt = Math.min(n, s.debt); if (G.money < amt) { SFX.err(); return false; }
   G.money -= amt; s.debt -= amt; SFX.coin();
-  if (s.debt <= 0) { s.debt = 0; s.lunas = true; changeTrust(5); SFX.good(); toast('UTANG LUNAS! Koh Awi menyalami tanganmu.', '#ffe45c'); s.kabar.push('Utang ke Koh Awi lunas. Warga ikut senang.'); }
+  if (s.debt <= 0) { s.debt = 0; s.lunas = true; changeTrust(5); SFX.good(); toast('UTANG LUNAS! Koh Awi menyalami tanganmu.', '#ffe45c'); s.kabar.push('Utang ke Koh Awi lunas. Warga ikut senang.'); checkAchievements(); }
   else toast(`Bayar ${rp(amt)} ke Koh Awi. Sisa utang ${rp(s.debt)}.`, '#cfe8ff');
   return true;
 }
@@ -107,8 +111,11 @@ export function pickEvent() {
   const pool = POOL.filter(e => e.minLevel <= L && !s.recent.includes(e.id) && eligible(e));
   return pool.length ? pick(pool) : null;
 }
+/** Kartu pembuka bab: tampil sekali saat bab baru dimulai (setelah warung dibuka). */
+export function openChapterIntro() { const s = story(); s.chapterSeen = chapterOf(); ui.modal = 'bab'; SFX.chapter(); }
 /** Jadwalkan satu kejadian cerita hari ini; kejadian malam muncul sekitar tengah malam. */
 export function scheduleStory(events) {
+  if (chapterOf() > story().chapterSeen) events.push({ k: 'bab', t: 6.05, done: false });
   const ev = pickEvent(); if (!ev) return;
   events.push({ k: 'story', id: ev.id, t: ev.night ? rnd(23.2, 24.8) : rnd(11, 19), done: false });
 }
@@ -131,10 +138,11 @@ export function chooseEvent(i) {
   const lines = applyFx(c.fx);
   (c.later || []).forEach(l => s.queue.push({ day: G.day + l.days, ...l }));
   s.result = { text: c.res, lines }; s.kabar.push(c.res);
+  if (c.fx && c.fx.trust) (c.fx.trust > 0 ? SFX.up : SFX.down)(); else SFX.click();
   if (SCRIPT.includes(ev)) { s.done.push(ev.id); if (ev.group) SCRIPT.filter(e => e.group === ev.group).forEach(e => { if (!s.done.includes(e.id)) s.done.push(e.id); }); }
   if (ev.final) s.ending = endingId();
   s.recent.push(ev.id); if (s.recent.length > 8) s.recent.shift();
-  SFX.click();
+  checkAchievements();
 }
 /** Epilog menurut keadaan akhir: dipercaya / untung / bertahan. */
 export function endingId() {
@@ -152,7 +160,7 @@ export function epilog() {
 }
 export function closeStoryEvent() {
   const s = story(), ev = currentEvent(); s.cur = null; s.result = null;
-  if (ui.modal === 'event') ui.modal = ev && ev.final && s.ending ? 'epilog' : null;
+  if (ui.modal === 'event') { ui.modal = ev && ev.final && s.ending ? 'epilog' : null; if (ui.modal === 'epilog') SFX.ending(); }
 }
 
 /** Awal hari: terapkan kabar lanjutan yang jatuh tempo dan kosongkan kabar kemarin. */

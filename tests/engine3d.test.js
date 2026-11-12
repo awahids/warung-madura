@@ -7,7 +7,7 @@ import { spawnCustomer, active, addToTray, doHitung, giveBill, confirmChange, ca
 import { update } from '../src/game/update';
 import { toWorldX, crowdFromGame, runAct, moodOf } from '../src/game/engine3d';
 
-function begin() { setG(freshState(G)); G.xp = 1e6; G.stock = { ...START_STOCK }; ui.modal = null; startDay(); G.door = 1; openShop(); G.firstCust = false; G.spawnCd = 1e9; }
+function begin() { setG(freshState(G)); G.story.chapterSeen = 99; G.xp = 1e6; G.stock = { ...START_STOCK }; ui.modal = null; startDay(); G.door = 1; openShop(); G.firstCust = false; G.spawnCd = 1e9; }
 
 describe('jembatan logika → 3D', () => {
   beforeEach(begin);

@@ -52,7 +52,7 @@ Karena badannya pendek, pelanggan mengangkat tangan ke samping kepala saat memba
 - **Kurir** berjalan masuk saat kiriman tiba, menunggu di samping kardus, lalu pergi setelah barang diterima.
 - **Serah-terima**: uang terbang dari tangan pelanggan ke penjaga, kantong/barang terbang balik ke pelanggan. Slot antrean berjarak ≈1 m supaya kepala tidak saling menutupi.
 
-## Cerita & tanggung jawab (tahap A + B)
+## Cerita & tanggung jawab (tahap A–E)
 Rancangan lengkap: `docs/STORY.md`. Yang sudah jalan:
 - **Utang ke Koh Awi** Rp 1.200.000, **cicilan tiap 3 hari** (Rp 90 rb di Bab 1, naik tiap bab; dibayar otomatis saat warung tutup bila kas cukup). Menunggak → bunga 5%, kepercayaan turun; 2× berturut-turut → pesanan stok ditahan. Bisa dicicil lebih awal lewat Buku Catatan (*Bayar utang +50rb*). *Mode santai* (menu Jeda) meniadakan cicilan.
 - **Kepercayaan warga** (0–100, bar tipis di bawah Reputasi): memengaruhi kesabaran pembeli (±12%) dan peluang kasbon dilunasi (45–85%). Naik dengan jujur & membantu; turun bila menolak, mengecewakan pembeli, atau menunggak.
@@ -63,6 +63,8 @@ Rancangan lengkap: `docs/STORY.md`. Yang sudah jalan:
 - **Epilog** setelah kunjungan akhir Pak Haji: *Warung Kita* (kepercayaan ≥ 60 & utang lunas), *Juragan Untung* (kepercayaan < 45 & kas ≥ Rp 500 rb), atau *Bertahan*; ditambah baris untuk pilihan besar dan sisa utang. Setelah itu permainan lanjut sebagai mode bebas.
 - **Kolam kejadian harian**: 20 kejadian acak (pembeli lupa dompet, uang palsu, listrik padam, uang keamanan, anak tersesat, pengajian, lomba kampung, dll.). Tidak berulang dalam 8 kejadian terakhir; ada yang hanya muncul bila kepercayaan tinggi (*warga bergotong royong*) atau rendah (*gosip*), dan keringanan dari Koh Awi bila dipercaya dan utang belum lunas.
 - Tes `validasi data cerita` memeriksa semua kejadian (id unik, efek sah, barang sudah terbuka di levelnya, flag nyambung), jadi menambah konten tidak bisa diam-diam salah.
+- **Kartu pembuka bab** (premis + tujuan) muncul sekali tiap bab baru, tepat setelah warung dibuka. **Pencapaian** (13, +25 XP; menu Jeda → *Pencapaian*) dicek tiap akhir hari, setelah pilihan cerita, dan saat melunasi utang; kodenya di `src/game/logic/achievements.js`.
+- **Suara & animasi**: nada naik/turun saat pilihan menambah/mengurangi kepercayaan, fanfare bab, bunyi pencapaian dan epilog; angka melayang *Percaya +N/−N* di HUD; semua dialog muncul dengan memudar + naik.
 - Sintaks data kejadian (`when`, `night`, `group`, `final`, `later`, `req`) dijelaskan di kepala `src/game/story/events.js`.
 - XP per level dinaikkan (`xpAt` = 100·(L−1)·L) supaya satu bab bertahan beberapa hari.
 

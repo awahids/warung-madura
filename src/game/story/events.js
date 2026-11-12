@@ -8,6 +8,15 @@
    ============================================================ */
 
 export const CHAPTERS = ['Warisan', 'Kasbon', 'Musim Hujan', 'Tamu Bertudung', 'Pusat Kampung'];
+/** Kartu pembuka tiap bab: premis singkat dan tujuan bab. */
+export const INTRO = [
+  { text: 'Pak Haji sakit dan pulang kampung. Warung ini dititipkan padamu: bukan hadiah, tapi amanah. Ada utang modal ke Koh Awi dan warga yang bergantung padamu.', goal: 'Buka warung, layani pembeli, dan siapkan cicilan pertama (hari ke-4).' },
+  { text: 'Warga mulai berutang di warungmu, dan setiap kasbon punya cerita. Membantu itu baik, tapi cicilan Koh Awi tetap berjalan.', goal: 'Jaga kasbon dan cicilan tetap lancar. Kepercayaan warga mulai menentukan.' },
+  { text: 'Hujan datang berhari-hari. Kurir telat, harga naik, dan warga butuh pertolongan. Kamu akan diuji: untung dulu atau warga dulu?', goal: 'Lewati musim hujan tanpa kehilangan kepercayaan warga.' },
+  { text: 'Tengah malam, seseorang bertudung mulai sering mampir. Tidak semua yang datang diam-diam itu berniat buruk, tapi tidak semua tawaran layak diambil.', goal: 'Hadapi si tamu bertudung. Dengarkan sebelum memutuskan.' },
+  { text: 'Warungmu sudah dikenal seluruh kampung. Orang-orang mengandalkannya, dan kini kamu harus memilih arah warung ini.', goal: 'Tentukan arah warung, lalu sambut kedatangan Pak Haji.' },
+];
+
 /** Catatan Pak Haji di rekap malam, per bab. */
 export const CATATAN = [
   '"Warung itu amanah, Nak. Bukan cuma tempat jualan."',
@@ -25,7 +34,7 @@ export const SCRIPT = [
     { t: '"Bayar dulu ya, Bang."', fx: { trust: -2 }, res: 'Bang Jaka menghela napas dan pergi tanpa kopi.' },
   ] },
   { id: 'kembalian', ch: 1, who: 'Hati nurani', text: 'Kamu baru sadar: pembeli tadi menerima kembalian kurang Rp 5.000 dan tidak protes. Orangnya sudah berjalan ke ujung gang.', choices: [
-    { t: 'Kejar dan beri kekurangannya', fx: { money: -5000, trust: 4 }, res: 'Ia kaget, lalu tertawa. "Jujur banget, Nak!" Cerita ini cepat menyebar di gang.', req: { money: 5000 } },
+    { t: 'Kejar dan beri kekurangannya', fx: { money: -5000, trust: 4, flag: 'jujur_kembalian' }, res: 'Ia kaget, lalu tertawa. "Jujur banget, Nak!" Cerita ini cepat menyebar di gang.', req: { money: 5000 } },
     { t: 'Biarkan, dia tidak sadar', fx: { trust: -2 }, res: 'Uangnya aman... tapi rasanya tidak enak.' },
     { t: 'Catat, ganti kalau dia datang lagi', fx: { trust: 1 }, res: 'Kamu mencatatnya di buku. Janji harus ditepati.',
       later: [{ days: 2, text: 'Orang itu mampir lagi. Kekurangan Rp 5.000 kamu ganti, dan ia ikut beli kopi.', fx: { money: -5000, trust: 2, xp: 10 } }] },

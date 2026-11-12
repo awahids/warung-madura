@@ -3,6 +3,7 @@ import { DAY_START } from '../constants.js';
 import { BY } from '../data.js';
 import { returnTray, sendAway } from './customers.js';
 import { featureOn, itemOn, typeOn } from './level.js';
+import { checkAchievements } from './achievements.js';
 import { changeTrust, dawnStory, repayChance, scheduleStory, settleInstallment } from './story.js';
 import { save } from '../persist.js';
 import { G, ui } from '../state.js';
@@ -68,7 +69,7 @@ export function endDay(reason) {
 }
 export function finishClose() {
   G.doorState = 'closed'; G.door = 0; G.bonusMissions = 0;
-  settleInstallment();
+  settleInstallment(); checkAchievements();
   for (const m of G.missions) if (missionVal(m) >= m.target) { G.bonusMissions++; }
   G.stats.bonus = G.bonusMissions * 20000; G.money += G.stats.bonus;
   ui.modal = 'summary'; save();

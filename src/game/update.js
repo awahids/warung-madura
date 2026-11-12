@@ -3,7 +3,7 @@ import { DAY_END, DAY_START, HOUR_SEC, W } from './constants.js';
 import { RATE } from './data.js';
 import { angryLeave, checkMissions, spawnCustomer } from './logic/customers.js';
 import { typeOn } from './logic/level.js';
-import { openStoryEvent } from './logic/story.js';
+import { openChapterIntro, openStoryEvent } from './logic/story.js';
 import { endDay, finishClose, isRain, openShop } from './logic/day.js';
 import { G, fx, ui } from './state.js';
 import { clamp, lerp, pick, rnd } from './util.js';
@@ -57,7 +57,8 @@ export function update(dt) {
     else if (Math.random() < p || G.idle > 9) { if (spawnCustomer()) { G.spawnCd = 1.5; G.idle = 0; } }
   }
   // event
-  for (const e of G.events) if (!e.done && G.h >= e.t && (e.k === 'story' || G.cust.length < 3)) {
+  for (const e of G.events) if (!e.done && G.h >= e.t && (e.k === 'story' || e.k === 'bab' || G.cust.length < 3)) {
+    if (e.k === 'bab') { if (!ui.modal) { e.done = true; openChapterIntro(); } continue; }
     if (e.k === 'story') { if (!G.cust.some(c => c.state === 'wait') && !ui.modal) { e.done = true; openStoryEvent(e.id); } continue; }   // tunggu sampai tidak sedang melayani
     e.done = true;
     if (e.k === 'kasbon') spawnCustomer(pick(['ibu', 'cowok', 'pemuda'].filter(typeOn)), 'kasbon');

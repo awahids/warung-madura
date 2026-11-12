@@ -3,6 +3,8 @@ import { H, W, WIN_GOAL } from '../constants.js';
 import { BY, ITEMS } from '../data.js';
 import { ctx } from '../gfx.js';
 import { ico } from '../icons.js';
+import { ACH, unlocked, unlockedCount } from '../logic/achievements.js';
+import { INTRO } from '../story/events.js';
 import { catatan, chapterName, chapterOf, choiceOk, chooseEvent, closeStoryEvent, currentEvent, installment, orderBlocked, payDebt, story, trust, epilog } from '../logic/story.js';
 import { EXPRESS_MIN, orderCost, packPrice, placeOrder, reorder, usePhone } from '../logic/actions.js';
 import { FEATURE_LVL, ITEM_LVL, MAX_LEVEL, UNLOCK_LEVELS, discountOf, etaOf, featureOn, itemOn, level, levelBonus, rankOf, unlocksAt, xpAt } from '../logic/level.js';
@@ -14,14 +16,24 @@ import { T, clamp, rp, rr, wrapText } from '../util.js';
 import { button, panel } from '../widgets.js';
 
 export function drawModals() {
-  if (!ui.modal) return;
+  if (!ui.modal) { ui.modalName = null; return; }
   ui.hits.length = 0; ui.tooltip = '';
   ctx.fillStyle = 'rgba(10,5,0,.62)'; ctx.fillRect(0, 0, W, H);
+  // animasi muncul: memudar + naik sedikit (±10 frame); area klik tidak ikut bergeser
+  if (ui.modalName !== ui.modal) { ui.modalName = ui.modal; ui.modalT = 0; }
+  ui.modalT = Math.min(1, ui.modalT + .1); const ease = 1 - (1 - ui.modalT) ** 3;
+  ctx.save(); ctx.globalAlpha = ease; ctx.translate(0, (1 - ease) * 16);
+  drawModalBody();
+  ctx.restore();
+}
+function drawModalBody() {
   if (ui.modal === 'notebook') notebook();
   else if (ui.modal === 'phone') phone();
   else if (ui.modal === 'level') levelModal();
   else if (ui.modal === 'event') eventModal();
   else if (ui.modal === 'epilog') epilogModal();
+  else if (ui.modal === 'bab') babModal();
+  else if (ui.modal === 'ach') achModal();
   else if (ui.modal === 'summary') summary();
   else if (ui.modal === 'help') help();
   else if (ui.modal === 'pause') pauseMenu();
@@ -118,6 +130,33 @@ export function eventModal() {
     st.result.lines.forEach((t, i) => { const neg = /^−|−/.test(t) || /menunggak|mundur/.test(t); T(t, x + 44, ly + i * 24, { s: 16, w: '700', c: neg ? '#b3281e' : '#2a6a2a' }); });
     button(x + w / 2 - 110, y + h - 80, 220, 54, 'LANJUT', closeStoryEvent, { col: 'green', s: 22 });
   }
+}
+/** Kartu pembuka bab. */
+export function babModal() {
+  const c = chapterOf(), it = INTRO[c - 1]; if (!it) { ui.modal = null; return; }
+  const x = 290, y = 120, w = 700, h = 460; panel(x, y, w, h);
+  T(`BAB ${c}`, x + w / 2, y + 70, { s: 20, a: 'center', c: '#7a5a3a', w: '700' });
+  T(chapterName(c).toUpperCase(), x + w / 2, y + 124, { s: 46, a: 'center', c: '#b87a14', stroke: '#fff3c8', sw: 3 });
+  const ls = wrapText(it.text, w - 100, 20, '600'); ls.forEach((l, i) => T(l, x + w / 2, y + 180 + i * 28, { s: 20, a: 'center', w: '600', c: '#3a210c' }));
+  const gy = y + 180 + ls.length * 28 + 24;
+  ctx.fillStyle = 'rgba(255,255,255,.55)'; rr(ctx, x + 40, gy, w - 80, 56, 10); ctx.fill();
+  T('TUJUAN', x + 56, gy + 22, { s: 12, w: '800', c: '#a05a1a' });
+  wrapText(it.goal, w - 120, 16, '700').forEach((l, i) => T(l, x + 56, gy + 42 + i * 20, { s: 16, w: '700', c: '#2a5a1a' }));
+  button(x + w / 2 - 110, y + h - 76, 220, 54, 'MULAI', () => { ui.modal = null; }, { col: 'green', s: 22 });
+}
+/** Daftar pencapaian. */
+export function achModal() {
+  const x = 150, y = 40, w = 980, h = 640; panel(x, y, w, h);
+  T('PENCAPAIAN', x + 36, y + 56, { s: 32, c: '#6b3a14' });
+  T(`${unlockedCount()}/${ACH.length} terbuka · tiap pencapaian memberi +25 XP`, x + 36, y + 84, { s: 14, w: '700', c: '#7a5a3a' });
+  closeBtn(x + w - 40, y + 40, () => { ui.modal = 'pause'; });
+  ACH.forEach((a, i) => {
+    const col = i % 2, row = Math.floor(i / 2), rx = x + 30 + col * 470, ry = y + 108 + row * 74, got = unlocked(a.id);
+    ctx.fillStyle = got ? 'rgba(120,200,110,.35)' : 'rgba(255,255,255,.5)'; rr(ctx, rx, ry, 450, 64, 10); ctx.fill(); ctx.strokeStyle = got ? '#5aa84a' : '#d6bf8a'; ctx.lineWidth = 2; ctx.stroke();
+    T(got ? '★' : '☆', rx + 28, ry + 42, { s: 30, a: 'center', c: got ? '#e0a010' : '#b8a888' });
+    T(a.name, rx + 56, ry + 26, { s: 17, c: got ? '#1f4a12' : '#6a5a4a' });
+    T(a.desc, rx + 56, ry + 48, { s: 13, w: '600', c: got ? '#2a6a1a' : '#8a7a6a' });
+  });
 }
 /** Epilog: akhir cerita utama (permainan tetap bisa dilanjutkan). */
 export function epilogModal() {
@@ -217,15 +256,16 @@ export function help() {
   button(x + w / 2 - 100, y + h - 74, 200, 50, 'MENGERTI', () => { ui.modal = G.screen === 'play' && G.running ? null : null; }, { col: 'green' });
 }
 export function pauseMenu() {
-  const x = 440, y = 100, w = 400, h = 520; panel(x, y, w, h);
+  const x = 440, y = 70, w = 400, h = 580; panel(x, y, w, h);
   T('JEDA', x + w / 2, y + 60, { s: 36, a: 'center', c: '#6b3a14' });
   button(x + 50, y + 90, w - 100, 52, 'LANJUT', () => { ui.modal = null; }, { col: 'green' });
   button(x + 50, y + 156, w - 100, 46, 'Suara: ' + (G.sound ? 'NYALA' : 'MATI'), () => { G.sound = !G.sound; save(); }, { col: 'blue', s: 16 });
   button(x + 50, y + 214, w - 100, 46, featureOn('auto') ? 'Kembalian otomatis: ' + (G.auto ? 'ON' : 'OFF') : `Kembalian otomatis: Level ${FEATURE_LVL.auto}`, () => { G.auto = !G.auto; save(); }, { col: G.auto ? 'green' : 'grey', s: 15, disabled: !featureOn('auto') });
   button(x + 50, y + 272, w - 100, 46, 'Mode santai (tanpa cicilan): ' + (story().easy ? 'ON' : 'OFF'), () => { story().easy = !story().easy; save(); }, { col: story().easy ? 'green' : 'grey', s: 14, tip: 'Cicilan utang ditiadakan. Kepercayaan & kejadian tetap jalan.' });
-  button(x + 50, y + 330, w - 100, 46, 'CARA MAIN', () => { ui.modal = 'help'; }, { col: 'wood', s: 16 });
-  button(x + 50, y + 388, w - 100, 46, 'MENU UTAMA', () => { save(); ui.modal = null; G.screen = 'title'; ui.hasSave = !!loadSave(); }, { col: 'red', s: 16 });
-  T('Kemajuan tersimpan tiap akhir hari.', x + w / 2, y + 470, { s: 13, a: 'center', c: '#7a5a3a', w: '600' });
+  button(x + 50, y + 330, w - 100, 46, `PENCAPAIAN ${unlockedCount()}/${ACH.length}`, () => { ui.modal = 'ach'; }, { col: 'yellow', tc: '#4a2a00', s: 16 });
+  button(x + 50, y + 388, w - 100, 46, 'CARA MAIN', () => { ui.modal = 'help'; }, { col: 'wood', s: 16 });
+  button(x + 50, y + 446, w - 100, 46, 'MENU UTAMA', () => { save(); ui.modal = null; G.screen = 'title'; ui.hasSave = !!loadSave(); }, { col: 'red', s: 16 });
+  T('Kemajuan tersimpan tiap akhir hari.', x + w / 2, y + 528, { s: 13, a: 'center', c: '#7a5a3a', w: '600' });
 }
 export function winModal() {
   const x = 340, y = 150, w = 600, h = 400; panel(x, y, w, h);
