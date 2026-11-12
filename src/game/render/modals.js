@@ -3,7 +3,7 @@ import { H, W, WIN_GOAL } from '../constants.js';
 import { BY, ITEMS } from '../data.js';
 import { ctx } from '../gfx.js';
 import { ico } from '../icons.js';
-import { catatan, chapterName, chapterOf, choiceOk, chooseEvent, closeStoryEvent, currentEvent, installment, orderBlocked, payDebt, story, trust } from '../logic/story.js';
+import { catatan, chapterName, chapterOf, choiceOk, chooseEvent, closeStoryEvent, currentEvent, installment, orderBlocked, payDebt, story, trust, epilog } from '../logic/story.js';
 import { EXPRESS_MIN, orderCost, packPrice, placeOrder, reorder, usePhone } from '../logic/actions.js';
 import { FEATURE_LVL, ITEM_LVL, MAX_LEVEL, UNLOCK_LEVELS, discountOf, etaOf, featureOn, itemOn, level, levelBonus, rankOf, unlocksAt, xpAt } from '../logic/level.js';
 import { nextDay } from '../logic/day.js';
@@ -21,6 +21,7 @@ export function drawModals() {
   else if (ui.modal === 'phone') phone();
   else if (ui.modal === 'level') levelModal();
   else if (ui.modal === 'event') eventModal();
+  else if (ui.modal === 'epilog') epilogModal();
   else if (ui.modal === 'summary') summary();
   else if (ui.modal === 'help') help();
   else if (ui.modal === 'pause') pauseMenu();
@@ -117,6 +118,17 @@ export function eventModal() {
     st.result.lines.forEach((t, i) => { const neg = /^−|−/.test(t) || /menunggak|mundur/.test(t); T(t, x + 44, ly + i * 24, { s: 16, w: '700', c: neg ? '#b3281e' : '#2a6a2a' }); });
     button(x + w / 2 - 110, y + h - 80, 220, 54, 'LANJUT', closeStoryEvent, { col: 'green', s: 22 });
   }
+}
+/** Epilog: akhir cerita utama (permainan tetap bisa dilanjutkan). */
+export function epilogModal() {
+  const ep = epilog(); if (!ep) { ui.modal = null; return; }
+  const x = 240, y = 60, w = 800, h = 600; panel(x, y, w, h);
+  T('EPILOG', x + w / 2, y + 50, { s: 16, a: 'center', c: '#7a5a3a', w: '700' });
+  T(ep.title, x + w / 2, y + 100, { s: 44, a: 'center', c: '#b87a14', stroke: '#fff3c8', sw: 3 });
+  let yy = y + 150;
+  ep.lines.forEach((l, i) => { const ls = wrapText(l, w - 100, i === 0 ? 20 : 17, '600'); ls.forEach(t => { T(t, x + 50, yy, { s: i === 0 ? 20 : 17, w: '600', c: i === 0 ? '#3a210c' : '#5a3a1a' }); yy += i === 0 ? 28 : 24; }); yy += 10; });
+  T(`Level ${level()} · Kepercayaan ${Math.round(trust())}/100 · Saldo ${rp(G.money)}`, x + w / 2, y + h - 110, { s: 15, a: 'center', c: '#7a5a3a', w: '700' });
+  button(x + w / 2 - 170, y + h - 84, 340, 56, 'LANJUT MAIN (MODE BEBAS)', () => { ui.modal = null; save(); }, { col: 'green', s: 18 });
 }
 /** Daftar yang dibuka tiap level. */
 export function levelModal() {

@@ -52,13 +52,16 @@ Karena badannya pendek, pelanggan mengangkat tangan ke samping kepala saat memba
 - **Kurir** berjalan masuk saat kiriman tiba, menunggu di samping kardus, lalu pergi setelah barang diterima.
 - **Serah-terima**: uang terbang dari tangan pelanggan ke penjaga, kantong/barang terbang balik ke pelanggan. Slot antrean berjarak ≈1 m supaya kepala tidak saling menutupi.
 
-## Cerita & tanggung jawab (tahap A)
+## Cerita & tanggung jawab (tahap A + B)
 Rancangan lengkap: `docs/STORY.md`. Yang sudah jalan:
 - **Utang ke Koh Awi** Rp 1.200.000, **cicilan tiap 3 hari** (Rp 90 rb di Bab 1, naik tiap bab; dibayar otomatis saat warung tutup bila kas cukup). Menunggak → bunga 5%, kepercayaan turun; 2× berturut-turut → pesanan stok ditahan. Bisa dicicil lebih awal lewat Buku Catatan (*Bayar utang +50rb*). *Mode santai* (menu Jeda) meniadakan cicilan.
 - **Kepercayaan warga** (0–100, bar tipis di bawah Reputasi): memengaruhi kesabaran pembeli (±12%) dan peluang kasbon dilunasi (45–85%). Naik dengan jujur & membantu; turun bila menolak, mengecewakan pembeli, atau menunggak.
 - **Kejadian harian dengan pilihan**: satu per hari (jam 11–19, saat tidak melayani). Bab 1–2 berurutan (Bang Jaka, kembalian, Koh Awi, Pak Haji; Bu Sri, Rani, Pak Darto, Bang Rizky), sisanya dari kolam acak. Akibat pilihan tampil langsung, dan **kabar lanjutan** datang di pagi hari berikutnya.
 - **Rekap malam**: status cicilan, kepercayaan, *Kabar kampung*, dan catatan Pak Haji per bab.
 - Bab mengikuti level: 1 (Lv1–2), 2 (Lv3–4), 3 (Lv5–6), 4 (Lv7), 5 (Lv8+). Konten ada di `src/game/story/events.js` (data murni), mesin di `src/game/logic/story.js`.
+- **Bab 3 Musim Hujan** (harga naik & menimbun, banjir & titipan warga, utang macet Pak Darto *bila kamu pernah mengutangkan*, turis vs pelanggan tetap, telepon Pak Haji yang berbeda bila utang sudah lunas), **Bab 4 Tamu Bertudung** (tiga kunjungan tengah malam: mantan pegawai Pak Haji menawarkan barang gelap — tolak, ambil, atau laporkan), **Bab 5 Pusat Kampung** (titik paket, lalu pilihan besar: *cabang* / *pusat layanan kampung* / *koperasi warga*, dan kedatangan Pak Haji yang berbeda menurut kepercayaanmu).
+- **Epilog** setelah kunjungan akhir Pak Haji: *Warung Kita* (kepercayaan ≥ 60 & utang lunas), *Juragan Untung* (kepercayaan < 45 & kas ≥ Rp 500 rb), atau *Bertahan*; ditambah baris untuk pilihan besar dan sisa utang. Setelah itu permainan lanjut sebagai mode bebas.
+- Sintaks data kejadian (`when`, `night`, `group`, `final`, `later`, `req`) dijelaskan di kepala `src/game/story/events.js`.
 - XP per level dinaikkan (`xpAt` = 100·(L−1)·L) supaya satu bab bertahan beberapa hari.
 
 ## Pembeli baru

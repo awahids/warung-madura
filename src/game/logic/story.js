@@ -3,7 +3,7 @@ import { BY } from '../data.js';
 import { G, ui } from '../state.js';
 import { rp, clamp, pick, rnd } from '../util.js';
 import { toast } from '../widgets.js';
-import { CATATAN, CHAPTERS, POOL, SCRIPT } from '../story/events.js';
+import { CATATAN, CHAPTERS, EPILOG, EPILOG_FLAG, POOL, SCRIPT } from '../story/events.js';
 import { addXp, level } from './level.js';
 
 /* ============================================================
@@ -18,7 +18,7 @@ const INTEREST = .05;               // bunga tunggakan
 
 export function initStory(day = 1) {
   return { debt: DEBT0, due: day + CYCLE, arrears: 0, hold: 0, trust: 50, easy: false, lunas: false,
-    done: [], recent: [], flags: {}, queue: [], kabar: [], cur: null, result: null, lastPay: null };
+    done: [], recent: [], flags: {}, queue: [], kabar: [], cur: null, result: null, lastPay: null, ending: null };
 }
 export const story = () => G.story || (G.story = initStory(G.day || 1));
 
@@ -89,20 +89,33 @@ function applyFx(fx = {}) {
 const ALL = [...SCRIPT, ...POOL];
 export const eventById = id => ALL.find(e => e.id === id) || null;
 
-/** Pilih kejadian hari ini: urutan bab dulu, lalu kolam acak (tanpa ulang dalam 4 kejadian terakhir). */
+/** Syarat tampil suatu kejadian (when): lunas, flag, noFlag, trustMin, trustMax. */
+export function eligible(ev) {
+  const w = ev.when; if (!w) return true; const s = story();
+  if (w.lunas !== undefined && !!s.lunas !== w.lunas) return false;
+  if (w.flag && !s.flags[w.flag]) return false;
+  if (w.noFlag && s.flags[w.noFlag]) return false;
+  if (w.trustMin !== undefined && s.trust < w.trustMin) return false;
+  if (w.trustMax !== undefined && s.trust > w.trustMax) return false;
+  return true;
+}
+/** Pilih kejadian hari ini: urutan bab dulu (yang syaratnya terpenuhi), lalu kolam acak (tanpa ulang dalam 4 terakhir). */
 export function pickEvent() {
   const s = story(), ch = chapterOf(), L = level();
-  const scripted = SCRIPT.find(e => e.ch <= ch && !s.done.includes(e.id));
+  const scripted = SCRIPT.find(e => e.ch <= ch && !s.done.includes(e.id) && eligible(e));
   if (scripted) return scripted;
-  const pool = POOL.filter(e => e.minLevel <= L && !s.recent.includes(e.id));
+  const pool = POOL.filter(e => e.minLevel <= L && !s.recent.includes(e.id) && eligible(e));
   return pool.length ? pick(pool) : null;
 }
-/** Jadwalkan satu kejadian cerita pada hari ini (dipanggil di startDay). */
-export function scheduleStory(events) { events.push({ k: 'story', t: rnd(11, 19), done: false }); }
+/** Jadwalkan satu kejadian cerita hari ini; kejadian malam muncul sekitar tengah malam. */
+export function scheduleStory(events) {
+  const ev = pickEvent(); if (!ev) return;
+  events.push({ k: 'story', id: ev.id, t: ev.night ? rnd(23.2, 24.8) : rnd(11, 19), done: false });
+}
 
 /** Buka dialog kejadian (dipanggil saat waktunya & tidak sedang melayani). */
-export function openStoryEvent() {
-  const ev = pickEvent(); if (!ev) return false;
+export function openStoryEvent(id) {
+  const ev = (id && eventById(id)) || pickEvent(); if (!ev) return false;
   const s = story(); s.cur = ev.id; s.result = null; ui.modal = 'event'; SFX.bell(); return true;
 }
 export const currentEvent = () => eventById(story().cur);
@@ -118,11 +131,29 @@ export function chooseEvent(i) {
   const lines = applyFx(c.fx);
   (c.later || []).forEach(l => s.queue.push({ day: G.day + l.days, ...l }));
   s.result = { text: c.res, lines }; s.kabar.push(c.res);
-  if (SCRIPT.includes(ev)) s.done.push(ev.id);
+  if (SCRIPT.includes(ev)) { s.done.push(ev.id); if (ev.group) SCRIPT.filter(e => e.group === ev.group).forEach(e => { if (!s.done.includes(e.id)) s.done.push(e.id); }); }
+  if (ev.final) s.ending = endingId();
   s.recent.push(ev.id); if (s.recent.length > 4) s.recent.shift();
   SFX.click();
 }
-export function closeStoryEvent() { const s = story(); s.cur = null; s.result = null; if (ui.modal === 'event') ui.modal = null; }
+/** Epilog menurut keadaan akhir: dipercaya / untung / bertahan. */
+export function endingId() {
+  const s = story();
+  if (s.trust >= 60 && s.lunas) return 'dipercaya';
+  if (s.trust < 45 && G.money >= 500000) return 'untung';
+  return 'bertahan';
+}
+export function epilog() {
+  const s = story(), id = s.ending; if (!id) return null;
+  const lines = [EPILOG[id].text];
+  for (const f of ['cabang', 'layanan', 'koperasi']) if (s.flags[f]) lines.push(EPILOG_FLAG[f]);
+  lines.push(s.lunas ? 'Utang ke Koh Awi: lunas.' : `Utang ke Koh Awi masih tersisa ${rp(s.debt)}.`);
+  return { title: EPILOG[id].title, lines, id };
+}
+export function closeStoryEvent() {
+  const s = story(), ev = currentEvent(); s.cur = null; s.result = null;
+  if (ui.modal === 'event') ui.modal = ev && ev.final && s.ending ? 'epilog' : null;
+}
 
 /** Awal hari: terapkan kabar lanjutan yang jatuh tempo dan kosongkan kabar kemarin. */
 export function dawnStory() {

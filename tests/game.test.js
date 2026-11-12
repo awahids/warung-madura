@@ -282,3 +282,61 @@ describe('cerita: utang, kepercayaan, kejadian', () => {
     expect(loadSave().story.trust).toBe(57); expect(loadSave().story.cur).toBeNull(); vi.unstubAllGlobals();
   });
 });
+
+describe('cerita Bab 3–5 dan epilog', () => {
+  beforeEach(() => { setG(freshState(G)); ui.modal = null; startDay(); });
+  const play = async (S, E, max = 20) => {   // memainkan kejadian bab berurutan, selalu memilih opsi pertama yang bisa dipilih
+    const seq = [];
+    for (let i = 0; i < max; i++) {
+      const ev = S.pickEvent(); if (!ev || !E.SCRIPT.includes(ev)) break;
+      seq.push(ev.id); S.openStoryEvent(ev.id); S.chooseEvent(ev.choices.findIndex(c => S.choiceOk(c))); S.closeStoryEvent();
+    }
+    return seq;
+  };
+
+  it('urutan Bab 3 → 5; kejadian bersyarat hanya muncul bila syaratnya terpenuhi', async () => {
+    const S = await import('../src/game/logic/story'), E = await import('../src/game/story/events'), L = await import('../src/game/logic/level');
+    L.addXp(L.xpAt(8)); G.money = 1e6; S.story().done = E.SCRIPT.filter(e => e.ch <= 2).map(e => e.id);
+    const seq = await play(S, E);
+    expect(seq.slice(0, 4)).toEqual(['hujan_harga', 'banjir_titip', 'turis_hujan', 'haji_hujan_belum']);   // tanpa utang Pak Darto & belum lunas
+    expect(seq).not.toContain('darto_macet'); expect(seq).not.toContain('haji_hujan_lunas');
+    expect(seq.slice(4, 7)).toEqual(['tamu_1', 'tamu_2', 'tamu_3']);
+    expect(seq.slice(7, 9)).toEqual(['rt_titik', 'pilihan_besar']);
+    expect(seq).toHaveLength(10); expect(seq[9]).toMatch(/^haji_akhir_/);
+  });
+
+  it('flag utang Pak Darto membuka kejadian macet; lunas memilih sambutan Pak Haji yang lain', async () => {
+    const S = await import('../src/game/logic/story'), E = await import('../src/game/story/events'), L = await import('../src/game/logic/level');
+    L.addXp(L.xpAt(5)); S.story().done = E.SCRIPT.filter(e => e.ch <= 2).map(e => e.id); S.story().flags.darto_utang = true; S.story().lunas = true;
+    const seq = await play(S, E, 8);
+    expect(seq).toContain('darto_macet'); expect(seq).toContain('haji_hujan_lunas'); expect(seq).not.toContain('haji_hujan_belum');
+  });
+
+  it('kejadian tamu bertudung dijadwalkan tengah malam', async () => {
+    const S = await import('../src/game/logic/story'), E = await import('../src/game/story/events'), L = await import('../src/game/logic/level');
+    L.addXp(L.xpAt(7)); S.story().done = E.SCRIPT.filter(e => e.ch <= 3).map(e => e.id);
+    const ev = []; S.scheduleStory(ev); expect(ev[0].id).toBe('tamu_1'); expect(ev[0].t).toBeGreaterThanOrEqual(23.2);
+    S.story().done.push('tamu_1', 'tamu_2', 'tamu_3'); const ev2 = []; S.scheduleStory(ev2); expect(ev2[0].t).toBeLessThan(19);   // kejadian siang / kolam acak
+  });
+
+  it('epilog: dipercaya / untung / bertahan', async () => {
+    const S = await import('../src/game/logic/story');
+    S.story().trust = 70; S.story().lunas = true; expect(S.endingId()).toBe('dipercaya');
+    S.story().lunas = false; G.money = 100000; expect(S.endingId()).toBe('bertahan');
+    S.story().trust = 30; G.money = 800000; expect(S.endingId()).toBe('untung');
+    S.story().trust = 30; G.money = 1000; expect(S.endingId()).toBe('bertahan');
+  });
+
+  it('kejadian penutup membuka epilog (sekali) dan menyimpan pilihan besar', async () => {
+    const S = await import('../src/game/logic/story'), E = await import('../src/game/story/events'), L = await import('../src/game/logic/level');
+    L.addXp(L.xpAt(8)); G.money = 1e6; S.story().done = E.SCRIPT.filter(e => e.id !== 'haji_akhir_tinggi' && e.id !== 'haji_akhir_biasa' && e.id !== 'haji_akhir_rendah' && e.id !== 'pilihan_besar').map(e => e.id);
+    S.story().trust = 80; S.story().lunas = true;
+    S.openStoryEvent('pilihan_besar'); S.chooseEvent(1); S.closeStoryEvent();
+    expect(S.story().flags.layanan).toBe(true);
+    const fin = S.pickEvent(); expect(fin.id).toBe('haji_akhir_tinggi');
+    S.openStoryEvent(fin.id); S.chooseEvent(0); S.closeStoryEvent();
+    expect(ui.modal).toBe('epilog'); expect(S.story().ending).toBe('dipercaya');
+    const ep = S.epilog(); expect(ep.title).toBe('WARUNG KITA'); expect(ep.lines.join(' ')).toContain('pulsa'); expect(ep.lines.join(' ')).toContain('lunas');
+    expect(['haji_akhir_biasa', 'haji_akhir_rendah']).not.toContain(S.pickEvent() && S.pickEvent().id);
+  });
+});

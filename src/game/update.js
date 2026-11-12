@@ -58,7 +58,7 @@ export function update(dt) {
   }
   // event
   for (const e of G.events) if (!e.done && G.h >= e.t && (e.k === 'story' || G.cust.length < 3)) {
-    if (e.k === 'story') { if (!G.cust.some(c => c.state === 'wait') && !ui.modal) { e.done = true; openStoryEvent(); } continue; }   // tunggu sampai tidak sedang melayani
+    if (e.k === 'story') { if (!G.cust.some(c => c.state === 'wait') && !ui.modal) { e.done = true; openStoryEvent(e.id); } continue; }   // tunggu sampai tidak sedang melayani
     e.done = true;
     if (e.k === 'kasbon') spawnCustomer(pick(['ibu', 'cowok', 'pemuda'].filter(typeOn)), 'kasbon');
     else { spawnCustomer('hoodie'); toast('Seseorang berhoodie dan bermasker muncul di tengah malam…', '#cfd8ff'); SFX.chirp(); }

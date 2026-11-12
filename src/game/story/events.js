@@ -3,6 +3,8 @@
    Efek (fx): money, trust, rep, energy, xp, stock {id: ±n}, flag, debt (±), dueShift (hari), kasbon {who, amount}
    later: [{ days, text, fx, chance?, elseText?, elseFx? }] — kabar lanjutan di pagi hari berikutnya
    req: { money, stock } — pilihan dinonaktifkan bila tidak terpenuhi
+   Kejadian: when { lunas, flag, noFlag, trustMin, trustMax } = syarat tampil; night = muncul tengah malam;
+             group + final = hanya satu dari grup yang tampil; final menutup cerita (epilog).
    ============================================================ */
 
 export const CHAPTERS = ['Warisan', 'Kasbon', 'Musim Hujan', 'Tamu Bertudung', 'Pusat Kampung'];
@@ -47,7 +49,7 @@ export const SCRIPT = [
     { t: 'Minta dilunasi besok', fx: {}, res: 'Rani mengangguk serius. "Pasti, Kak!"', later: [{ days: 1, text: 'Rani datang dengan bangga membawa Rp 1.000.', fx: { money: 1000, trust: 1 } }] },
   ] },
   { id: 'darto_pesan', ch: 2, who: 'Pak Darto', text: 'Pak Darto memesan 12 air mineral dan 8 mie cup untuk pekerja proyek (Rp 88.000). "Bayarnya akhir minggu ya, Dek. Proyek lagi seret."', choices: [
-    { t: 'Terima, bayar akhir minggu', fx: { stock: { aqua: -12, mie: -8 }, trust: 1 }, res: 'Pak Darto menepuk pundakmu. "Nanti saya ingat, Dek."', req: { stock: { aqua: 12, mie: 8 } },
+    { t: 'Terima, bayar akhir minggu', fx: { stock: { aqua: -12, mie: -8 }, trust: 1, flag: 'darto_utang' }, res: 'Pak Darto menepuk pundakmu. "Nanti saya ingat, Dek."', req: { stock: { aqua: 12, mie: 8 } },
       later: [{ days: 3, chance: .7, text: 'Pak Darto melunasi tepat waktu dan menambah pesanan.', fx: { money: 88000, trust: 2 }, elseText: 'Pak Darto minta tunggu seminggu lagi. Kamu menahan napas.', elseFx: { trust: -1 } }] },
     { t: 'Minta uang muka separuh', fx: { stock: { aqua: -12, mie: -8 }, money: 44000 }, res: 'Pak Darto setuju. "Adil, Dek."', req: { stock: { aqua: 12, mie: 8 } },
       later: [{ days: 3, text: 'Pak Darto melunasi sisanya.', fx: { money: 44000, trust: 1 } }] },
@@ -58,6 +60,77 @@ export const SCRIPT = [
     { t: 'Ajak ngobrol dulu', fx: { energy: -5, trust: 3 }, res: 'Ternyata ia baru kehilangan pekerjaan. Kamu menyarankan melamar di proyek Pak Darto.',
       later: [{ days: 4, text: 'Rizky kini bekerja di proyek Pak Darto dan mampir membayar utang rokoknya.', fx: { money: 10000, trust: 2 } }] },
     { t: 'Tolak halus', fx: { trust: -1 }, res: '"Oh... iya, Bang." Ia pergi tanpa menoleh.' },
+  ] },
+
+  /* ---------------- Bab 3 — Musim Hujan ---------------- */
+  { id: 'hujan_harga', ch: 3, who: 'Koh Awi (telepon)', text: '"Hujan dua hari, kurir telat, harga gas dan galon di grosir naik. Saya tidak bisa bantu banyak. Warung-warung lain mulai menaikkan harga jual, kau mau ikut?"', choices: [
+    { t: 'Tahan harga, kasihan warga', fx: { money: -30000, trust: 3 }, res: 'Keuntunganmu menipis, tapi warga mengingat siapa yang tidak mencekik mereka.' },
+    { t: 'Naikkan sedikit', fx: { money: 20000, trust: -2 }, res: 'Cukup untuk menutup selisih. Ada yang mengeluh, ada yang maklum.' },
+    { t: 'Timbun stok, jual saat langka', fx: { money: 40000, trust: -5, flag: 'menimbun' }, res: 'Rak di belakang penuh. Kamu menutupinya dengan kain.',
+      later: [{ days: 2, chance: .5, text: 'Warga tahu kamu menimbun. Orang-orang mulai membeli di warung seberang.', fx: { trust: -5, rep: -5 } }] },
+  ] },
+  { id: 'banjir_titip', ch: 3, who: 'Pak RT', text: 'Air masuk ke rumah-rumah di gang bawah. Pak RT datang, basah kuyup. "Dek, boleh warga menitip barang di warungmu sampai air surut? Lantai warungmu lebih tinggi."', choices: [
+    { t: 'Boleh, silakan', fx: { energy: -10, trust: 4, xp: 20 }, res: 'Sebagian rak berubah jadi gudang darurat. Repot, tapi gang jadi saling bantu.',
+      later: [{ days: 2, text: 'Warga menitipkan kue-kue sebagai ucapan terima kasih.', fx: { energy: 10, trust: 2 } }] },
+    { t: 'Maaf, warung juga kebanjiran', fx: { trust: -2 }, res: 'Pak RT mengangguk. "Tidak apa-apa, Dek."' },
+  ] },
+  { id: 'darto_macet', ch: 3, when: { flag: 'darto_utang' }, who: 'Pak Darto', text: 'Pak Darto datang dengan topi di tangan. "Dek, proyek dibatalkan karena hujan. Utang Rp 88.000 itu belum bisa saya bayar... maaf sekali."', choices: [
+    { t: 'Ikhlaskan, semoga dapat proyek lagi', fx: { trust: 4 }, res: 'Matanya berkaca-kaca. "Saya tidak akan lupa, Dek."', later: [{ days: 5, text: 'Pak Darto dapat proyek baru dan membayar utangnya penuh, plus uang kopi.', fx: { money: 95000, trust: 2 } }] },
+    { t: 'Beri tempo dua minggu', fx: {}, res: '"Terima kasih, Dek. Dua minggu, saya janji."', later: [{ days: 6, chance: .6, text: 'Pak Darto melunasi tepat waktu.', fx: { money: 88000, trust: 1 }, elseText: 'Pak Darto minta waktu lagi. Kamu menghela napas.', elseFx: {} }] },
+    { t: 'Tagih sekarang', fx: { trust: -4 }, res: 'Ia membayar separuh dari tabungan terakhir. Suasana jadi dingin.', req: {}, later: [{ days: 0, text: 'Pak Darto membayar Rp 44.000 dengan wajah murung.', fx: { money: 44000 } }] },
+  ] },
+  { id: 'turis_hujan', ch: 3, who: 'Mister Tom', text: 'Hujan deras. Mister Tom dan teman-temannya berteduh di teras dan ingin membeli banyak minuman. Di dalam, Bu Sri dan pelanggan tetap sudah menunggu cukup lama.', choices: [
+    { t: 'Layani turis dulu (uang besar)', fx: { money: 60000, trust: -2 }, res: 'Mereka senang dan memberi tip. Pelanggan tetap mengerutkan kening.' },
+    { t: 'Pelanggan tetap dulu', fx: { money: 10000, trust: 3 }, res: 'Bu Sri tersenyum. Mister Tom menunggu sambil memotret hujan.' },
+    { t: 'Bagi dua, layani cepat', fx: { money: 35000, energy: -10, trust: 1 }, res: 'Kamu kewalahan, tapi semua puas. Mister Tom memuji: "Very fast!"' },
+  ] },
+  { id: 'haji_hujan_lunas', ch: 3, group: 'haji3', when: { lunas: true }, who: 'Pak Haji (telepon)', text: 'Suara Pak Haji lebih kuat dari biasanya. "Koh Awi cerita utangmu lunas. Aku bangga, Nak. Sekarang uangmu milikmu, dan tanggung jawabmu untuk warga."', choices: [
+    { t: '"Terima kasih, Pak. Saya masih belajar."', fx: { trust: 3, xp: 40 }, res: '"Belajar itu tidak ada habisnya. Teruskan."' },
+  ] },
+  { id: 'haji_hujan_belum', ch: 3, group: 'haji3', when: { lunas: false }, who: 'Pak Haji (telepon)', text: 'Pak Haji menelepon di tengah hujan. "Cicilan jalan terus, Nak? Tidak apa-apa pelan-pelan. Yang penting kau tidak kabur dari janji."', choices: [
+    { t: '"Saya janji, Pak. Pelan tapi pasti."', fx: { trust: 2, xp: 30 }, res: '"Itu cukup untukku."' },
+    { t: '"Rasanya berat, Pak..."', fx: { energy: 15 }, res: '"Berat itu wajar. Tidurlah dulu."' },
+  ] },
+
+  /* ---------------- Bab 4 — Tamu Bertudung (tengah malam) ---------------- */
+  { id: 'tamu_1', ch: 4, night: true, who: 'Tamu bertudung', text: 'Tengah malam. Sosok bertudung berdiri lama di depan warung sebelum masuk. Suaranya pelan. "Saya cuma butuh air dan tempat duduk sebentar. Tidak akan lama."', choices: [
+    { t: 'Persilakan duduk, beri air', fx: { stock: { aqua: -1 }, trust: 2, flag: 'tamu_ramah' }, res: 'Tangannya gemetar saat menerima gelas. "Terima kasih. Sudah lama tidak ada yang bersikap begini."' },
+    { t: 'Layani seperti pembeli biasa', fx: {}, res: 'Ia membayar pas, lalu duduk di sudut tanpa bicara.' },
+    { t: 'Curiga, tanya macam-macam', fx: { trust: -1, flag: 'tamu_curiga' }, res: 'Ia menunduk makin dalam. "Maaf mengganggu," lalu pergi.' },
+  ] },
+  { id: 'tamu_2', ch: 4, night: true, who: 'Tamu bertudung', text: 'Sosok itu kembali. Kali ini tudungnya dibuka. "Dulu saya bekerja di warung ini untuk Pak Haji. Saya pernah salah besar. Saya hanya ingin melihat tempat ini lagi."', choices: [
+    { t: 'Dengarkan ceritanya', fx: { energy: -10, trust: 2, flag: 'tamu_cerita' }, res: 'Ia pernah mengambil uang kas saat ibunya sakit, lalu dipecat. Bertahun-tahun ia menyesal.' },
+    { t: 'Telepon Pak Haji', fx: { xp: 10, flag: 'tamu_telpon' }, res: 'Pak Haji menjawab pelan: "Biarkan dia bicara. Aku sudah lama memaafkannya."' },
+    { t: 'Minta ia pergi', fx: { trust: -2, flag: 'tamu_usir' }, res: 'Ia mengangguk tanpa membela diri, lalu hilang di ujung gang.' },
+  ] },
+  { id: 'tamu_3', ch: 4, night: true, who: 'Tamu bertudung', text: 'Ia berbisik. "Saya punya relasi: rokok murah tanpa cukai dan barang sisa ekspor. Untungmu dua kali lipat, kau tidak perlu tahu asalnya. Anggap ini cara saya membalas budi."', choices: [
+    { t: 'Tolak tegas, tawarkan kerja jujur', fx: { trust: 4, xp: 30, flag: 'tamu_jujur' }, res: '"Kau mirip Pak Haji," katanya lirih, hampir tersenyum.',
+      later: [{ days: 2, text: 'Tamu itu kembali dan membantu menyapu teras serta menata rak tanpa diminta.', fx: { energy: 15, trust: 2 } }] },
+    { t: 'Ambil tawarannya', fx: { money: 150000, trust: -8, flag: 'tamu_gelap' }, res: 'Dus-dus tanpa merek menumpuk di belakang. Kamu berusaha tidak memikirkannya.',
+      later: [{ days: 2, chance: .6, text: 'Petugas datang menanyakan asal barang. Kamu terpaksa membuang sebagian dan membayar denda.', fx: { money: -60000, trust: -5, rep: -10 } }] },
+    { t: 'Laporkan ke RT', fx: { trust: -1, xp: 10, flag: 'tamu_lapor' }, res: 'Pak RT berterima kasih. Tamu itu tidak pernah kembali, dan kamu tidak yakin itu langkah yang benar.' },
+  ] },
+
+  /* ---------------- Bab 5 — Pusat Kampung ---------------- */
+  { id: 'rt_titik', ch: 5, who: 'Pak RT', text: 'Pak RT datang membawa tumpukan paket warga. "Dek, kurir sering salah alamat. Bolehkah warungmu jadi titik ambil paket kampung?"', choices: [
+    { t: 'Boleh, saya jagakan', fx: { energy: -10, trust: 4, flag: 'titik_paket' }, res: 'Rak belakang berubah jadi gudang kecil.', later: [{ days: 1, text: 'Paket mulai menumpuk. Banyak warga yang mampir sambil membeli minum.', fx: { money: 20000, rep: 3 } }] },
+    { t: 'Maaf, ruangan sempit', fx: { trust: -1 }, res: 'Pak RT mencari tempat lain.' },
+  ] },
+  { id: 'pilihan_besar', ch: 5, who: 'Mas Dimas', text: 'Mas Dimas datang membawa catatan. "Warungmu sudah dikenal. Ada tiga jalan: buka cabang di jalan besar, jadikan warung ini pusat layanan kampung, atau serahkan ke koperasi supaya semua warga ikut memiliki. Semuanya ada harganya."', choices: [
+    { t: 'Buka cabang di jalan besar (Rp 250.000)', fx: { money: -250000, xp: 50, flag: 'cabang' }, res: 'Cabang berdiri. Papan nama baru, wajah-wajah asing, dan kamu mulai jarang di warung lama.', req: { money: 250000 },
+      later: [{ days: 3, text: 'Cabang ramai. Uang masuk, tapi pelanggan lama bertanya mengapa kamu jarang terlihat.', fx: { money: 200000, trust: -3 } }] },
+    { t: 'Jadi pusat layanan kampung', fx: { trust: 6, xp: 60, flag: 'layanan' }, res: 'Pulsa, token listrik, dan titip paket resmi dilayani. Warga datang walau tidak belanja.',
+      later: [{ days: 2, text: 'Antrean pelayanan tiap pagi membuat warung jadi tempat bertemu.', fx: { money: 15000, trust: 2, rep: 5 } }] },
+    { t: 'Serahkan ke koperasi warga (Rp 100.000)', fx: { money: -100000, trust: 10, xp: 40, flag: 'koperasi' }, res: 'Warga mendirikan koperasi. Kamu tetap penjaga, tapi warung kini milik bersama.', req: { money: 100000 } },
+  ] },
+  { id: 'haji_akhir_tinggi', ch: 5, group: 'akhir', final: true, when: { trustMin: 60 }, who: 'Pak Haji', text: 'Pak Haji datang langsung, berjalan pelan dengan tongkat. Warga di gang menyapanya satu per satu. Ia duduk di bangku teras. "Nak, aku tidak perlu bertanya apa-apa. Aku sudah dengar dari mereka."', choices: [
+    { t: 'Menyambutnya di teras', fx: { xp: 100 }, res: 'Kalian duduk berdampingan sambil melihat gang yang ramai.' },
+  ] },
+  { id: 'haji_akhir_biasa', ch: 5, group: 'akhir', final: true, when: { trustMin: 40, trustMax: 59.99 }, who: 'Pak Haji', text: 'Pak Haji datang, melihat-lihat rak, mengangguk-angguk. "Tidak buruk, Nak. Ada yang bagus, ada yang bisa lebih baik. Warung ini masih punya jalan panjang."', choices: [
+    { t: 'Menerima nasihatnya', fx: { xp: 80 }, res: 'Ia menepuk pundakmu seperti dulu.' },
+  ] },
+  { id: 'haji_akhir_rendah', ch: 5, group: 'akhir', final: true, when: { trustMax: 39.99 }, who: 'Pak Haji', text: 'Pak Haji datang. Tidak ada yang menyapanya di gang. Ia menatap pembukuanmu lama sekali. "Angkanya bagus, Nak. Aku hanya tidak yakin siapa yang tersenyum di dalamnya."', choices: [
+    { t: 'Menunduk dan mendengarkan', fx: { xp: 60 }, res: 'Kamu tidak bisa membantah. Ia benar.' },
   ] },
 ];
 
@@ -92,3 +165,11 @@ export const POOL = [
     { t: 'Biarkan, nanti juga sembuh', fx: { trust: -1 }, res: 'Kamu berharap yang terbaik.' },
   ] },
 ];
+
+/** Epilog: ditentukan oleh kepercayaan, utang, dan uang. */
+export const EPILOG = {
+  dipercaya: { title: 'WARUNG KITA', text: 'Utang ke Koh Awi lunas. Lebih penting lagi, tidak ada satu pun kasbon yang membuatmu malu bertemu orangnya. Warga menyebut tempatmu "warung kita". Pak Haji duduk di bangku teras sambil tersenyum: "Nah. Begini maksud amanahku."' },
+  untung:    { title: 'JURAGAN UNTUNG', text: 'Uangmu banyak dan terus bertambah. Tapi gang terasa lebih sepi dari dulu; warga berpikir dua kali sebelum mampir. Kamu kaya, dan belajar bahwa itu belum tentu sama dengan dipercaya.' },
+  bertahan:  { title: 'BERTAHAN', text: 'Warung tetap buka tiap pagi. Tidak mewah, tidak sepi. Ada hari yang berat, ada hari yang hangat. Pak Haji berkata: "Warung yang bertahan itu sudah separuh jalan. Sisanya, kamu yang tentukan."' },
+};
+export const EPILOG_FLAG = { cabang: 'Cabang di jalan besar sudah berdiri.', layanan: 'Warungmu kini melayani pulsa, token listrik, dan titip paket.', koperasi: 'Warung berjalan sebagai koperasi warga; keuntungan dibagi bersama.' };
