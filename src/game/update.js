@@ -2,6 +2,10 @@ import { SFX } from './audio.js';
 import { DAY_END, DAY_START, HOUR_SEC, W } from './constants.js';
 import { RATE } from './data.js';
 import { angryLeave, checkMissions, spawnCustomer } from './logic/customers.js';
+import { typeOn } from './logic/level.js';
+import { openChapterIntro, openStoryEvent } from './logic/story.js';
+import { hasRole } from './logic/regulars.js';
+import { receiveDelivery } from './logic/actions.js';
 import { endDay, finishClose, isRain, openShop } from './logic/day.js';
 import { G, fx, ui } from './state.js';
 import { clamp, lerp, pick, rnd } from './util.js';
@@ -42,7 +46,7 @@ export function update(dt) {
 
   // waktu
   const dh = dt / HOUR_SEC; G.h += dh; G.abs += dh * 60;
-  G.energy -= dh * (G.h >= 23 ? 5.4 : 4);
+  G.energy -= dh * (G.h >= 23 ? 5.4 : 4) * (hasRole('penjaga') ? .65 : 1);
 
   // spawn
   const ri0 = clamp(Math.floor(G.h) - DAY_START, 0, RATE.length - 1);
@@ -55,9 +59,11 @@ export function update(dt) {
     else if (Math.random() < p || G.idle > 9) { if (spawnCustomer()) { G.spawnCd = 1.5; G.idle = 0; } }
   }
   // event
-  for (const e of G.events) if (!e.done && G.h >= e.t && G.cust.length < 3) {
+  for (const e of G.events) if (!e.done && G.h >= e.t && (e.k === 'story' || e.k === 'bab' || G.cust.length < 3)) {
+    if (e.k === 'bab') { if (!ui.modal) { e.done = true; openChapterIntro(); } continue; }
+    if (e.k === 'story') { if (!G.cust.some(c => c.state === 'wait') && !ui.modal) { e.done = true; openStoryEvent(e.id); } continue; }   // tunggu sampai tidak sedang melayani
     e.done = true;
-    if (e.k === 'kasbon') spawnCustomer(pick(['ibu', 'cowok', 'pemuda']), 'kasbon');
+    if (e.k === 'kasbon') spawnCustomer(pick(['ibu', 'cowok', 'pemuda'].filter(typeOn)), 'kasbon');
     else { spawnCustomer('hoodie'); toast('Seseorang berhoodie dan bermasker muncul di tengah malam…', '#cfd8ff'); SFX.chirp(); }
   }
   // kesabaran
@@ -69,7 +75,8 @@ export function update(dt) {
   }
   // kurir
   const d = G.deliveries.find(x => G.abs >= x.eta);
-  if (d && !d.notified) { d.notified = true; SFX.bell(); toast('Kurir datang! Klik kardus di kiri bawah.', '#cfe8ff'); }
+  if (d && hasRole('kurir')) { SFX.bell(); toast('Kurir langganan menerima kiriman.', '#cfe8ff'); receiveDelivery(); }
+  else if (d && !d.notified) { d.notified = true; SFX.bell(); toast('Kurir datang! Klik kardus di kiri bawah.', '#cfe8ff'); }
   checkMissions();
   if (G.energy <= 0) { toast('Kamu pingsan kecapekan…', '#ffd0d0'); endDay('faint'); }
   else if (G.h >= DAY_END) endDay('normal');

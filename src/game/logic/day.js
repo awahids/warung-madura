@@ -2,6 +2,11 @@ import { SFX } from '../audio.js';
 import { DAY_START } from '../constants.js';
 import { BY } from '../data.js';
 import { returnTray, sendAway } from './customers.js';
+import { featureOn, itemOn, typeOn } from './level.js';
+import { checkAchievements } from './achievements.js';
+import { expireStock, reconcileAll } from './freshness.js';
+import { dawnStaff, payWages } from './staff.js';
+import { changeTrust, dawnStory, repayChance, scheduleStory, settleInstallment } from './story.js';
 import { save } from '../persist.js';
 import { G, ui } from '../state.js';
 import { clamp, pick, ri, rnd, rp } from '../util.js';
@@ -15,27 +20,33 @@ export function startDay(loaded) {
   G.door = 0; G.doorState = 'closed'; G.running = false; G.closing = false;
   G.cust = []; G.leaving = []; G.tray = {}; G.promo = false; G.spawnCd = 3; G.idle = 0; G.cart = {};
   G.rain = Math.random() < .32 ? { from: rnd(8, 17), len: rnd(1.5, 3.2) } : null;
-  G.stats = { served: 0, revenue: 0, profit: 0, spent: 0, tips: 0, left: 0, sold: {}, kasbonNew: 0, kasbonPaid: 0, bonus: 0 };
+  G.stats = { waste: 0, xp: 0, served: 0, revenue: 0, profit: 0, spent: 0, tips: 0, left: 0, sold: {}, kasbonNew: 0, kasbonPaid: 0, bonus: 0 };
   G.missions = genMissions();
-  G.events = [{ k: 'kasbon', t: rnd(10, 21), done: false }];
-  if (G.day >= 2 || Math.random() < .5) G.events.push({ k: 'mystery', t: rnd(23.3, 24.8), done: false });
+  G.events = [];
+  if (featureOn('kasbon')) G.events.push({ k: 'kasbon', t: rnd(10, 21), done: false });
+  if (typeOn('hoodie') && (G.day >= 2 || Math.random() < .5)) G.events.push({ k: 'mystery', t: rnd(23.3, 24.8), done: false });
+  scheduleStory(G.events);
   // kasbon pagi
   G.morning = [];
   if (G.day > 1 && !loaded) {
     const keep = [];
     for (const d of G.debts) {
       const age = G.day - d.day;
-      if (Math.random() < .65) { G.money += d.amount; G.stats.kasbonPaid += d.amount; G.morning.push(`${d.who} bayar kasbon ${rp(d.amount)}`); }
-      else if (age >= 3) G.morning.push(`Kasbon ${d.who} ${rp(d.amount)} macet — diikhlaskan`);
+      if (Math.random() < repayChance()) { G.money += d.amount; changeTrust(.5); G.stats.kasbonPaid += d.amount; G.morning.push(`${d.who} bayar kasbon ${rp(d.amount)}`); }
+      else if (age >= 3) { changeTrust(-1); G.morning.push(`Kasbon ${d.who} ${rp(d.amount)} macet — diikhlaskan`); }
       else keep.push(d);
     }
     G.debts = keep;
   }
+  dawnStory();
+  if (G.day > 1 && !loaded) expireStock().forEach(t => G.story.kabar.push(t));
+  reconcileAll();   // catat umur stok yang ada sejak awal hari ini
+  if (G.day > 1 && !loaded) dawnStaff();
   save();
 }
 export function genMissions() {
   const n = clamp(4 + Math.floor(G.day * 1.2), 5, 12);
-  const itemPool = ['kopi', 'rokok', 'aqua', 'mie', 'bensin', 'kerupuk', 'snack', 'cola'];
+  const itemPool = ['kopi', 'rokok', 'aqua', 'mie', 'bensin', 'kerupuk', 'snack', 'cola'].filter(itemOn);
   const id = pick(itemPool), cnt = id === 'bensin' ? ri(2, 4) : ri(4, 8);
   const rev = Math.round((120000 + G.day * 25000) / 10000) * 10000;
   return [
@@ -63,6 +74,7 @@ export function endDay(reason) {
 }
 export function finishClose() {
   G.doorState = 'closed'; G.door = 0; G.bonusMissions = 0;
+  payWages(); settleInstallment(); checkAchievements();
   for (const m of G.missions) if (missionVal(m) >= m.target) { G.bonusMissions++; }
   G.stats.bonus = G.bonusMissions * 20000; G.money += G.stats.bonus;
   ui.modal = 'summary'; save();

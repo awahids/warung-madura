@@ -2,8 +2,10 @@ import { SFX } from '../audio.js';
 import { HUD_H, W } from '../constants.js';
 import { ctx } from '../gfx.js';
 import { isRain, missionVal } from '../logic/day.js';
+import { level, progress, rankOf } from '../logic/level.js';
+import { story, trust } from '../logic/story.js';
 import { save } from '../persist.js';
-import { SP } from '../sprites.js';
+import { SP, hit } from '../sprites.js';
 import { G, ui } from '../state.js';
 import { T, rp, rr, wrapText } from '../util.js';
 
@@ -36,6 +38,21 @@ export function drawHUD() {
     ctx.fillStyle = '#1a3a0a'; ctx.fillRect(cx - 5, cy - 4, 3, 4); ctx.fillRect(cx + 3, cy - 4, 3, 4);
     ctx.beginPath(); ctx.arc(cx, cy + 1, 6, .15 * Math.PI, .85 * Math.PI); ctx.stroke();
   });
+  // kepercayaan warga (bar tipis di bawah reputasi) + utang
+  { const tv = trust(); ctx.fillStyle = 'rgba(0,0,0,.5)'; rr(ctx, 730, 45, 150, 7, 3); ctx.fill();
+    ctx.fillStyle = tv >= 60 ? '#6fb6ff' : tv >= 35 ? '#e0b030' : '#d6483a'; rr(ctx, 730, 45, Math.max(5, 150 * tv / 100), 7, 3); ctx.fill();
+    T(`PERCAYA ${Math.round(tv)}`, 726, 52, { s: 9, a: 'right', c: '#f3d9a4' });
+    hit(700, 42, 180, 14, () => { }, 'Kepercayaan warga — naik bila jujur & membantu, turun bila menolak atau menunggak');
+    const st = story(), dt = st.easy ? 'mode santai' : st.lunas ? 'utang lunas' : `utang ${(st.debt / 1e6).toFixed(2).replace('.', ',')}jt · cicil H${st.due}`;
+    T(dt, 232, 52, { s: 10, c: st.arrears ? '#ff9a8a' : '#f3d9a4' }); }
+  // level juragan + bar XP
+  const L = level();
+  bar(890, `LV ${L} · ${rankOf(L).toUpperCase()}`, progress() * 100, '#7fd0ff', '#2d78c8', (cx, cy) => {
+    ctx.fillStyle = '#ffd23a'; ctx.strokeStyle = '#8a5a14'; ctx.lineWidth = 2; ctx.beginPath();
+    for (let k = 0; k < 10; k++) { const r = k % 2 ? 5 : 12, a = -Math.PI / 2 + k * Math.PI / 5; ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); }
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  });
+  hit(890, 4, 190, 42, () => { ui.modal = 'level'; SFX.click(); }, 'Lihat isi tiap level');
   if (G.energy < 25) { ctx.fillStyle = `rgba(255,60,40,${.35 + Math.sin(ui.frame / 8) * .25})`; ctx.fillRect(470 + 30, 25, 150, 16); }
   // tombol
   const hb = (name, x, fn, tip) => SP(name, x, 8, .9, 0, 0, { fn, tip, always: true, pad: ui.touch ? 10 : 0 });

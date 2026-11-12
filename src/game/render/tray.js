@@ -1,6 +1,7 @@
 import { BILLS } from '../data.js';
 import { ctx } from '../gfx.js';
 import { ico } from '../icons.js';
+import { kasbonLimit, outstanding } from '../logic/kasbon.js';
 import { active, confirmChange, doHabis, doHitung, doKasbon, giveBill, removeFromTray, shortfall, trayMatches } from '../logic/customers.js';
 import { hit } from '../sprites.js';
 import { G, mouse, ui } from '../state.js';
@@ -38,7 +39,7 @@ export function drawTray() {
     if (shortfall(c)) button(x + w - 150, y + (tc ? 58 : 58), 134, tc ? 40 : 34, 'MAAF, HABIS', doHabis, { col: 'red', s: tc ? 14 : 13 });
   } else if (c.stage === 'kasbon') {
     T(`Kasbon ${rp(c.total)}?`, x + 20, y + 40, { s: 20, c: '#3a210c' });
-    T('Dicatat di buku, dibayar besok (kadang macet).', x + 20, y + 64, { s: 12, c: '#5a3a1a' });
+    T(`Dicatat di buku (beredar ${rp(outstanding())} / batas ${rp(kasbonLimit())}).`, x + 20, y + 64, { s: 12, c: outstanding() + c.total > kasbonLimit() ? '#c0392b' : '#5a3a1a' });
     button(x + w - 250, y + 28, 110, 44, 'BOLEH', () => doKasbon(true), { col: 'green' });
     button(x + w - 130, y + 28, 110, 44, 'TIDAK', () => doKasbon(false), { col: 'red' });
   } else if (c.stage === 'pay') {

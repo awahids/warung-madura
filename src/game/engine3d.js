@@ -5,10 +5,15 @@ import { BY } from './data.js';
 import { IMG, ctx, setCtx } from './gfx.js';
 import { makeIcons } from './icons.js';
 import { addToTray, doHitung } from './logic/customers.js';
-import { drinkKopi, receiveDelivery, usePhone as tapPhone, usePromo as tapPromo } from './logic/actions.js';
+import { drinkKopi, receiveDelivery, usePromo as tapPromo } from './logic/actions.js';
 import { isRain } from './logic/day.js';
+import { ITEM_LVL, itemOn } from './logic/level.js';
+import { regById } from './logic/regulars.js';
+import { staffList } from './logic/staff.js';
 import { attachInput } from './input.js';
 import { loadSave } from './persist.js';
+import { autoDowngrade, effectiveQuality, onQuality } from './quality.js';
+import { toast } from './widgets.js';
 import { darkness, skyAt } from './render/background.js';
 import { drawOverlay3D } from './render/overlay3d.js';
 import { canAct } from './sprites.js';
@@ -33,9 +38,9 @@ const describe = act => {
   switch (act.type) {
     case 'item': { const it = BY[act.id]; return `${it.name} · ${rp(it.price)} · stok ${G.stock[act.id] || 0}`; }
     case 'hitung': return 'Kalkulator — hitung belanjaan';
-    case 'hp': return 'Main HP — isi ulang energi (jangan saat ada pembeli!)';
+    case 'hp': return 'HP — pesan barang ke grosir / main medsos';
     case 'kopi-minum': return 'Seduh kopi — +18 energi (pakai 1 kopi sachet)';
-    case 'buku': return 'Buku Catatan — pesan barang ke agen grosir';
+    case 'buku': return 'Buku Catatan — cek stok & harga';
     case 'promo': return G.promo ? 'Promo sedang aktif' : 'Pasang promo Rp 20.000 (pembeli lebih ramai)';
     case 'paket': return 'Kardus dari kurir — klik untuk terima barang';
     default: return '';
@@ -44,11 +49,11 @@ const describe = act => {
 /** Jalankan aksi game untuk objek 3D yang diklik. */
 export function runAct(act, scene) {
   if (act.type === 'buku') { ui.modal = 'notebook'; SFX.click(); return; }
+  if (act.type === 'hp') { ui.modal = 'phone'; SFX.click(); scene && scene.penjagaAct('phone'); return; }
   if (!canAct()) return;
   switch (act.type) {
     case 'item': addToTray(act.id); break;
     case 'hitung': doHitung(); break;
-    case 'hp': tapPhone(); scene && scene.penjagaAct('phone'); break;
     case 'kopi-minum': { const cd = G.drinkCd; drinkKopi(); if (G.drinkCd > cd) scene && scene.penjagaAct('drink'); break; }
     case 'promo': tapPromo(); break;
     case 'paket': receiveDelivery(); break;
@@ -67,7 +72,7 @@ export function crowdFromGame(nextId) {
     if (!leaving && c.stage === 'pay' && c.state === 'wait') pose = 'pay';          // mengulurkan uang
     else if (leaving && c.took) { if (c.leaveT < takeAt) pose = 'pay'; else { pose = c.leaveT - takeAt <= 1.1 ? 'take' : 'idle'; pt = c.leaveT - takeAt; } }
     out.push({
-      key: c.k3, type: c.type, x: toWorldX(c.x), z: !leaving && c.idx > 0 ? 1.15 : .55,
+      key: c.k3, type: c.type, look: c.look, x: toWorldX(c.x), z: !leaving && c.idx > 0 ? 1.15 : .55,
       moving: entering || leavingMove, dir: leaving ? (c.x < W / 2 ? -1 : 1) : Math.sign((c.tx ?? c.x) - c.x) || 1, turn: 0,
       pose, pt, carry: leaving && c.took ? c.carry : null, mood: moodOf(c, leaving),
     });
@@ -79,7 +84,7 @@ export function crowdFromGame(nextId) {
 export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = {}) {
   ui.cv = overlay; ui.mode3d = true; setCtx(overlay.getContext('2d'));
   ui.touch = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
-  let scene = null, raf = 0, alive = true, last = 0, t = 0, ro = null, detach = () => { }, prevScreen = null, lookKey = '', idN = 0, pending = null, pressTimer = 0;
+  let scene = null, raf = 0, alive = true, last = 0, t = 0, ro = null, detach = () => { }, prevScreen = null, lookKey = '', lockedKey = null, staffShown = null, idN = 0, pending = null, pressTimer = 0;
   const cleanups = [];
 
   const resize = () => {
@@ -102,6 +107,10 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
     const h = playing ? G.h : 12, dk = darkness(h), n = clamp(dk / .62, 0, 1), rain = playing && isRain(), sky = skyAt(h)[1];
     const key = `${Math.round(n * 50)}|${rain}|${sky}`;
     if (key !== lookKey) { lookKey = key; scene.setLook({ night: n, sky, rain }); }
+    const lockKey = playing ? Object.keys(ITEM_LVL).filter(id => !itemOn(id)).join(',') : '';   // judul: semua barang tampil
+    if (lockKey !== lockedKey) { lockedKey = lockKey; scene.setLockedItems(lockKey ? lockKey.split(',') : []); }
+    const staffKey = playing ? staffList().map(s => s.id).join(',') : '';   // karyawan tampil di warung
+    if (staffKey !== staffShown) { staffShown = staffKey; scene.setStaff(staffList().map(s => { const r = regById(s.id); return { id: s.id, type: r.type, look: r.look }; })); }
     scene.setPaket(playing && G.deliveries.some(d => G.abs >= d.eta));
     // kamera mengikuti layar: judul = memutar dari luar; main = sudut pandang penjaga
     if (G.screen !== prevScreen) {
@@ -124,10 +133,19 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
 
   const view = { badges: [], headOf: c => { const hp = c.k3 && scene.headPos(c.k3); return hp ? scene.project(hp) : null; } };
 
+  // mode otomatis: ukur FPS rata-rata ±3 detik setelah main dimulai; di bawah ~28 fps → turun ke grafis Rendah (diingat)
+  let fpsN = 0, fpsSum = 0, fpsDone = false;
+  const fpsWatch = rdt => {
+    if (fpsDone || G.screen !== 'play' || document.hidden || ui.modal) return;
+    if (++fpsN <= 40) return;                                   // abaikan pemanasan (kompilasi shader)
+    fpsSum += rdt;
+    if (fpsN >= 40 + 150) { fpsDone = true; if (fpsSum / 150 > 1 / 28 && autoDowngrade()) toast('Grafis diturunkan otomatis agar lancar. Ubah di menu Jeda.', '#cfe8ff'); }
+  };
   const loop = now => {
     if (!alive) return;
     const raw = (now - last) / 1000, dt = Math.min(.05, raw), rdt = Math.min(.25, raw); last = now; t += dt;   // rdt: waktu nyata untuk pelunakan gerak
     update(dt); syncScene(rdt);
+    fpsWatch(rdt);
     const prevHits = ui.hits; ui.hits = prevHits; hover();
     scene.frame(rdt, t);
     ctx.clearRect(0, 0, W, H);
@@ -141,6 +159,7 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
 
   const start = () => {
     scene = createWarung(glCanvas, { game: true, controlsEl: overlay });
+    scene.setQuality(effectiveQuality()); onQuality(q => scene && scene.setQuality(q));
     if (import.meta.env.DEV) window.__game3d = { G, ui, scene, runAct, ...customersApi, ...dayApi }; // hanya debug/tes UI
     scene.controls.enablePan = false;
     makeIcons(); ui.hasSave = !!loadSave();
@@ -182,7 +201,7 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
   const api = {
     view: 'luar', onView: null,
     setView(name) { api.view = name; scene && scene.setView(name); api.onView && api.onView(name); },
-    destroy() { ui.mode3d = false; alive = false; cancelAnimationFrame(raf); detach(); cleanups.forEach(f => f()); ro && ro.disconnect(); scene && scene.dispose(); IMG.onload = IMG.onerror = null; fx.floats.length = 0; },
+    destroy() { ui.mode3d = false; onQuality(null); alive = false; cancelAnimationFrame(raf); detach(); cleanups.forEach(f => f()); ro && ro.disconnect(); scene && scene.dispose(); IMG.onload = IMG.onerror = null; fx.floats.length = 0; },
     get scene() { return scene; },
   };
 

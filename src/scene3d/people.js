@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { pouchGeometry } from './products';
+import { reliefTex, skinTex } from './textures';
 
 /* Karakter manusia prosedural bergaya chibi 3D (tinggi ≈1,8 m, dua kepala): mata besar berkilau yang berkedip,
    pipi merona, pakaian bermotif (batik, daster bunga, jaket, sarung), alas kaki. Menghadap −z.
@@ -68,6 +69,30 @@ const T = {
     g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(w * .5 - 40, h * .62, 80, h * .3);                           // kantong kanguru
     g.fillStyle = '#e8e8e8'; g.fillRect(w * .5 - 14, h * .1, 3, h * .22); g.fillRect(w * .5 + 11, h * .1, 3, h * .22);   // tali
   }),
+  seragam: () => tex('seragam', 128, 128, (g, w, h) => {          // kemeja putih sekolah + dasi merah
+    g.fillStyle = '#f2f2ee'; g.fillRect(0, 0, w, h);
+    g.fillStyle = 'rgba(0,0,0,.05)'; for (let x = 0; x < w; x += 6) g.fillRect(x, 0, 1, h);
+    g.fillStyle = '#c8202a'; g.beginPath(); g.moveTo(w * .5 - 5, h * .12); g.lineTo(w * .5 + 5, h * .12); g.lineTo(w * .5 + 7, h * .5); g.lineTo(w * .5, h * .62); g.lineTo(w * .5 - 7, h * .5); g.closePath(); g.fill();
+    g.fillStyle = 'rgba(0,0,0,.12)'; g.fillRect(w * .5 - 40, h * .5, 22, 18);                         // saku dada
+  }),
+  rompi: () => tex('rompi', 256, 128, (g, w, h) => {              // baju proyek oranye + pita pantul
+    g.fillStyle = '#e8741a'; g.fillRect(0, 0, w, h);
+    g.fillStyle = 'rgba(80,30,0,.22)'; for (let i = 0; i < 160; i++) g.fillRect(Math.random() * w, Math.random() * h, 3, 2);   // noda semen/oli
+    g.fillStyle = '#d4dadd'; g.fillRect(0, h * .4, w, 8); g.fillRect(w * .5 - 22, 0, 6, h); g.fillRect(w * .5 + 16, 0, 6, h);
+    g.fillStyle = 'rgba(255,255,255,.5)'; g.fillRect(0, h * .4, w, 2);
+  }),
+  kotak: () => tex('kotak', 128, 128, (g, w, h) => {              // kemeja kotak biru-putih
+    g.fillStyle = '#f0f0ea'; g.fillRect(0, 0, w, h);
+    g.fillStyle = 'rgba(46,96,176,.62)'; for (let i = 0; i < 4; i++) { g.fillRect(i * 32 + 6, 0, 14, h); g.fillRect(0, i * 32 + 6, w, 14); }
+  }),
+  tropis: () => tex('tropis', 256, 256, (g, w, h) => {            // baju pantai bermotif daun & hibiscus
+    g.fillStyle = '#1f9aa6'; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 40; i++) {
+      const x = rnd(0, w), y = rnd(0, h), r = rnd(10, 22);
+      if (i % 2) { g.fillStyle = '#157a4a'; g.beginPath(); g.ellipse(x, y, r * 1.2, r * .4, rnd(0, 3), 0, 7); g.fill(); }
+      else { g.fillStyle = i % 4 ? '#f4a3b5' : '#ffd66b'; for (let p = 0; p < 5; p++) { g.beginPath(); g.ellipse(x + Math.cos(p * 1.2566) * r * .5, y + Math.sin(p * 1.2566) * r * .5, r * .45, r * .32, p * 1.2566, 0, 7); g.fill(); } g.fillStyle = '#d83a5a'; g.beginPath(); g.arc(x, y, r * .2, 0, 7); g.fill(); }
+    }
+  }, [2, 2]),
   dark: () => tex('dark', 64, 64, (g, w, h) => { g.fillStyle = '#26272d'; g.fillRect(0, 0, w, h); g.fillStyle = 'rgba(255,255,255,.05)'; for (let i = 0; i < 80; i++) g.fillRect(rnd(0, w), rnd(0, h), 2, 2); }),
   denim: () => tex('denim', 64, 64, (g, w, h) => { g.fillStyle = '#3f5f93'; g.fillRect(0, 0, w, h); g.strokeStyle = 'rgba(255,255,255,.07)'; for (let i = 0; i < w; i += 3) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i, h); g.stroke(); } }, [2, 4]),
 };
@@ -82,6 +107,15 @@ const ink = new THREE.MeshBasicMaterial({ color: '#2a1f2e' });  // mata: tinta g
 const shine = new THREE.MeshBasicMaterial({ color: '#ffffff' });
 const MAT = {};
 const mat = (c, rough = .68) => MAT[c + rough] || (MAT[c + rough] = std(c, { roughness: rough }));
+/** Kulit: tekstur pori + relief halus + kilau 'sheen' lembut (pendekatan hamburan bawah kulit). Di-cache per warna. */
+const SKIN = {};
+const skinMat = hex => SKIN[hex] || (SKIN[hex] = new THREE.MeshPhysicalMaterial({ color: '#ffffff', map: skinTex(hex), bumpMap: reliefTex('skin', [2, 2]), bumpScale: .5, roughness: .58, sheen: .8, sheenRoughness: .45, sheenColor: new THREE.Color('#ffb59a'), clearcoat: .08, clearcoatRoughness: .5 }));
+/** Kain: relief anyaman + kilau serat di tepi (sheen). weave: 'weave' | 'knit'. */
+const FAB = {};
+const fabric = (c, weave = 'weave', rough = .85) => FAB[c + weave] || (FAB[c + weave] = new THREE.MeshPhysicalMaterial({ color: c, roughness: rough, bumpMap: reliefTex(weave, [10, 10]), bumpScale: .6, sheen: .7, sheenRoughness: .6, sheenColor: new THREE.Color(c).lerp(new THREE.Color('#ffffff'), .35) }));
+const fabricTex = (map, weave = 'weave') => new THREE.MeshPhysicalMaterial({ map, roughness: .85, bumpMap: reliefTex(weave, [12, 12]), bumpScale: .6, sheen: .6, sheenRoughness: .6, sheenColor: new THREE.Color('#d8d0c4') });
+const HAIR = {};
+const hairMat = c => HAIR[c] || (HAIR[c] = new THREE.MeshPhysicalMaterial({ color: c, roughness: .48, bumpMap: reliefTex('hair', [3, 3]), bumpScale: .8, sheen: 1, sheenRoughness: .35, sheenColor: new THREE.Color(c).lerp(new THREE.Color('#ffffff'), .45) }));
 const dome = (r, theta, m, seg = 18) => sh(new THREE.Mesh(new THREE.SphereGeometry(r, seg, 10, 0, Math.PI * 2, 0, theta), m));
 /** Potongan kulit bola; phi dipusatkan di depan (−z) atau belakang (+z). */
 const shell = (r, front, width, t0, tl, m) => sh(new THREE.Mesh(new THREE.SphereGeometry(r, 16, 6, (front ? 1.5 : .5) * Math.PI - width / 2, width, t0, tl), m));
@@ -90,7 +124,7 @@ const faceZ = (x, y) => -HEAD[2] * Math.sqrt(Math.max(0, 1 - (x / HEAD[0]) ** 2 
 
 /** Tangan bulat ala chibi dengan ibu jari kecil. userData.setCurl(0..1): mengepal saat menggenggam. */
 function makeHand(skin, glove, sx) {
-  const m = mat(glove || skin, .6), h = new THREE.Group(); h.position.y = -ARM;   // pergelangan
+  const m = glove ? mat(glove, .6) : skinMat(skin), h = new THREE.Group(); h.position.y = -ARM;   // pergelangan
   const palm = place(ell(.066, .068, .066, m), 0, -.025, 0); h.add(palm);
   const thumb = place(ell(.025, .033, .025, m), -sx * .045, -.02, -.042); h.add(thumb);
   h.userData.setCurl = c => { palm.scale.set(.066 - c * .006, .068 - c * .012, .066); thumb.position.y = -.02 - c * .02; };
@@ -100,7 +134,7 @@ function makeHand(skin, glove, sx) {
 
 /** Rambut: tudung bola yang dimiringkan ke belakang + jambul/poni kerucut, sanggul untuk ibu. */
 function makeHair(style, color, parent, front = true) {
-  const m = mat(color, .8), k = R / .29;
+  const m = hairMat(color), k = R / .29;
   const cap = dome(R * 1.09, front ? 1.78 : 1.6, m); cap.position.set(0, .018, .018); cap.rotation.x = front ? .48 : .74; parent.add(cap);
   const tuft = (x, y, z, rx, rz, s = 1) => { const t = sh(new THREE.Mesh(new THREE.ConeGeometry(.058 * s * k, .14 * s * k, 6), m)); t.position.set(x * k, y * k, z * k); t.rotation.set(rx, 0, rz); parent.add(t); };
   if (front) {
@@ -119,7 +153,7 @@ function makeHair(style, color, parent, front = true) {
 
 /** Kepala chibi (menghadap −z). Opsi: skin, hair (gaya), hairColor, hairFront, mustache, glasses, stubble. */
 function makeHead(o) {
-  const g = new THREE.Group(), skin = mat(o.skin, .62);
+  const g = new THREE.Group(), skin = skinMat(o.skin);
   const skull = sh(new THREE.Mesh(new THREE.SphereGeometry(1, 22, 16), skin)); skull.scale.set(...HEAD); g.add(skull);
   const eyes = [], arcs = [], brows = [], ey = -.012;
   [-1, 1].forEach(sx => {
@@ -161,10 +195,10 @@ function makeHead(o) {
 
 /** Bangun manusia chibi sesuai opsi. Rangka: legs[] (pinggul), arms[] (bahu) → elbows[] → hands[], torso (pinggang), head (leher). */
 function buildHuman(o) {
-  const g = new THREE.Group(), skin = mat(o.skin, .62);
-  const topMat = o.topTex ? new THREE.MeshStandardMaterial({ map: o.topTex(), roughness: .75 }) : mat(o.top);
-  const sleeveMat = o.sleeveTex ? new THREE.MeshStandardMaterial({ map: o.sleeveTex(), roughness: .75 }) : topMat;
-  const botMat = o.botTex ? new THREE.MeshStandardMaterial({ map: o.botTex(), roughness: .8 }) : mat(o.bottom || '#333');
+  const g = new THREE.Group(), skin = skinMat(o.skin);
+  const topMat = o.topTex ? fabricTex(o.topTex(), 'knit') : fabric(o.top, 'knit');
+  const sleeveMat = o.sleeveTex ? fabricTex(o.sleeveTex(), 'knit') : topMat;
+  const botMat = o.botTex ? fabricTex(o.botTex()) : fabric(o.bottom || '#333');
   const HIP = .36, belly = o.belly || 0, B = o.build || 1;
 
   // kaki pendek (pivot pinggul)
@@ -227,6 +261,24 @@ function buildHuman(o) {
     const visor = shell(hr * 1.02, true, Math.PI * .7, .74, .3, std('#0e1216', { roughness: .08, metalness: .6, side: THREE.DoubleSide })); visor.position.set(0, .03, .012); hs.add(visor);   // visor terangkat
     hs.add(place(sh(new THREE.Mesh(new THREE.BoxGeometry(.03, .02, .46), mat('#f4f4f4'))), 0, hr - .004, .07));                // garis helm
   }
+  if (o.hardhat) {   // helm proyek: kubah + pinggiran + rusuk
+    const hm = std(o.hardhat, { roughness: .35, metalness: .1 }), hr = R * 1.14;
+    const top = dome(hr, Math.PI * .5, hm, 20); top.position.set(0, .03, .012); top.rotation.x = .12; hs.add(top);
+    const brim = sh(new THREE.Mesh(new THREE.CylinderGeometry(R * 1.24, R * 1.24, .016, 22), hm)); brim.position.set(0, .03 + hr * .06, .0); brim.scale.z = 1.05; hs.add(brim);
+    hs.add(place(sh(new THREE.Mesh(new THREE.BoxGeometry(.034, .02, .42), hm)), 0, .03 + hr, .01));
+  }
+  if (o.sunhat) {    // topi pantai lebar
+    const hm = mat(o.sunhat, .9), hr = R * 1.1;
+    const crown = dome(hr, Math.PI * .5, hm, 18); crown.position.set(0, .05, .01); crown.rotation.x = .1; hs.add(crown);
+    const brim = sh(new THREE.Mesh(new THREE.CylinderGeometry(R * 1.75, R * 1.75, .012, 24), hm)); brim.position.set(0, .06, .0); brim.rotation.x = -.06; hs.add(brim);
+    hs.add(place(sh(new THREE.Mesh(new THREE.CylinderGeometry(hr * 1.01, hr * 1.01, .035, 18), mat(o.sunhatBand || '#c8202a', .7))), 0, .075, .01));
+  }
+  if (o.camera) {    // kamera menggantung di dada
+    const cam = new THREE.Group(); cam.add(sh(new THREE.Mesh(new THREE.BoxGeometry(.13, .08, .06), mat('#1b1b20', .45))));
+    const lens = sh(new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, .05, 12), mat('#2a2a30', .25))); lens.rotation.x = Math.PI / 2; lens.position.z = -.05; cam.add(lens);
+    cam.position.set(.03, .13, -.17); cam.rotation.x = -.12; torso.add(cam);
+    const strap = sh(new THREE.Mesh(new THREE.TorusGeometry(.115, .008, 5, 16), mat('#2b2d35', .8))); strap.rotation.x = Math.PI / 2 - .5; strap.position.set(0, .3, -.03); torso.add(strap);
+  }
   if (o.hood) {
     const hm = mat(o.hood, .9), hr = R * 1.14;
     const hd = dome(hr, Math.PI * .6, hm, 20); hd.position.set(0, .012, .03); hd.rotation.x = .42; hs.add(hd);
@@ -269,7 +321,12 @@ const LOOK = {
   ibu: { skin: '#b87a50', topTex: T.floral, sleeves: 'short', legs: 'skirt', botTex: T.floral, shoe: 'sandal', shoeColor: '#6a3a2a', hair: 'bun', hairColor: '#241812', scale: .94, build: .95 },
   juragan: { skin: '#b98258', top: '#f2efe6', legs: 'sarong', botTex: T.sarong, shoe: 'sandal', shoeColor: '#4a3220', peci: '#f4f4f0', hair: 'short', hairFront: false, hairColor: '#b9b9b4', browColor: '#e4e4e0', mustache: true, wrinkles: true, glasses: true, brow: .006, belly: .025, vneck: '#ddd8cc', collar: '#e8e4d8', eye: '#4a3322' },
   hoodie: { skin: '#b98258', topTex: T.dark, sleeveTex: T.dark, legs: 'pants', bottom: '#2a2b33', shoe: 'sneaker', shoeColor: '#1c1c20', hood: '#26272d', mask: true, hair: null, scale: 1.02 },
-  // variasi penampilan (logika game tetap memakai enam tipe di atas)
+  pelajar: { skin: '#c98e62', topTex: T.seragam, sleeves: 'short', legs: 'pants', bottom: '#7b828c', shoe: 'sneaker', shoeColor: '#202024', hair: 'short', hairColor: '#171210', backpack: '#2f5fb8', scale: .9, build: .95, eye: '#2e1c12' },
+  pelajarPutri: { skin: '#c58b5a', topTex: T.seragam, sleeves: 'short', legs: 'pants', bottom: '#7b828c', shoe: 'sneaker', shoeColor: '#e8e8e8', hijab: '#f4f4f4', hair: null, backpack: '#c04a78', scale: .9, build: .92 },
+  tukang: { skin: '#a8734a', topTex: T.rompi, sleeves: 'long', legs: 'pants', bottom: '#4a4f58', shoe: 'sneaker', shoeColor: '#5a4a32', hardhat: '#f2c21b', hair: 'short', hairColor: '#1c1612', mustache: true, stubble: true, belly: .03, gloves: '#d9c9a0', scale: 1.04 },
+  turis: { skin: '#e6b79a', topTex: T.tropis, sleeves: 'short', legs: 'shorts', bottom: '#c9b48a', shoe: 'sandal', shoeColor: '#4a3220', sunhat: '#e8d9a0', hair: 'short', hairColor: '#c9a15a', glasses: true, camera: true, belly: .02, scale: 1.06, eye: '#3a6a9a' },
+  turis2: { skin: '#efc3a8', topTex: T.kotak, sleeves: 'short', legs: 'skirt', bottom: '#2f5fb8', shoe: 'sandal', shoeColor: '#8a5a3a', sunhat: '#f4f0e6', sunhatBand: '#2f80d6', hair: 'bun', hairColor: '#e0b86a', camera: true, backpack: '#c8a05a', scale: .98, build: .95, eye: '#3a8a6a' },
+  // variasi penampilan (logika game tetap memakai tipe di atas)
   ibuHijab: { skin: '#c58b5a', top: '#7d6a9c', legs: 'skirt', shoe: 'sandal', shoeColor: '#6a3a2a', hijab: '#e9b9c3', hair: null, scale: .94, build: .95 },
   bapak: { skin: '#a8734a', top: '#f1efe8', sleeves: 'short', legs: 'sarong', botTex: T.sarong, shoe: 'sandal', shoeColor: '#4a3220', hair: 'short', hairColor: '#2a2420', mustache: true, belly: .035, earCig: true },
   pemuda2: { skin: '#d09a70', top: '#3f78c4', sleeves: 'short', legs: 'pants', botTex: T.denim, shoe: 'sneaker', shoeColor: '#e8e8e8', hair: 'short', hairColor: '#171210', glasses: true },
@@ -282,7 +339,7 @@ export function person({ shirt = '#2f9e44', pants = '#2d5fa8', skin = '#c58b5a',
   return buildHuman({ skin, top: shirt, legs: 'pants', bottom: pants, shoe: 'sneaker', shoeColor: '#222', helmet, hair: helmet ? null : 'short', hairColor: hair });
 }
 /** Figur sesuai tipe pelanggan di logika game (ojol, pemuda, cowok, ibu, juragan, hoodie), 'penjaga', 'kurir', atau nama variasi. */
-export const VARIANTS = { ibu: ['ibu', 'ibuHijab'], juragan: ['juragan', 'bapak'], pemuda: ['pemuda', 'pemuda2'], cowok: ['cowok', 'cowok2'] };
+export const VARIANTS = { pelajar: ['pelajar', 'pelajarPutri'], turis: ['turis', 'turis2'], ibu: ['ibu', 'ibuHijab'], juragan: ['juragan', 'bapak'], pemuda: ['pemuda', 'pemuda2'], cowok: ['cowok', 'cowok2'] };
 /** n memilih variasi penampilan tipe itu (stabil per pelanggan). */
 export function personFor(type, n = 0) { const v = VARIANTS[type]; return buildHuman(LOOK[v ? v[Math.abs(n) % v.length] : type] || LOOK.pemuda); }
 

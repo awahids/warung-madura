@@ -57,7 +57,7 @@ export function attachInput(cv) {
     if (G.screen !== 'play') return;
     if (e.key === 'Escape') {
       if (!ui.modal) ui.modal = 'pause';
-      else if (['pause', 'help', 'notebook'].includes(ui.modal)) ui.modal = null;
+      else if (['pause', 'help', 'notebook', 'phone', 'level', 'ach', 'kasbon', 'regulars', 'kulkas', 'staff'].includes(ui.modal)) ui.modal = null;
     } else if (e.key === ' ' && !ui.modal) { e.preventDefault(); doHitung(); }
   };
   cv.addEventListener('pointermove', onMove);

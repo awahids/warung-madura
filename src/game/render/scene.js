@@ -5,12 +5,13 @@ import { H, HUD_H, W } from '../constants.js';
 import { BY } from '../data.js';
 import { ctx } from '../gfx.js';
 import { ico } from '../icons.js';
-import { drinkKopi, receiveDelivery, usePhone, usePromo } from '../logic/actions.js';
+import { drinkKopi, receiveDelivery, usePromo } from '../logic/actions.js';
 import { addToTray, doHitung } from '../logic/customers.js';
 import { darkness, drawBackground } from './background.js';
 import { drawTray } from './tray.js';
 import { SP, badge } from '../sprites.js';
 import { G, ui } from '../state.js';
+import { regTier } from '../logic/regulars.js';
 import { T, clamp, rp, rr, wrapText } from '../util.js';
 
 export function drawCustomer(c) {
@@ -34,7 +35,7 @@ export function drawBubble(c, at) {
   ctx.strokeStyle = '#5a3a1a'; ctx.beginPath(); ctx.moveTo(x, y + 58); ctx.lineTo(x - 18, y + 76); ctx.lineTo(x, y + 86); ctx.stroke();
   ctx.fillStyle = '#fffaf0'; ctx.fillRect(x - 1, y + 61, 3, 22);
   let cy = y + 24;
-  T(c.name + (c.event === 'kasbon' ? '  · KASBON' : ''), x + 14, cy, { s: 15, c: c.event === 'kasbon' ? '#c0392b' : '#8a5424' }); cy += 6;
+  T(c.name + (c.reg ? ' ' + '★'.repeat(regTier(c.reg)) : '') + (c.event === 'kasbon' ? '  · KASBON' : ''), x + 14, cy, { s: 15, c: c.event === 'kasbon' ? '#c0392b' : '#8a5424' }); cy += 6;
   sayL.forEach(l => { cy += 18; T(l, x + 14, cy, { s: 14, w: '600', c: '#3a2a1a' }); });
   cy += 10;
   for (const l of c.order) {
@@ -138,9 +139,9 @@ export function drawScene() {
     const d = G.deliveries[0]; const mins = Math.max(0, d.eta - G.abs);
     T(`Kurir ±${Math.ceil(mins / 60 * 10) / 10}j`, 70, 628, { s: 12, a: 'center', c: '#fff', stroke: 'rgba(0,0,0,.6)', sw: 3 });
   }
-  SP('buku', 175, 706, 1.2, .5, 1, { fn: () => { ui.modal = 'notebook'; SFX.click(); }, tip: 'Buku Catatan — pesan barang ke agen grosir', always: true });
+  SP('buku', 175, 706, 1.2, .5, 1, { fn: () => { ui.modal = 'notebook'; SFX.click(); }, tip: 'Buku Catatan — cek stok & harga', always: true });
   SP('kalkulator', 278, 706, 1.3, .5, 1, { fn: doHitung, tip: 'Kalkulator — hitung belanjaan' });
-  SP('hp', 925, 708, 1.2, .5, 1, { fn: usePhone, tip: 'Main HP — isi ulang energi (jangan saat ada pembeli!)' });
+  SP('hp', 925, 708, 1.2, .5, 1, { fn: () => { ui.modal = 'phone'; SFX.click(); }, tip: 'HP — pesan barang ke grosir / main medsos', always: true });
   SP('gelas', 1010, 706, 1.05, .5, 1, { fn: drinkKopi, tip: 'Seduh kopi — +18 energi (pakai 1 kopi sachet)' });
   SP('signKasir', 1185, 712, .85, .5, 1);
 

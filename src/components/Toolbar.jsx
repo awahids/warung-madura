@@ -62,7 +62,7 @@ export default function Toolbar() {
       <div className="toolbar">
         <span>Juragan Warung · simulasi warung Madura</span>
         <span className="spacer" />
-        <a href="#/3d"><b>Main 3D</b></a>
+        <a href="#/"><b>Mode 3D</b></a>
         <a href="#/warung">Warung 3D</a>
         <a href="#/orang">Karakter 3D</a>
         <a href="#/props">Prop 3D</a>

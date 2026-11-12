@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { galon, gas, toples, rakBensin, kardus, beras, aqua, cola, redbull, mie, gelas, bensin } from '../props3d/props';
-import { woodTex, roofTex, slatTex, asphaltTex, concreteTex, bannerTex, signTex } from './textures';
+import { woodTex, roofTex, slatTex, asphaltTex, concreteTex, bannerTex, signTex, reliefTex } from './textures';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { person, personFor, makeBag, makeBill, ARM } from './people';
 import { createAmbience } from './ambience';
 import { fillEtalase, fillWallShelf, hangingStrips, pouchGeometry, kopiTex, snackTex, cigTex } from './products';
@@ -24,6 +25,9 @@ export function createWarung(canvas, opts = {}) {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.toneMapping = THREE.ACESFilmicToneMapping;
   const scene = new THREE.Scene();
+  // pantulan lingkungan (IBL) untuk material PBR: kaca, logam, plastik, kulit tampak nyata
+  let envTex = null;
+  { const pm = new THREE.PMREMGenerator(renderer); envTex = pm.fromScene(new RoomEnvironment(), .04).texture; scene.environment = envTex; scene.environmentIntensity = .55; pm.dispose(); }
   const camera = new THREE.PerspectiveCamera(50, 1, .05, 90);
   const controls = new OrbitControls(camera, opts.controlsEl || canvas); controls.enableDamping = true; controls.maxPolarAngle = Math.PI * .52;
 
@@ -41,20 +45,20 @@ export function createWarung(canvas, opts = {}) {
   /* ---------- lampu ---------- */
   const hemi = new THREE.HemisphereLight('#cfe6ff', '#8a7a62', 1.5); scene.add(hemi);
   const sun = new THREE.DirectionalLight('#fff1d6', 3); sun.position.set(5, 8, 7); sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9, near: 1, far: 30 }); sun.shadow.bias = -.0004; scene.add(sun);
+  sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9, near: 1, far: 30 }); sun.shadow.bias = -.0004; sun.shadow.normalBias = .02; sun.shadow.radius = 3; scene.add(sun);
   const moon = new THREE.DirectionalLight('#7f95ff', 0); moon.position.set(-4, 8, 5); scene.add(moon);
   const neonLight = (x, y, z, on, dist = 9) => { const l = new THREE.PointLight('#ffffff', 0, dist, 2); l.position.set(x, y, z); scene.add(l); lampsNight.push({ light: l, on }); };
   neonLight(-1, 2.6, -1.3, 6); neonLight(1, 2.6, -1.3, 6); neonLight(0, 2.5, .6, 4, 10);
 
   /* ---------- tanah, jalan ---------- */
-  const slab = box(5.2, .12, 4.5, new THREE.MeshStandardMaterial({ map: concreteTex(), roughness: .9 }), 0, -.055, -.95); slab.castShadow = false; scene.add(slab);
-  const sidewalk = box(24, .12, 1.5, new THREE.MeshStandardMaterial({ map: concreteTex(), roughness: .9 }), 0, -.06, .75); sidewalk.castShadow = false; scene.add(sidewalk);
+  const slab = box(5.2, .12, 4.5, new THREE.MeshStandardMaterial({ map: concreteTex(), bumpMap: reliefTex('concrete'), bumpScale: 1.4, roughness: .9 }), 0, -.055, -.95); slab.castShadow = false; scene.add(slab);
+  const sidewalk = box(24, .12, 1.5, new THREE.MeshStandardMaterial({ map: concreteTex(), bumpMap: reliefTex('concrete'), bumpScale: 1.4, roughness: .9 }), 0, -.06, .75); sidewalk.castShadow = false; scene.add(sidewalk);
   const curb = box(24, .16, .14, std('#bdbab0'), 0, -.06, 1.55); scene.add(curb);
-  const road = new THREE.Mesh(new THREE.PlaneGeometry(60, 12), new THREE.MeshStandardMaterial({ map: asphaltTex(), roughness: .95 })); road.rotation.x = -Math.PI / 2; road.position.set(0, -.12, 7.6); road.receiveShadow = true; scene.add(road);
+  const road = new THREE.Mesh(new THREE.PlaneGeometry(60, 12), new THREE.MeshStandardMaterial({ map: asphaltTex(), bumpMap: reliefTex('asphalt', [10, 4]), bumpScale: 2, roughness: .95 })); road.rotation.x = -Math.PI / 2; road.position.set(0, -.12, 7.6); road.receiveShadow = true; scene.add(road);
 
   /* ---------- bangunan warung ---------- */
-  const wood = new THREE.MeshStandardMaterial({ map: woodTex('#b97a3e', [3, 2]), roughness: .85 });
-  const woodDark = new THREE.MeshStandardMaterial({ map: woodTex('#7a4a22', [2, 2]), roughness: .85 });
+  const wood = new THREE.MeshStandardMaterial({ map: woodTex('#b97a3e', [3, 2]), bumpMap: reliefTex('wood', [3, 2]), bumpScale: 1.2, roughness: .8 });
+  const woodDark = new THREE.MeshStandardMaterial({ map: woodTex('#7a4a22', [2, 2]), bumpMap: reliefTex('wood', [2, 2]), bumpScale: 1.2, roughness: .78 });
   const backWall = box(4.5, 3.0, .08, wood, 0, 1.5, -3.2); scene.add(backWall);
   scene.add(box(.08, 3.0, 3.3, wood, -2.24, 1.5, -1.6), box(.08, 3.0, 3.3, wood, 2.24, 1.5, -1.6));
   scene.add(box(.14, 3.0, .14, woodDark, -2.2, 1.5, .02), box(.14, 3.0, .14, woodDark, 2.2, 1.5, .02));
@@ -70,7 +74,7 @@ export function createWarung(canvas, opts = {}) {
 
   // rolling door: pivot di atas; skala y mengecil saat dibuka
   const doorH = 2.2, doorTop = 2.25;
-  const doorMat = new THREE.MeshStandardMaterial({ map: slatTex(), roughness: .45, metalness: .65 });
+  const doorMat = new THREE.MeshStandardMaterial({ map: slatTex(), bumpMap: reliefTex('metal', [8, 4]), bumpScale: 1.6, roughness: .38, metalness: .8 });
   const door = sh(new THREE.Mesh(new THREE.BoxGeometry(4.3, doorH, .05), doorMat)); door.userData.isDoor = true; scene.add(door);
   const doorBar = sh(new THREE.Mesh(new THREE.BoxGeometry(4.34, .08, .08), std('#4a5058', { metalness: .6 }))); scene.add(doorBar);
   let doorOpen = 1, doorTarget = 1;
@@ -136,8 +140,9 @@ export function createWarung(canvas, opts = {}) {
 
   // barang lantai: karung beras, galon, gas, kardus
   const place = (obj, x, y, z, s = 1, ry = 0) => { obj.scale.setScalar(s); obj.position.set(x, y, z); obj.rotation.y = ry; scene.add(obj); return obj; };
-  [[-1.9, 0, -2.4, .3], [-1.45, 0, -2.45, -.15]].forEach(([x, y, z, ry]) => place(beras(), x, y, z, 1.25, ry));
-  place(galon(), .6, 0, -2.45, 1.2); place(gas(), -.4, 0, -2.45, 1.3);
+  const stock = [];   // dekor stok lantai yang ikut tersembunyi bila barangnya belum terbuka: { id, obj }
+  [[-1.9, 0, -2.4, .3], [-1.45, 0, -2.45, -.15]].forEach(([x, y, z, ry]) => stock.push({ id: 'beras', obj: place(beras(), x, y, z, 1.25, ry) }));
+  stock.push({ id: 'galon', obj: place(galon(), .6, 0, -2.45, 1.2) }, { id: 'gas', obj: place(gas(), -.4, 0, -2.45, 1.3) });
   place(kardus(), 1.0, 0, -1.9, 1.1, .2); place(kardus(), 1.0, .31, -1.9, 1.1, -.1);
 
   // renteng gantung di balok depan: kiri = kopi sachet, kanan = keripik/snack (sachet 3D menggembung)
@@ -156,8 +161,10 @@ export function createWarung(canvas, opts = {}) {
   /* ---------- area luar ---------- */
   // meja display di teras, setinggi dada, supaya barang besar terlihat DI ATAS barang di meja kasir dari balik meja
   const TH = .85;
+  const tables = [];   // meja display; urutan: tengah (galon, gas), kanan (beras), kiri (rak bensin)
+  const TABLE_ITEMS = [['galon', 'gas'], ['beras'], ['bensin']];
   const displayTable = (x, z, w) => {
-    const t = new THREE.Group(); t.position.set(x, 0, z); scene.add(t);
+    const t = new THREE.Group(); t.position.set(x, 0, z); scene.add(t); tables.push(t);
     t.add(box(w, .05, .55, wood, 0, TH, 0)); [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => t.add(box(.05, TH, .05, woodDark, a * (w / 2 - .05), TH / 2, b * .22)));
     t.add(box(w - .1, .04, .5, woodDark, 0, .3, 0));
   };
@@ -251,6 +258,17 @@ export function createWarung(canvas, opts = {}) {
   scene.add(box(.6, PJ_Y, .85, std('#8a5a32', { roughness: .85 }), .2, PJ_Y / 2, -1.15));
   const penjaga = personFor('penjaga'); penjaga.position.set(.2, PJ_Y, -1.3); penjaga.rotation.y = Math.PI; scene.add(penjaga);
   const people = [...demo, penjaga];
+  // karyawan: figur tokoh di dalam warung (maks. 2 kursi); ikut animasi napas/menoleh seperti figur lain
+  const staffFigs = new Map(), STAFF_AT = [[1.75, -1.85], [-1.05, -2.1]];
+  const setStaff = list => {
+    const want = new Set(list.map(s => s.id));
+    for (const [id, g] of staffFigs) if (!want.has(id)) { scene.remove(g); people.splice(people.indexOf(g), 1); staffFigs.delete(id); }
+    list.forEach(s => {
+      if (staffFigs.has(s.id)) return;
+      const g = personFor(s.type, s.look), [x, z] = STAFF_AT[staffFigs.size % STAFF_AT.length];
+      g.position.set(x, 0, z); g.rotation.y = Math.PI; scene.add(g); people.push(g); staffFigs.set(s.id, g); if (quality === 'low') applyQ(g);
+    });
+  };
 
   /* ---------- mesin kasir + laci uang (di meja, menghadap penjaga) ---------- */
   const till = new THREE.Group(); till.position.set(.02, 1.0, .08); counter.add(till);
@@ -334,6 +352,24 @@ export function createWarung(canvas, opts = {}) {
   scene.updateMatrixWorld(true);
   { const ws = new THREE.Vector3(); scene.traverse(o => { if ((o.isMesh || o.isInstancedMesh) && o.castShadow) { o.geometry.boundingSphere || o.geometry.computeBoundingSphere(); o.getWorldScale(ws); if (o.geometry.boundingSphere.radius * Math.max(ws.x, ws.y, ws.z) < .1) o.castShadow = false; } }); }
 
+  /* ---------- kualitas grafis: 'high' | 'low' (low: tanpa bayangan & pantulan, tanpa sheen/clearcoat, resolusi 1×) ---------- */
+  let quality = 'high';
+  const applyQ = root => root.traverse(o => {
+    for (const m of Array.isArray(o.material) ? o.material : o.material ? [o.material] : []) {
+      if (!m.isMeshPhysicalMaterial) continue;
+      const q = m.userData.q || (m.userData.q = { sheen: m.sheen, clearcoat: m.clearcoat }), low = quality === 'low';
+      const sh = low ? 0 : q.sheen, cc = low ? 0 : q.clearcoat;
+      if (m.sheen !== sh || m.clearcoat !== cc) { m.sheen = sh; m.clearcoat = cc; m.needsUpdate = true; }
+    }
+  });
+  const setQuality = q => {
+    quality = q; const low = q === 'low';
+    renderer.setPixelRatio(low ? 1 : Math.min(window.devicePixelRatio || 1, 2));
+    const sz = renderer.getSize(new THREE.Vector2()); if (sz.x) renderer.setSize(sz.x, sz.y, false);
+    scene.environment = low ? null : envTex; sun.castShadow = !low;
+    applyQ(scene);
+  };
+
   /* ---------- siang / malam / hujan ---------- */
   let night = false;
   const fog = new THREE.Fog('#9ccbf0', 18, 60); scene.fog = fog;
@@ -349,7 +385,7 @@ export function createWarung(canvas, opts = {}) {
     const on = smooth(.25, .75, n);
     lampsNight.forEach(l => { l.light.intensity = l.on * on; });
     glows.forEach(g => { const v = n > .45 ? g.on : g.off; if (g.mat.emissive) g.mat.emissiveIntensity = typeof g.on === 'number' ? (g.off + (g.on - g.off) * on) : 0; else g.mat.color.set(v); });
-    renderer.toneMappingExposure = 1.1 + .15 * n;
+    renderer.toneMappingExposure = 1.1 + .15 * n; scene.environmentIntensity = .55 - .35 * n;
     rainLines.visible = rain;
   };
   const setNight = v => setLook({ night: v ? 1 : 0 });
@@ -397,11 +433,10 @@ export function createWarung(canvas, opts = {}) {
   }
 
   /* ---------- mode game: pilih objek, sorotan, proyeksi, kerumunan ---------- */
-  const roots = items.map(i => i.obj);
   /** Objek interaktif di bawah titik ndc (−1..1), atau null. */
   const pickItem = (nx, ny) => {
     ndc.set(nx, ny); ray.setFromCamera(ndc, camera);
-    for (const h of ray.intersectObjects(roots, true)) { let o = h.object; while (o && !o.userData.act) o = o.parent; if (o) return o; }
+    for (const h of ray.intersectObjects(items.filter(i => i.obj.visible).map(i => i.obj), true)) { let o = h.object; while (o && !o.userData.act) o = o.parent; if (o) return o; }
     return null;
   };
   let hot = null; const saved = new Map();
@@ -417,7 +452,7 @@ export function createWarung(canvas, opts = {}) {
     return ent.anchor;
   };
   /** Posisi layar lencana stok untuk tiap barang yang punya lencana. */
-  const badges = () => items.filter(i => i.badge && i.act.type === 'item').map(i => ({ id: i.act.id, ...project(anchorOf(i)) })).filter(b => b.z < 1 && b.x > 0 && b.x < 1280 && b.y > 0 && b.y < 720);
+  const badges = () => items.filter(i => i.badge && i.act.type === 'item' && i.obj.visible).map(i => ({ id: i.act.id, ...project(anchorOf(i)) })).filter(b => b.z < 1 && b.x > 0 && b.x < 1280 && b.y > 0 && b.y < 720);
 
   const crowd = new Map();
   const BAG_COLORS = ['#d63b2f', '#e8e8e8', '#2d2d33', '#f6c744'];
@@ -462,7 +497,7 @@ export function createWarung(canvas, opts = {}) {
     for (const it of list) {
       let e = crowd.get(it.key);
       if (!e) {
-        const g = personFor(it.type, parseInt(it.key.slice(1), 10) || 0); g.position.set(it.x, 0, it.z); scene.add(g);
+        const g = personFor(it.type, it.look ?? (parseInt(it.key.slice(1), 10) || 0)); g.position.set(it.x, 0, it.z); scene.add(g); if (quality === 'low') applyQ(g);
         const bill = makeBill(); bill.position.set(0, -HOLD - .03, -.05); bill.rotation.x = Math.PI / 2; bill.visible = false; g.userData.elbows[1].add(bill);
         e = { g, bill, ang: it.moving ? (it.dir > 0 ? -Math.PI / 2 : Math.PI / 2) : 0, lean: 0, a0: 0, a1: 0, b0: 0, b1: 0, s0: 0, s1: 0, g0: .28, g1: .28, holder: null, holderKind: null }; crowd.set(it.key, e);
       }
@@ -582,6 +617,9 @@ export function createWarung(canvas, opts = {}) {
       const byType = {}; rows.forEach(r => { byType[r[2]] = (byType[r[2]] || 0) + r[0]; });
       return { total, byType: Object.entries(byType).sort((a, b) => b[1] - a[1]).slice(0, 10), top: rows.sort((a, b) => b[0] - a[0]).slice(0, 12) };
     },
+    /** Sembunyikan barang dagangan yang belum terbuka (ids = id barang terkunci); tidak bisa diklik & tanpa lencana. */
+    setLockedItems(ids) { const s = new Set(ids); items.forEach(i => { if (i.act.type === 'item') i.obj.visible = !s.has(i.act.id); }); stock.forEach(d => { d.obj.visible = !s.has(d.id); }); tables.forEach((t, i) => { t.visible = TABLE_ITEMS[i].some(id => !s.has(id)); }); },   // meja muncul bila ada isinya
+    setStaff, setQuality: q => setQuality(q), get quality() { return quality; },
     controls, items, pick: pickItem, penjagaAct, highlight, project, badges, syncPeople, syncTray, headPos, resize: resizeTo, frame: step,
     triangles: () => renderer.info.render.triangles,
     rakBensin: rak,

@@ -2,6 +2,7 @@ import { H, W } from '../constants.js';
 import { ctx } from '../gfx.js';
 import { startDay } from '../logic/day.js';
 import { freshState, loadSave } from '../persist.js';
+import { initStory } from '../logic/story.js';
 import { SP } from '../sprites.js';
 import { G, setG, ui } from '../state.js';
 import { T } from '../util.js';
@@ -15,7 +16,7 @@ export function drawTitleUI() {
   T('WARUNG', 60, ty + 92, { s: 96, c: '#fff', stroke: '#7a1d10', sw: 14, w: '900' });
   T('Simulasi Warung Madura 24 Jam', 66, ty + 134, { s: 24, c: '#fff', stroke: '#2a3a5a', sw: 5 });
   button(66, 340, 300, 62, 'MAIN BARU', () => { setG(freshState(G)); startDay(); ui.modal = null; }, { col: 'green', s: 26 });
-  button(66, 418, 300, 54, 'LANJUTKAN', () => { const s = loadSave(); if (!s) return; setG(freshState(G)); Object.assign(G, { day: s.day, money: s.money, rep: s.rep, stock: s.stock, debts: s.debts || [], deliveries: [], totalProfit: s.totalProfit || 0, won: !!s.won, sound: s.sound !== false, auto: !!s.auto }); G.deliveries = (s.deliveries || []).map(d => ({ items: d.items, eta: 0 })); G.firstCust = false; startDay(true); G.deliveries.forEach(d => d.eta = G.abs + 30); ui.modal = null; }, { col: 'blue', s: 22, disabled: !ui.hasSave });
+  button(66, 418, 300, 54, 'LANJUTKAN', () => { const s = loadSave(); if (!s) return; setG(freshState(G)); Object.assign(G, { day: s.day, xp: s.xp || 0, batches: s.batches || {}, fridge: !!s.fridge, lastOrder: s.lastOrder || null, story: s.story ? { ...initStory(s.day), ...s.story } : initStory(s.day), money: s.money, rep: s.rep, stock: s.stock, debts: s.debts || [], deliveries: [], totalProfit: s.totalProfit || 0, won: !!s.won, sound: s.sound !== false, auto: !!s.auto }); G.deliveries = (s.deliveries || []).map(d => ({ items: d.items, eta: 0 })); G.firstCust = false; startDay(true); G.deliveries.forEach(d => d.eta = G.abs + 30); ui.modal = null; }, { col: 'blue', s: 22, disabled: !ui.hasSave });
   button(66, 486, 300, 50, 'CARA MAIN', () => { ui.modal = 'help'; }, { col: 'wood', s: 20 });
 }
 
