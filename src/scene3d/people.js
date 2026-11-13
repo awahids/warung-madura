@@ -180,6 +180,16 @@ function makeHead(o) {
     for (const n in mouths) mouths[n].visible = n === k;
     eyes.forEach(e => { e.visible = k !== 'joy'; }); arcs.forEach(a => { a.visible = k === 'joy'; }); brows.forEach(b => { b.visible = k === 'angry'; });
   };
+  // mulut bicara: elips gelap yang membuka-menutup (open 0..1); menggantikan mulut ekspresi selama berbicara
+  const talkM = place(new THREE.Mesh(new THREE.SphereGeometry(1, 10, 8), new THREE.MeshStandardMaterial({ color: '#5a1a28', roughness: .6 })), 0, my - .008, mz - .004);
+  talkM.scale.set(.03, .01, .012); talkM.visible = false; talkM.userData.noLod = true; if (!o.mask) g.add(talkM);
+  let talkNow = false;
+  g.userData.setTalk = open => {
+    const on = open > .06;
+    if (on) { talkM.scale.set(.026 + .008 * open, .008 + .026 * open, .012); talkM.position.y = my - .008 - .01 * open; }
+    if (on !== talkNow) { talkNow = on; talkM.visible = on; const cur = g.userData.curMood || 'happy'; for (const n in mouths) mouths[n].visible = !on && n === cur; }
+  };
+  const _setMood = g.userData.setMood; g.userData.setMood = m => { g.userData.curMood = mouths[m] ? m : 'happy'; _setMood(m); if (talkNow) for (const n in mouths) mouths[n].visible = false; };
   g.userData.setMood('happy');
   if (o.stubble) { const st = shell(R * 1.012, true, 1.5, 2.05, .75, new THREE.MeshStandardMaterial({ color: '#1a1410', transparent: true, opacity: .16, roughness: 1 })); st.scale.set(1, .95, .95); g.add(st); }
   if (o.hair) makeHair(o.hair, o.hairColor || '#1a1410', g, o.hairFront !== false);
@@ -304,7 +314,7 @@ function buildHuman(o) {
     bp.scale.setScalar(.85); bp.position.set(0, .2, .2); torso.add(bp);
     [-1, 1].forEach(sx => torso.add(place(sh(new THREE.Mesh(new THREE.BoxGeometry(.03, .2, .02), mat('#1c1c20'))), sx * .095, .27, -.15)));
   }
-  g.userData = { legs, arms, elbows, hands, torso, head: headG, setMood: face.userData.setMood };
+  g.userData = { legs, arms, elbows, hands, torso, head: headG, setMood: face.userData.setMood, setTalk: face.userData.setTalk };
   g.scale.setScalar((o.scale || 1) * SIZE);
   // hemat biaya bayangan: bagian kecil tidak melempar/menerima bayangan; yang sangat kecil disembunyikan saat jauh (LOD)
   const fine = [];

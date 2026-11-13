@@ -5,7 +5,7 @@ import { freshState } from '../src/game/persist';
 import { startDay, openShop } from '../src/game/logic/day';
 import { spawnCustomer } from '../src/game/logic/customers';
 import { ITEM_LVL, itemOn } from '../src/game/logic/level';
-import { socialTick, visitors, chat, TOPICS, TALKS, canChat, clearVisitors } from '../src/game/logic/social';
+import { socialTick, visitors, chat, TOPICS, TALKS, canChat, clearVisitors, speechOf, typedChars, isTalking, markSpeech, TYPE_CPS } from '../src/game/logic/social';
 import { regState, regTier } from '../src/game/logic/regulars';
 import { runAct } from '../src/game/engine3d';
 import { bubbleSize } from '../src/game/render/scene';
@@ -90,4 +90,26 @@ describe('balon pesanan tidak menutupi barang', () => {
     expect(rects.reduce((s, q) => s + ov(r, q), 0)).toBeLessThan(w * hh * .1);
     expect(at.x).toBeGreaterThanOrEqual(0); expect(at.x + w).toBeLessThanOrEqual(1280); expect(at.y + hh).toBeLessThanOrEqual(720);
   });
+});
+
+describe('animasi bicara', () => {
+  beforeEach(begin);
+  const mk = () => ({ vid: 1, id: 'wati', seat: 0, until: G.abs + 150, talks: TALKS, used: {}, log: null, talked: false });
+  it('sapaan awal diketik bertahap; mulut bergerak hanya selama teks belum selesai', () => {
+    const v = mk(); G.social = { v: [v], nid: 2, chats: 0 };
+    markSpeech(v); const t0 = v.speechAt, full = speechOf(v).length;
+    expect(full).toBeGreaterThan(10);
+    expect(typedChars(v, t0)).toBe(0); expect(isTalking(v, t0)).toBe(true);
+    expect(typedChars(v, t0 + 1000 * 5 / TYPE_CPS)).toBe(5);
+    expect(isTalking(v, t0 + 1000 * (full - 1) / TYPE_CPS)).toBe(true);
+    expect(isTalking(v, t0 + 1000 * (full + 2) / TYPE_CPS)).toBe(false);
+    expect(typedChars(v, t0 + 1e7)).toBe(full);                       // tidak melebihi panjang teks
+  });
+  it('memilih topik memulai ucapan baru (jawaban warga) dan bisa dilewati', () => {
+    const v = mk(); G.social = { v: [v], nid: 2, chats: 0 }; markSpeech(v);
+    const res = chat(1, 'kabar'); expect(speechOf(v)).toBe(res.text);
+    expect(isTalking(v, v.speechAt + 1)).toBe(true);
+    v.speechAt = -1e9; expect(isTalking(v)).toBe(false);              // ketuk balon → langsung selesai
+  });
+  it('tanpa penanda waktu dianggap sudah selesai bicara (aman untuk data lama)', () => { const v = mk(); expect(isTalking(v)).toBe(false); });
 });

@@ -92,9 +92,20 @@ export function socialTick(dt) {
 export function chat(vid, topicId) {
   const v = visitorById(vid), tp = TOPICS.find(t => t.id === topicId), r = v && regById(v.id); if (!v || !tp || !r) return null;
   if (v.talks <= 0 || v.used[topicId] || !tp.ok(r, v)) { SFX.err(); return null; }
-  const res = tp.fn(r, v); v.used[topicId] = true; v.talks--; v.talked = true; state().chats++; v.log = res; SFX.good();
+  const res = tp.fn(r, v); v.used[topicId] = true; v.talks--; v.talked = true; state().chats++; v.log = res; markSpeech(v); SFX.good();
   if (v.talks <= 0) v.until = Math.min(v.until, G.abs + 25);      // sudah puas ngobrol → pamit tak lama lagi
   return res;
 }
 export const canChat = v => !!v && v.talks > 0;
+
+/* ---- ucapan yang "diketik" (dasar animasi bicara 3D & efek ketik di dialog) ---- */
+export const TYPE_CPS = 38;                                         // karakter per detik
+const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+/** Teks yang sedang diucapkan warga: hasil topik terakhir, atau sapaan awal. */
+export function speechOf(v) { const r = v && regById(v.id); if (!r) return ''; return v.log ? v.log.text : (regTier(r.id) >= 2 ? r.akrab[0] : r.say[0]); }
+export const markSpeech = v => { v.speechAt = nowMs(); };           // mulai berbicara (dipanggil saat dialog dibuka / topik dipilih)
+/** Jumlah karakter yang sudah terucap. */
+export const typedChars = (v, t = nowMs()) => { const n = speechOf(v).length; return v && v.speechAt != null ? Math.max(0, Math.min(n, Math.floor((t - v.speechAt) / 1000 * TYPE_CPS))) : n; };
+/** Sedang berbicara = teks belum selesai terucap. */
+export const isTalking = (v, t = nowMs()) => !!v && typedChars(v, t) < speechOf(v).length;
 export function clearVisitors() { const s = state(); s.v = []; }

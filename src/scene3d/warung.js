@@ -293,6 +293,8 @@ export function createWarung(canvas, opts = {}) {
       sl.grp.add(f); sl.fig = f; sl.key = w.key; sl.grp.visible = true; if (quality === 'low') applyQ(f);
     });
   };
+  const talk = { seat: -1, t0: 0, open: [0, 0] };   // warga yang sedang berbicara (indeks bangku) & bukaan mulut tiap kursi
+  const setTalking = seat => { if (seat !== talk.seat) { talk.seat = seat; talk.t0 = performance.now(); } };
   const staffFigs = new Map(), STAFF_AT = [[1.75, -1.85], [-1.05, -2.1]];
   const setStaff = list => {
     const want = new Set(list.map(s => s.id));
@@ -436,6 +438,7 @@ export function createWarung(canvas, opts = {}) {
     luar: { pos: [4.8, 1.9, 6.4], tgt: [0, 1.1, -.6], fp: false },
     pembeli: { pos: [0, 1.6, 4.6], tgt: [0, 1.3, -1.4], fp: false },
     penjaga: { pos: [.1, 2.0, -2.3], tgt: [.1, 1.05, 1], fp: true },
+    ngobrol: { pos: [2.3, 1.45, 4.5], tgt: [3.1, .85, .9], fp: false },     // dari depan bangku: wajah warga terlihat (dialog menempati bagian bawah layar)
   };
   let tween = null, view = 'luar';
   const applyLimits = fp => {
@@ -620,7 +623,21 @@ export function createWarung(canvas, opts = {}) {
     }
     people.forEach((p, i) => { p.position.y = (p === penjaga ? PJ_Y : 0) + Math.abs(Math.sin(t * 1.6 + i)) * .004; if (p !== penjaga) p.userData.head.rotation.y = Math.sin(t * .7 + i * 2) * .25; });
     stepPenjaga(t, dt);
-    visSlots.forEach((sl, i) => { if (!sl.fig) return; const hd = sl.fig.userData.head; hd.rotation.y = Math.sin(t * .5 + i * 2) * .4; sl.fig.userData.torso.rotation.x = Math.sin(t * 1.4 + i) * .01; }); stepKurir(t, dt); ambience.step(t, dt);
+    visSlots.forEach((sl, i) => {
+      if (!sl.fig) return;
+      const u = sl.fig.userData, talking = talk.seat === i, ts = (performance.now() - talk.t0) / 1000, k = kdt(.18, dt);
+      // mulut: suku kata acak (dua frekuensi) → membuka-menutup tidak monoton; berhenti saat diam
+      const want = talking ? Math.max(0, Math.min(1, .55 + .5 * Math.sin(ts * 13) * (.6 + .4 * Math.sin(ts * 3.3 + 1)) - .12 * (Math.sin(ts * 1.7) > .75 ? 6 : 0))) : 0;
+      talk.open[i] += (want - talk.open[i]) * Math.min(1, dt * 22); if (u.setTalk) u.setTalk(talk.open[i]);
+      // kepala: menoleh ke pemain & mengangguk-angguk saat bicara; saat diam menoleh santai
+      const hy = talking ? Math.sin(ts * .9) * .12 + (i === 0 ? .25 : -.25) : Math.sin(t * .5 + i * 2) * .4, hx = talking ? Math.sin(ts * 6.5) * .05 + .03 : 0;
+      u.head.rotation.y += (hy - u.head.rotation.y) * k; u.head.rotation.x += (hx - u.head.rotation.x) * k;
+      // tangan: satu tangan terangkat bergerak mengikuti irama bicara; yang lain tetap di pangkuan
+      const ga = talking ? .9 + Math.sin(ts * 3.1) * .35 : .45, ge = talking ? 1.15 + Math.sin(ts * 4.2 + 1) * .3 : .9;
+      u.arms[1].rotation.x += (ga - u.arms[1].rotation.x) * k; u.elbows[1].rotation.x += (ge - u.elbows[1].rotation.x) * k;
+      if (u.hands && u.hands[1].userData.setCurl) u.hands[1].userData.setCurl(talking ? .1 + .15 * Math.max(0, Math.sin(ts * 3.1)) : .28);
+      u.torso.rotation.x += (((talking ? .05 + .02 * Math.sin(ts * 2.4) : Math.sin(t * 1.4 + i) * .01)) - u.torso.rotation.x) * k;
+    }); stepKurir(t, dt); ambience.step(t, dt);
     if (handoffs.length) stepHandoffs();
     if (rainLines.visible) stepRain(dt);
     if (flights.length) stepFlights();
@@ -682,7 +699,7 @@ export function createWarung(canvas, opts = {}) {
     /** Sembunyikan barang dagangan yang belum terbuka (ids = id barang terkunci); tidak bisa diklik & tanpa lencana. */
     setLockedItems(ids) { const s = new Set(ids); items.forEach(i => { if (i.act.type === 'item') i.obj.visible = !s.has(i.act.id); }); stock.forEach(d => { d.obj.visible = !s.has(d.id); }); tables.forEach((t, i) => { t.visible = TABLE_ITEMS[i].some(id => !s.has(id)); }); sembako.visible = ['minyak', 'gula', 'sabun', 'susu', 'telur', 'teh'].some(id => !s.has(id)); },   // meja & rak gantung muncul bila ada isinya
     setStaff, setQuality: q => setQuality(q), get quality() { return quality; },
-    controls, items, itemRects, setVisitors, pick: pickItem, penjagaAct, highlight, project, badges, syncPeople, syncTray, headPos, resize: resizeTo, frame: step,
+    controls, items, itemRects, setVisitors, setTalking, pick: pickItem, penjagaAct, highlight, project, badges, syncPeople, syncTray, headPos, resize: resizeTo, frame: step,
     triangles: () => renderer.info.render.triangles,
     rakBensin: rak,
     dispose() { alive = false; cancelAnimationFrame(raf); ro && ro.disconnect(); controls.dispose(); scene.traverse(o => { o.geometry && o.geometry.dispose(); }); renderer.dispose(); },

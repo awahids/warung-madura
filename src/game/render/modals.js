@@ -28,7 +28,7 @@ import { button, panel } from '../widgets.js';
 export function drawModals() {
   if (!ui.modal) { ui.modalName = null; return; }
   ui.hits.length = 0; ui.tooltip = '';
-  ctx.fillStyle = 'rgba(10,5,0,.62)'; ctx.fillRect(0, 0, W, H);
+  if (ui.modal !== 'ngobrol') { ctx.fillStyle = 'rgba(10,5,0,.62)'; ctx.fillRect(0, 0, W, H); }   // dialog ngobrol: adegan tetap terlihat
   // animasi muncul: memudar + naik sedikit (±10 frame); area klik tidak ikut bergeser
   if (ui.modalName !== ui.modal) { ui.modalName = ui.modal; ui.modalT = 0; }
   ui.modalT = Math.min(1, ui.modalT + .1); const ease = 1 - (1 - ui.modalT) ** 3;

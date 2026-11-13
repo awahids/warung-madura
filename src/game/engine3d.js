@@ -1,4 +1,4 @@
-import { visitors } from './logic/social.js';
+import { isTalking, visitorById, visitors } from './logic/social.js';
 import { openChat } from './render/social.js';
 import atlasUrl from './assets/atlas.webp';
 import { SFX } from './audio.js';
@@ -119,6 +119,7 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
   const ndcOf = () => [mouse.x / W * 2 - 1, -(mouse.y / H * 2 - 1)];
   const overHit = () => ui.hits.some(h => inRect(mouse.x, mouse.y, h.x, h.y, h.w, h.h));
 
+  let wasChatting = false, camBefore = null;
   const syncScene = dt => {
     // pintu, waktu, cuaca
     const playing = G.screen === 'play';
@@ -130,6 +131,10 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
     if (lockKey !== lockedKey) { lockedKey = lockKey; scene.setLockedItems(lockKey ? lockKey.split(',') : []); }
     const staffKey = playing ? staffList().map(s => s.id).join(',') : '';   // karyawan tampil di warung
     if (staffKey !== staffShown) { staffShown = staffKey; scene.setStaff(staffList().map(s => { const r = regById(s.id); return { id: s.id, type: r.type, look: r.look }; })); }
+    // dialog ngobrol: kamera pindah ke depan bangku & warga yang bicara menggerakkan mulut; kembali ke sudut semula saat selesai
+    const chatting = playing && ui.modal === 'ngobrol', cv = chatting ? visitorById(ui.chatId) : null;
+    if (chatting !== wasChatting) { wasChatting = chatting; if (chatting) { camBefore = api.view; scene.setView('ngobrol'); } else if (camBefore) { scene.setView(camBefore); camBefore = null; } }
+    scene.setTalking(cv && isTalking(cv) ? cv.seat : -1);
     scene.setPaket(playing && G.deliveries.some(d => G.abs >= d.eta));
     scene.setVisitors(playing ? visitors().map(v => { const r = regById(v.id); return { key: v.vid, type: r.type, look: r.look, seat: v.seat }; }) : []);
     // kamera mengikuti layar: judul = memutar dari luar; main = sudut pandang penjaga
