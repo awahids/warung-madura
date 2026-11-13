@@ -3,7 +3,7 @@ import { DAY_END } from '../constants.js';
 import { G, ui } from '../state.js';
 import { clamp, pick } from '../util.js';
 import { toast } from '../widgets.js';
-import { HOME_STORIES } from '../story/home.js';
+import { FOTO, HOME_STORIES } from '../story/home.js';
 import { isRain, endDay } from './day.js';
 import { receiveDelivery } from './actions.js';
 import { applyFx, chapterOf, story, trust } from './story.js';
@@ -37,6 +37,7 @@ export function eligibleStories() {
     const w = h.when; if (!w) return true;
     if (w.rain && !isRain()) return false;
     if (w.night && G.h < 19.5) return false;
+    if (w.chapter && chapterOf() !== w.chapter) return false;
     if (w.chapterMin && chapterOf() < w.chapterMin) return false;
     if (w.trustMin && trust() < w.trustMin) return false;
     if (w.hutang && !utang) return false;
@@ -44,10 +45,18 @@ export function eligibleStories() {
     return true;
   });
 }
+const seenFlag = id => `home_${id}`;
+export const storySeen = id => !!story().flags[seenFlag(id)];
+/** Cerita bab yang belum pernah dibaca didahulukan (±70%); selebihnya cerita umum yang tidak baru muncul. */
 function pickStory() {
-  const pool = eligibleStories(), recent = home().recent, fresh = pool.filter(h => !recent.includes(h.id));
+  const pool = eligibleStories(), recent = home().recent;
+  const arc = pool.filter(h => h.when && h.when.chapter && !storySeen(h.id));
+  if (arc.length && Math.random() < .7) return pick(arc);
+  const fresh = pool.filter(h => !recent.includes(h.id) && !(h.when && h.when.chapter && storySeen(h.id) && Math.random() < .6));
   return pick(fresh.length ? fresh : pool);
 }
+/** Teks foto lama di rumah untuk bab saat ini. */
+export const fotoText = () => FOTO[chapterOf() - 1] || FOTO[0];
 
 /** Pulang & istirahat `hours` jam: waktu maju, kewarasan pulih, cerita rumah muncul. Mengembalikan hasil atau null. */
 export function restAtHome(hours = 1) {
@@ -56,7 +65,7 @@ export function restAtHome(hours = 1) {
   G.h += hours; G.abs += hours * 60; home().rests++;
   G.energy = clamp(G.energy + ENERGY_PER_HOUR * hours, 0, 100);
   if (G.social) G.social.v = [];                                    // warga di bangku pulang
-  const lines = applyFx(st.fx); home().recent = [...home().recent, st.id].slice(-5);
+  const lines = applyFx(st.fx); story().flags[seenFlag(st.id)] = true; home().recent = [...home().recent, st.id].slice(-5);
   if (G.deliveries.some(d => G.abs >= d.eta)) receiveDelivery();     // kiriman diterima tetangga/dititip
   const res = { hours, story: st, gain: Math.round(G.energy - h0), lines, hour: G.h };
   ui.homeResult = res; ui.modal = 'rumah'; SFX.good();

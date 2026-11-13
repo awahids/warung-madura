@@ -17,6 +17,7 @@ import { attachInput } from './input.js';
 import { loadSave } from './persist.js';
 import { autoDowngrade, effectiveQuality, onQuality } from './quality.js';
 import { toast } from './widgets.js';
+import { fotoText } from './logic/home.js';
 import { darkness, skyAt } from './render/background.js';
 import { drawOverlay3D } from './render/overlay3d.js';
 import { canAct } from './sprites.js';
@@ -76,6 +77,7 @@ export function runAct(act, scene) {
     case 'kopi-minum': { const cd = G.drinkCd; drinkKopi(); if (G.drinkCd > cd) scene && scene.penjagaAct('drink'); break; }
     case 'promo': tapPromo(); break;
     case 'kurir': case 'paket': acceptDelivery(scene); break;
+    case 'foto': toast(fotoText(), '#ffe9b8'); break;
     case 'warga': { const v = visitors().find(x => x.seat === act.slot); if (v) openChat(v.vid); break; }
     default: break;
   }
@@ -197,7 +199,10 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
     const vv = visitors().find(x => canChat(x));
     if (deliveryArrived() && scene.kurirAtHome && d(.66, .62) < 2.1) pr = { label: 'Terima kiriman', run: () => acceptDelivery(scene) };
     else if (vv && d(3.1, .9) < 2.2) pr = { label: `Ngobrol dengan ${(regById(vv.id) || {}).name || 'warga'}`, run: () => { setWalkMode(false); openChat(vv.vid); } };
-    else if (d(-4.4, .6) < 1.5) pr = { label: 'Pulang istirahat', run: () => { ui.homeResult = null; ui.modal = 'rumah'; } };
+    else if (p.inHouse && d(-5.0, -2.0) < 1.9) pr = { label: 'Istirahat di kasur', run: () => { ui.homeResult = null; ui.modal = 'rumah'; } };
+    else if (p.inHouse && d(-3.9, -1.4) < 1.6) pr = { label: 'Makan di rumah', run: () => { ui.homeResult = null; ui.modal = 'rumah'; } };
+    else if (p.inHouse && d(-4.4, -2.7) < 1.7) pr = { label: 'Lihat foto lama', run: () => toast(fotoText(), '#ffe9b8') };
+    else if (d(-4.4, .6) < 1.5 && !p.inHouse) pr = { label: 'Masuk & pulang istirahat', run: () => { ui.homeResult = null; ui.modal = 'rumah'; } };
     else if (d(.2, -1.3) < 1.4 || (p.z < -.2 && p.x > -2.1 && p.x < 2.1)) pr = { label: 'Kembali ke meja', run: () => setWalkMode(false) };
     view.walkPrompt = pr;
   }

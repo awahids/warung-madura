@@ -199,14 +199,42 @@ export function createWarung(canvas, opts = {}) {
   const bColors = ['#c9b89a', '#a9b4a0', '#b8a6a0', '#9fb0b8', '#c8a98a'];
   const winMat = addGlow(new THREE.MeshBasicMaterial({ color: '#8d99a3' }), '#ffe9a0', '#8d99a3');
   const building = (x, z, w, h, d, c) => scene.add(box(w, h, d, std(c, { roughness: .95 }), x, h / 2, z));
-  building(-4.4, -1.6, 3.2, 3.4, 3.6, '#b9a58a'); building(4.5, -1.6, 3.2, 3.0, 3.6, '#a8b3a2');
-  // RUMAH: pintu, tanda, jendela hangat & undakan di bangunan kiri (tujuan "pulang istirahat")
-  { const door = box(.95, 2.0, .08, std('#6b4a2a', { roughness: .8 }), -4.4, 1.0, .24); scene.add(door);
-    scene.add(box(1.15, 2.1, .04, std('#4a3220', { roughness: .8 }), -4.4, 1.05, .21), box(1.5, .1, .45, std('#a7a59d', { roughness: .9 }), -4.4, .05, .45));
-    const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.1, .34), new THREE.MeshStandardMaterial({ map: signTex('RUMAH', '#6b3a14', '#ffe9a0'), roughness: .6 })); sign.position.set(-4.4, 2.45, .235); scene.add(sign);
-    scene.add(box(.07, .12, .05, std('#d4a82a', { metalness: .7 }), -4.12, 1.0, .3));
+  building(4.5, -1.6, 3.2, 3.0, 3.6, '#a8b3a2');
+  /* ---------- RUMAH (bisa dimasuki): dinding berlubang di pintu, lantai kayu, kasur, meja makan, lemari, foto, lampu ---------- */
+  const house = { front: new THREE.Group(), roof: null, light: null };
+  { const HW = std('#b9a58a', { roughness: .95 }), IN = std('#eadcb8', { roughness: .95 }), HH = 3.2, wd = std('#8a5a32', { roughness: .85 }), wdD = std('#6b4a2a', { roughness: .85 });
+    const solid = (w, h, d, x, y, z, m = HW) => { const b = box(w, h, d, m, x, y, z); scene.add(b); return b; };
+    solid(3.2, HH, .12, -4.4, HH / 2, -3.34); solid(.12, HH, 3.6, -5.94, HH / 2, -1.6); solid(.12, HH, 3.6, -2.86, HH / 2, -1.6);       // dinding belakang, kiri, kanan
+    solid(3.0, HH - .2, .03, -4.4, HH / 2, -3.27, IN);                                                                                  // lapisan dalam (krem)
+    const fr = (w, h, x, y) => { const b = box(w, h, .12, HW, x, y, .14); house.front.add(b); };                                       // dinding depan: dua sisi + ambang atas pintu
+    fr(1.05, HH, -5.45, HH / 2); fr(1.05, HH, -3.35, HH / 2); fr(1.0, HH - 2.15, -4.4, 2.15 + (HH - 2.15) / 2);
+    scene.add(house.front);
+    house.roof = box(3.5, .14, 3.9, std('#7a3a28', { roughness: .8 }), -4.4, HH + .07, -1.6); scene.add(house.roof);
+    scene.add(box(3.1, .05, 3.5, std('#c9a36a', { roughness: .85 }), -4.4, .025, -1.6));                                              // lantai
+    scene.add(box(1.5, .1, .45, std('#a7a59d', { roughness: .9 }), -4.4, .05, .45));                                                   // undakan
+    const leaf = box(.95, 2.0, .06, wdD, -4.4, 1.0, .0); leaf.position.set(-4.9, 1.0, -.52); leaf.rotation.y = 1.45; scene.add(leaf);   // daun pintu terbuka ke dalam
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.1, .34), new THREE.MeshStandardMaterial({ map: signTex('RUMAH', '#6b3a14', '#ffe9a0'), roughness: .6 })); sign.position.set(-4.4, 2.6, .215); house.front.add(sign);
     const winGlow = addGlow(new THREE.MeshBasicMaterial({ color: '#8d99a3' }), '#ffd98a', '#8d99a3');
-    [-5.4, -3.4].forEach(x => { const w = new THREE.Mesh(new THREE.PlaneGeometry(.7, .8), winGlow); w.position.set(x, 1.6, .215); scene.add(w); scene.add(box(.8, .06, .05, std('#4a3220'), x, 1.17, .22)); }); }
+    [-5.5, -3.3].forEach(x => { const w = new THREE.Mesh(new THREE.PlaneGeometry(.6, .7), winGlow); w.position.set(x, 1.7, .215); house.front.add(w); house.front.add(box(.7, .06, .05, wdD, x, 1.32, .22)); });
+    // perabot
+    const bed = new THREE.Group(); bed.position.set(-5.25, 0, -2.5); scene.add(bed);
+    bed.add(box(1.2, .3, 2.0, wd, 0, .15, 0), box(1.1, .16, 1.9, std('#efe4cc', { roughness: .9 }), 0, .38, 0), box(.6, .1, .3, std('#ffffff', { roughness: .9 }), 0, .49, -.78), box(1.12, .1, 1.05, std('#3f78c4', { roughness: .9 }), 0, .47, .42), box(1.2, .7, .08, wd, 0, .55, -1.0));
+    const tbl = new THREE.Group(); tbl.position.set(-3.55, 0, -1.4); scene.add(tbl);
+    tbl.add(box(1.0, .05, .8, wd, 0, .72, 0)); [[-.45, -.35], [.45, -.35], [-.45, .35], [.45, .35]].forEach(([x, z]) => tbl.add(box(.06, .7, .06, wdD, x, .35, z)));
+    [-.62, .62].forEach(z => tbl.add(box(.42, .05, .42, wd, 0, .45, z), box(.42, .45, .05, wd, 0, .7, z + (z < 0 ? -.19 : .19)), box(.05, .43, .05, wdD, -.17, .22, z), box(.05, .43, .05, wdD, .17, .22, z)));
+    tbl.add(box(.28, .03, .28, std('#f4f4f0', { roughness: .5 }), -.2, .765, .05), box(.12, .1, .12, std('#d63b2f'), .25, .8, -.1));     // piring & gelas di meja
+    const lem = new THREE.Group(); lem.position.set(-3.4, 0, -3.05); scene.add(lem);
+    lem.add(box(1.0, 2.0, .5, wd, 0, 1.0, 0), box(.02, 1.9, .02, wdD, 0, 1.0, .26), box(.05, .15, .04, std('#d4a82a', { metalness: .7 }), -.1, 1.0, .27), box(.05, .15, .04, std('#d4a82a', { metalness: .7 }), .1, 1.0, .27));
+    scene.add(box(1.5, .015, 1.1, std('#a4262c', { roughness: .95 }), -4.4, .055, -.9));                                                  // karpet
+    const photoTex = (() => { const c = document.createElement('canvas'); c.width = 128; c.height = 100; const g = c.getContext('2d'); g.fillStyle = '#cdb68a'; g.fillRect(0, 0, 128, 100); g.fillStyle = '#7a8a6a'; g.fillRect(0, 62, 128, 38);
+      g.fillStyle = '#6b4a2a'; g.fillRect(34, 28, 60, 40); g.fillStyle = '#c0281a'; g.fillRect(30, 20, 68, 12); g.fillStyle = '#3a2412'; g.beginPath(); g.arc(104, 56, 6, 0, 7); g.fill(); g.fillRect(100, 60, 8, 22);
+      const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })();
+    scene.add(box(.62, .5, .04, wdD, -4.4, 1.7, -3.26)); { const pic = new THREE.Mesh(new THREE.PlaneGeometry(.52, .4), new THREE.MeshStandardMaterial({ map: photoTex, roughness: .6 })); pic.position.set(-4.4, 1.7, -3.235); scene.add(pic); }   // foto warung lama
+    reg({ type: 'foto' }, (() => { const g = new THREE.Group(); g.position.set(-4.4, 1.7, -3.2); const hb = new THREE.Mesh(new THREE.BoxGeometry(.7, .6, .2), new THREE.MeshBasicMaterial()); hb.visible = false; g.add(hb); scene.add(g); return g; })());
+    // lampu bohlam: menyala malam hari (cahaya hangat di dalam rumah)
+    const bulbMat = addGlow(new THREE.MeshBasicMaterial({ color: '#b5a98a' }), '#fff0b8', '#b5a98a'); const bulbH = new THREE.Mesh(new THREE.SphereGeometry(.09, 12, 10), bulbMat); bulbH.position.set(-4.4, 2.85, -1.6); scene.add(bulbH);
+    const hl = new THREE.PointLight('#ffd9a0', 0, 7, 2); hl.position.set(-4.4, 2.7, -1.6); scene.add(hl); lampsNight.push({ light: hl, on: 9 }); house.light = hl;
+  }
   for (let i = 0; i < 9; i++) building(-26 + i * 6.5, 20 + (i % 2) * 2, rnd(4, 6), rnd(5, 11), 5, pick(bColors));
   const wins = new THREE.InstancedMesh(new THREE.PlaneGeometry(.7, .9), winMat, 90); { const m = new THREE.Matrix4(); for (let i = 0; i < 90; i++) { m.makeTranslation(-26 + (i % 30) * 1.7, 2 + Math.floor(i / 30) * 2.6, 17.4); wins.setMatrixAt(i, m); } } scene.add(wins);
   const tree = new THREE.Group(); tree.position.set(4.4, 0, 1.0); scene.add(tree);
@@ -308,7 +336,9 @@ export function createWarung(canvas, opts = {}) {
   const walk = { on: false, x: -.4, z: .85, face: Math.PI, spd: 0, ph: 0, cx: 0, cz: 3, lastSet: 0 };
   const WALL = [   // kotak penghalang [x0, x1, z0, z1]
     [-2.32, -2.16, -3.4, .06], [2.16, 2.32, -3.4, .06],                    // dinding warung kiri/kanan
-    [-6.2, -2.8, -3.5, .2], [2.9, 6.2, -3.5, .2],                         // rumah (kiri) & bangunan kanan
+    [2.9, 6.2, -3.5, .2],                                                  // bangunan kanan
+    [-6.05, -2.75, -3.5, -3.28], [-6.05, -5.88, -3.5, .3], [-2.92, -2.75, -3.5, .3], [-6.05, -4.9, .08, .3], [-3.9, -2.75, .08, .3],   // rumah: dinding belakang/kiri/kanan + dinding depan (pintu lebar 1 m di x −4,9…−3,9)
+    [-5.85, -4.65, -3.5, -1.5], [-4.1, -3.0, -2.1, -.7], [-3.9, -2.9, -3.5, -2.8],     // kasur, meja makan + kursi, lemari
     [-1.4, 1.4, -1.15, -.45], [1.22, 2.18, -3.06, -2.34],                 // meja kasir, kulkas
     [.475, 1.725, .02, .325], [1.575, 2.425, .02, .325], [-2.25, -1.25, .02, .325],   // meja display teras (bagian depan; celah ±.45 m di belakangnya agar bisa lewat dari dalam warung)
     [2.4, 3.8, .7, 1.1], [4.2, 4.6, .8, 1.2], [-3.35, -3.05, 1.1, 1.4], [-2.9, -2.5, .35, .75], [-2.46, -2.14, .79, 1.11],   // bangku, pohon, tiang, tong, dingklik
@@ -319,7 +349,7 @@ export function createWarung(canvas, opts = {}) {
     if (on === walk.on) return;
     walk.on = on; controls.enabled = !on;
     if (on) { walk.x = -.4; walk.z = .85; walk.face = 0; penjaga.visible = true; walk.cx = camera.position.x; walk.cz = camera.position.z; controls.minDistance = .01; controls.maxDistance = 100; camera.fov = 52; camera.updateProjectionMatrix(); tween = null; }
-    else { penjaga.position.set(.2, PJ_Y, PJ_Z); pj.yaw = Math.PI; penjaga.rotation.y = Math.PI; penjaga.userData.legs.forEach(l => { l.rotation.x = 0; }); }
+    else { house.front.visible = true; house.roof.visible = true; penjaga.position.set(.2, PJ_Y, PJ_Z); pj.yaw = Math.PI; penjaga.rotation.y = Math.PI; penjaga.userData.legs.forEach(l => { l.rotation.x = 0; }); }
   };
   /** Satu langkah jalan: (ix, iz) arah masukan −1..1 dalam sumbu dunia (x kanan, z ke arah jalan), run = berlari. */
   const walkStep = (ix, iz, run, dt) => {
@@ -341,8 +371,10 @@ export function createWarung(canvas, opts = {}) {
     u.elbows[0].rotation.x = .15 + Math.max(0, -sw) * .3; u.elbows[1].rotation.x = .15 + Math.max(0, sw) * .3;
     u.torso.rotation.x = -.04 * Math.min(1, walk.spd);
     // kamera orang ketiga mengikuti dengan lembut (searah jalan, sedikit dari atas)
+    { const inside = walk.x > -5.95 && walk.x < -2.85 && walk.z > -3.3 && walk.z < .12; house.front.visible = !inside; house.roof.visible = !inside; }
     const gx = walk.x * .8, gz = walk.z + 4.7; walk.cx += (gx - walk.cx) * kdt(.1, dt); walk.cz += (gz - walk.cz) * kdt(.1, dt);
-    camera.position.set(walk.cx, 2.85, walk.cz); controls.target.set(walk.x * .9, 1.0, walk.z - .2); controls.target.y = 1.0;
+    walk.camY = (walk.camY ?? 2.85) + (((walk.x > -5.95 && walk.x < -2.85 && walk.z > -3.3 && walk.z < .12) ? 3.9 : 2.85) - (walk.camY ?? 2.85)) * kdt(.06, dt);   // di dalam rumah: kamera lebih tinggi
+    camera.position.set(walk.cx, walk.camY, walk.cz); controls.target.set(walk.x * .9, 1.0, walk.z - .2); controls.target.y = 1.0;
   };
   const staffFigs = new Map(), STAFF_AT = [[1.75, -1.85], [-1.05, -2.1]];
   const setStaff = list => {
@@ -763,7 +795,7 @@ export function createWarung(canvas, opts = {}) {
     /** Sembunyikan barang dagangan yang belum terbuka (ids = id barang terkunci); tidak bisa diklik & tanpa lencana. */
     setLockedItems(ids) { const s = new Set(ids); items.forEach(i => { if (i.act.type === 'item') i.obj.visible = !s.has(i.act.id); }); stock.forEach(d => { d.obj.visible = !s.has(d.id); }); tables.forEach((t, i) => { t.visible = TABLE_ITEMS[i].some(id => !s.has(id)); }); sembako.visible = ['minyak', 'gula', 'sabun', 'susu', 'telur', 'teh'].some(id => !s.has(id)); },   // meja & rak gantung muncul bila ada isinya
     setStaff, setQuality: q => setQuality(q), get quality() { return quality; },
-    setWalk, walkStep, get walkPos() { return { x: walk.x, z: walk.z, on: walk.on }; }, controls, items, itemRects, setVisitors, setTalking, setPenjagaTalking, pick: pickItem, penjagaAct, highlight, project, badges, syncPeople, syncTray, headPos, resize: resizeTo, frame: step,
+    setWalk, walkStep, get walkPos() { return { x: walk.x, z: walk.z, on: walk.on, inHouse: walk.x > -5.95 && walk.x < -2.85 && walk.z > -3.3 && walk.z < .12 }; }, controls, items, itemRects, setVisitors, setTalking, setPenjagaTalking, pick: pickItem, penjagaAct, highlight, project, badges, syncPeople, syncTray, headPos, resize: resizeTo, frame: step,
     triangles: () => renderer.info.render.triangles,
     rakBensin: rak,
     dispose() { alive = false; cancelAnimationFrame(raf); ro && ro.disconnect(); controls.dispose(); scene.traverse(o => { o.geometry && o.geometry.dispose(); }); renderer.dispose(); },
