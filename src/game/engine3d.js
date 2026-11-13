@@ -1,4 +1,4 @@
-import { isTalking, visitorById, visitors } from './logic/social.js';
+import { isAsking, isTalking, visitorById, visitors } from './logic/social.js';
 import { openChat } from './render/social.js';
 import atlasUrl from './assets/atlas.webp';
 import { SFX } from './audio.js';
@@ -134,7 +134,7 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
     // dialog ngobrol: kamera pindah ke depan bangku & warga yang bicara menggerakkan mulut; kembali ke sudut semula saat selesai
     const chatting = playing && ui.modal === 'ngobrol', cv = chatting ? visitorById(ui.chatId) : null;
     if (chatting !== wasChatting) { wasChatting = chatting; if (chatting) { camBefore = api.view; scene.setView('ngobrol'); } else if (camBefore) { scene.setView(camBefore); camBefore = null; } }
-    scene.setTalking(cv && isTalking(cv) ? cv.seat : -1);
+    scene.setTalking(cv && isTalking(cv) ? cv.seat : -1); scene.setPenjagaTalking(!!cv && isAsking(cv));
     scene.setPaket(playing && G.deliveries.some(d => G.abs >= d.eta));
     scene.setVisitors(playing ? visitors().map(v => { const r = regById(v.id); return { key: v.vid, type: r.type, look: r.look, seat: v.seat }; }) : []);
     // kamera mengikuti layar: judul = memutar dari luar; main = sudut pandang penjaga

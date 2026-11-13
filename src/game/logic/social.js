@@ -36,7 +36,7 @@ const CURHAT = [
 
 /** Topik obrolan. fn(r, v) → { text, lines? } menerapkan efek; ok() menentukan bisa dipilih. */
 export const TOPICS = [
-  { id: 'kabar', label: 'Tanya kabar', hint: '+kedekatan, +8 kewarasan, kabar kampung',
+  { id: 'kabar', label: 'Tanya kabar', ask: r => `Apa kabar, ${r.name}? Lagi ada cerita apa?`, hint: '+kedekatan, +8 kewarasan, kabar kampung',
     ok: () => true,
     fn(r) {
       bond(r.id, 3); G.energy = clamp(G.energy + 8, 0, 100); addXp(3);
@@ -45,20 +45,20 @@ export const TOPICS = [
       else if (isRain()) t = 'Hujannya awet ya... pembeli ojol pasti banyak yang mampir.';
       return { text: t, gain: '+3 kedekatan · +8 kewarasan' };
     } },
-  { id: 'traktir', label: 'Traktir kopi', hint: 'pakai 1 kopi sachet · +6 kedekatan',
+  { id: 'traktir', label: 'Traktir kopi', ask: r => `Silakan diminum kopinya, ${r.name}. Saya yang traktir.`, hint: 'pakai 1 kopi sachet · +6 kedekatan',
     ok: () => (G.stock.kopi || 0) > 0, why: 'Kopi sachet habis',
     fn(r) {
       G.stock.kopi--; bond(r.id, 6); G.energy = clamp(G.energy + 4, 0, 100); G.rep = clamp(G.rep + 1, 0, 100); addXp(4); SFX.gulp();
       return { text: `${r.name} menyeruput kopinya. "Nikmat sekali, makasih ya, Nak. Kapan-kapan gantian saya yang traktir."`, gain: '+6 kedekatan · +4 kewarasan · reputasi +1' };
     } },
-  { id: 'saran', label: 'Minta saran belanja', hint: 'warga ikut mempromosikan 1 barang hari ini',
+  { id: 'saran', label: 'Minta saran belanja', ask: r => `${r.name}, menurut Anda apa yang paling dicari warga?`, hint: 'warga ikut mempromosikan 1 barang hari ini',
     ok: () => true,
     fn(r) {
       const favs = favItems(r).filter(itemOn), id = favs.length ? pick(favs.slice(0, 3)) : 'kopi';
       bond(r.id, 2); G.buzz = { id, day: G.day, who: r.name }; addXp(3);
       return { text: `"Kalau saya sih, ${BY[id].name} paling sering dicari tetangga. Nanti saya bilangin ke mereka."`, gain: `+2 kedekatan · ${BY[id].name} lebih diminati hari ini` };
     } },
-  { id: 'curhat', label: 'Dengarkan curhat', hint: '+kedekatan, +kepercayaan warga, kadang dapat tip',
+  { id: 'curhat', label: 'Dengarkan curhat', ask: r => `Ceritakan saja, ${r.name}. Saya dengarkan.`, hint: '+kedekatan, +kepercayaan warga, kadang dapat tip',
     ok: () => true,
     fn(r) {
       bond(r.id, 4); applyFx({ trust: 1 }); addXp(5);
@@ -92,7 +92,7 @@ export function socialTick(dt) {
 export function chat(vid, topicId) {
   const v = visitorById(vid), tp = TOPICS.find(t => t.id === topicId), r = v && regById(v.id); if (!v || !tp || !r) return null;
   if (v.talks <= 0 || v.used[topicId] || !tp.ok(r, v)) { SFX.err(); return null; }
-  const res = tp.fn(r, v); v.used[topicId] = true; v.talks--; v.talked = true; state().chats++; v.log = res; markSpeech(v); SFX.good();
+  const res = tp.fn(r, v); v.used[topicId] = true; v.talks--; v.talked = true; state().chats++; v.log = res; v.ask = tp.ask ? tp.ask(r) : ''; v.askAt = nowMs(); markSpeech(v, askMs(v) + ASK_TAIL); SFX.good();
   if (v.talks <= 0) v.until = Math.min(v.until, G.abs + 25);      // sudah puas ngobrol → pamit tak lama lagi
   return res;
 }
@@ -103,9 +103,19 @@ export const TYPE_CPS = 38;                                         // karakter 
 const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 /** Teks yang sedang diucapkan warga: hasil topik terakhir, atau sapaan awal. */
 export function speechOf(v) { const r = v && regById(v.id); if (!r) return ''; return v.log ? v.log.text : (regTier(r.id) >= 2 ? r.akrab[0] : r.say[0]); }
-export const markSpeech = v => { v.speechAt = nowMs(); };           // mulai berbicara (dipanggil saat dialog dibuka / topik dipilih)
+/** Mulai berbicara (dialog dibuka / topik dipilih). delayMs: jeda dulu (mis. pemain bertanya lebih dulu). */
+export const markSpeech = (v, delayMs = 0) => { v.speechAt = nowMs() + delayMs; };
+export const ASK_TAIL = 380;                                       // jeda singkat setelah pemain selesai bertanya (ms)
+export const askMs = v => (v && v.ask ? v.ask.length / TYPE_CPS * 1000 : 0);
+/** Pemain (penjaga) sedang bertanya: kalimat tanya diketik dulu sebelum warga menjawab. */
+export const isAsking = (v, t = nowMs()) => !!v && !!v.ask && v.askAt != null && t < v.askAt + askMs(v);
+export const askChars = (v, t = nowMs()) => (v && v.ask ? Math.max(0, Math.min(v.ask.length, Math.floor((t - v.askAt) / 1000 * TYPE_CPS))) : 0);
+/** Jeda setelah pemain bertanya, sebelum warga mulai menjawab. */
+export const isWaitingAnswer = (v, t = nowMs()) => !!v && v.speechAt != null && t < v.speechAt && !isAsking(v, t);
+/** Nada suara tiap warga (Hz) — stabil per tokoh. */
+export const voicePitch = id => 150 + ([...String(id)].reduce((s, ch) => s + ch.charCodeAt(0), 0) % 9) * 22;
 /** Jumlah karakter yang sudah terucap. */
 export const typedChars = (v, t = nowMs()) => { const n = speechOf(v).length; return v && v.speechAt != null ? Math.max(0, Math.min(n, Math.floor((t - v.speechAt) / 1000 * TYPE_CPS))) : n; };
 /** Sedang berbicara = teks belum selesai terucap. */
-export const isTalking = (v, t = nowMs()) => !!v && typedChars(v, t) < speechOf(v).length;
+export const isTalking = (v, t = nowMs()) => !!v && v.speechAt != null && t >= v.speechAt && typedChars(v, t) < speechOf(v).length;
 export function clearVisitors() { const s = state(); s.v = []; }

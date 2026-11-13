@@ -5,7 +5,7 @@ import { freshState } from '../src/game/persist';
 import { startDay, openShop } from '../src/game/logic/day';
 import { spawnCustomer } from '../src/game/logic/customers';
 import { ITEM_LVL, itemOn } from '../src/game/logic/level';
-import { socialTick, visitors, chat, TOPICS, TALKS, canChat, clearVisitors, speechOf, typedChars, isTalking, markSpeech, TYPE_CPS } from '../src/game/logic/social';
+import { socialTick, visitors, chat, TOPICS, TALKS, canChat, clearVisitors, speechOf, typedChars, isTalking, markSpeech, TYPE_CPS, isAsking, askChars, askMs, isWaitingAnswer, voicePitch, ASK_TAIL } from '../src/game/logic/social';
 import { regState, regTier } from '../src/game/logic/regulars';
 import { runAct } from '../src/game/engine3d';
 import { bubbleSize } from '../src/game/render/scene';
@@ -112,4 +112,20 @@ describe('animasi bicara', () => {
     v.speechAt = -1e9; expect(isTalking(v)).toBe(false);              // ketuk balon → langsung selesai
   });
   it('tanpa penanda waktu dianggap sudah selesai bicara (aman untuk data lama)', () => { const v = mk(); expect(isTalking(v)).toBe(false); });
+
+  it('pemain bertanya dulu (penjaga bicara), jeda singkat, baru warga menjawab', () => {
+    const v = mk(); G.social = { v: [v], nid: 2, chats: 0 };
+    chat(1, 'kabar'); const a0 = v.askAt;
+    expect(v.ask).toContain('Bu Wati'); expect(askMs(v)).toBeGreaterThan(500);
+    expect(isAsking(v, a0 + 10)).toBe(true); expect(isTalking(v, a0 + 10)).toBe(false);           // warga diam saat ditanya
+    expect(askChars(v, a0 + 1000 * 4 / TYPE_CPS)).toBe(4);
+    const endAsk = a0 + askMs(v);
+    expect(isAsking(v, endAsk + 1)).toBe(false); expect(isWaitingAnswer(v, endAsk + 1)).toBe(true); expect(isTalking(v, endAsk + 1)).toBe(false);
+    expect(v.speechAt).toBeCloseTo(endAsk + ASK_TAIL, 0);
+    expect(isTalking(v, v.speechAt + 50)).toBe(true);                                                // lalu warga menjawab
+  });
+  it('tiap tokoh punya nada suara stabil dalam rentang wajar', () => {
+    for (const r of REGULARS) { const f = voicePitch(r.id); expect(f).toBe(voicePitch(r.id)); expect(f).toBeGreaterThanOrEqual(150); expect(f).toBeLessThan(350); }
+    expect(new Set(REGULARS.map(r => voicePitch(r.id))).size).toBeGreaterThan(2);
+  });
 });

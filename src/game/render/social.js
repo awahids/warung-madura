@@ -2,7 +2,8 @@ import { ATLAS } from '../atlas.js';
 import { TYPES } from '../data.js';
 import { ctx } from '../gfx.js';
 import { regById, regState, regTier, tierName } from '../logic/regulars.js';
-import { TALKS, TOPICS, canChat, chat, markSpeech, speechOf, typedChars, visitorById, visitors } from '../logic/social.js';
+import { TALKS, TOPICS, askChars, canChat, chat, isAsking, isWaitingAnswer, markSpeech, speechOf, typedChars, visitorById, visitors, voicePitch } from '../logic/social.js';
+import { tone } from '../audio.js';
 import { SP, hit } from '../sprites.js';
 import { TIER_AT } from '../story/regulars.js';
 import { ui } from '../state.js';
@@ -25,6 +26,19 @@ export function socialChip(x, y) {
   return true;
 }
 
+/** Suara bicara ala "blip": satu nada pendek tiap dua huruf; kamu = nada rendah tetap, warga = nada khas tokoh. */
+function voiceBlip(v, who, n, text, r) {
+  const key = `${v.vid}|${who}|${v.speechAt}|${v.askAt}`; if (ui.blipKey !== key) { ui.blipKey = key; ui.blipN = n; }
+  if (n > ui.blipN) {
+    for (let i = ui.blipN; i < n; i++) {
+      const ch = text[i]; if (!ch || ch === ' ' || (i % 2)) continue;
+      const base = who === 'ask' ? 118 : voicePitch(r.id), f = base * (1 + (ch.charCodeAt(0) % 5) * .07);
+      tone(f, .05, who === 'ask' ? 'triangle' : 'square', who === 'ask' ? .05 : .03, 0, -f * .08);
+    }
+    ui.blipN = n;
+  }
+}
+
 export function ngobrolModal() {
   const v = visitorById(ui.chatId), r = v && regById(v.id);
   if (!v || !r) { ui.modal = null; return; }
@@ -41,12 +55,15 @@ export function ngobrolModal() {
   ctx.fillStyle = '#d8c28c'; rr(ctx, x + 300, y + 66, 150, 10, 5); ctx.fill(); ctx.fillStyle = ['#aab', '#5aa6e8', '#58b948', '#e0b030'][tier]; rr(ctx, x + 300, y + 66, Math.max(6, 150 * f), 10, 5); ctx.fill();
   T(nxt === undefined ? 'maks.' : `${Math.round(st.aff)}/${nxt}`, x + 458, y + 76, { s: 11, w: '700', c: '#5a3a1a' });
   // gelembung ucapan dengan efek ketik (sinkron dengan gerak mulut di 3D)
-  const bx = x + 172, by = y + 92, bw = 440, bh = 120, full = speechOf(v), n = typedChars(v), talking = n < full.length;
-  ctx.fillStyle = '#fffaf0'; rr(ctx, bx, by, bw, bh, 14); ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = '#5a3a1a'; ctx.stroke();
+  const asking = isAsking(v), waitAns = isWaitingAnswer(v);
+  const bx = x + 172, by = y + 92, bw = 440, bh = 120, full = asking ? v.ask : speechOf(v), n = asking ? askChars(v) : (waitAns ? 0 : typedChars(v)), talking = asking || waitAns || n < full.length;
+  voiceBlip(v, asking ? 'ask' : 'ans', n, full, r);
+  ctx.fillStyle = asking ? '#e8f1ff' : '#fffaf0'; rr(ctx, bx, by, bw, bh, 14); ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = asking ? '#3a5a8a' : '#5a3a1a'; ctx.stroke();
+  if (asking) T('Kamu', bx + 18, by - 6, { s: 12, w: '800', c: '#3a5a8a' });
   const lines = wrapText(full, bw - 36, 17, '600'); let left = n;
   lines.slice(0, 4).forEach((l, i) => { const part = l.slice(0, Math.max(0, Math.min(l.length, left))); left -= l.length + 1; if (part) T(part, bx + 18, by + 32 + i * 25, { s: 17, w: '600', c: '#3a2a1a' }); });
   if (talking) { T('…  ketuk untuk lewati', bx + bw - 14, by + bh - 10, { s: 12, a: 'right', c: '#b89a6a' }); hit(bx, by, bw, bh, () => { v.speechAt = -1e9; }, 'Lewati animasi ketik'); }
-  if (v.log && !talking) { ctx.fillStyle = '#dff5d2'; rr(ctx, bx, by + bh + 8, bw, 32, 10); ctx.fill(); T(v.log.gain, bx + bw / 2, by + bh + 29, { s: 14, a: 'center', c: '#2a6a1a' }); }
+  if (v.log && !talking && !asking) { ctx.fillStyle = '#dff5d2'; rr(ctx, bx, by + bh + 8, bw, 32, 10); ctx.fill(); T(v.log.gain, bx + bw / 2, by + bh + 29, { s: 14, a: 'center', c: '#2a6a1a' }); }
   else if (!v.log && !talking) T('Pilih topik obrolan di sebelah kanan.', bx + 4, by + bh + 28, { s: 14, c: '#8a7a6a' });
   // topik
   const dots = Array.from({ length: TALKS }, (_, i) => (i < v.talks ? '●' : '○')).join(' ');

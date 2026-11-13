@@ -294,6 +294,8 @@ export function createWarung(canvas, opts = {}) {
     });
   };
   const talk = { seat: -1, t0: 0, open: [0, 0] };   // warga yang sedang berbicara (indeks bangku) & bukaan mulut tiap kursi
+  const pjTalk = { on: false, t0: 0, open: 0 };
+  const setPenjagaTalking = on => { if (on !== pjTalk.on) { pjTalk.on = on; pjTalk.t0 = performance.now(); } };
   const setTalking = seat => { if (seat !== talk.seat) { talk.seat = seat; talk.t0 = performance.now(); } };
   const staffFigs = new Map(), STAFF_AT = [[1.75, -1.85], [-1.05, -2.1]];
   const setStaff = list => {
@@ -446,13 +448,15 @@ export function createWarung(canvas, opts = {}) {
     controls.minDistance = fp ? .05 : 1.5; controls.maxDistance = fp ? .05 : 16;
   };
   const setView = (name, instant = false) => {
-    const v = VIEWS[name]; if (!v) return; view = name; penjaga.visible = !v.fp; camera.fov = v.fp ? 64 : 50; camera.updateProjectionMatrix();
+    const v = VIEWS[name]; if (!v) return; const prevView = view; view = name; penjaga.visible = !v.fp; camera.fov = v.fp ? 64 : 50; camera.updateProjectionMatrix();
     const from = { p: camera.position.clone(), t: controls.target.clone() };
     let to = { p: new THREE.Vector3(...v.pos), t: new THREE.Vector3(...v.tgt) };
     if (v.fp) { const dir = to.t.clone().sub(to.p).normalize(); to = { p: to.p, t: to.p.clone().add(dir.multiplyScalar(.05)) }; }
     controls.minDistance = .01; controls.maxDistance = 100; controls.enablePan = false;
     if (instant) { camera.position.copy(to.p); controls.target.copy(to.t); applyLimits(v.fp); return; }
-    tween = { from, to, t: 0, t0: performance.now(), fp: v.fp };
+    // masuk/keluar warung (dialog ngobrol): lewati celah depan, bukan menembus dinding
+    const via = (name === 'ngobrol' || prevView === 'ngobrol') ? new THREE.Vector3(1.0, 1.75, 1.3) : null;
+    tween = { from, to, via, t: 0, t0: performance.now(), fp: v.fp };
   };
   setView('luar', true);
 
@@ -618,7 +622,9 @@ export function createWarung(canvas, opts = {}) {
     if (!game) { doorOpen += (doorTarget - doorOpen) * Math.min(1, dt * 3.2); if (Math.abs(doorTarget - doorOpen) < .002) doorOpen = doorTarget; applyDoor(); }
     if (tween) {
       tween.t = Math.min(1, (performance.now() - tween.t0) / 900); const e = tween.t * tween.t * (3 - 2 * tween.t);
-      camera.position.lerpVectors(tween.from.p, tween.to.p, e); controls.target.lerpVectors(tween.from.t, tween.to.t, e);
+      if (tween.via) { const a = tween.from.p, c = tween.via, b = tween.to.p, u = 1 - e; camera.position.set(u * u * a.x + 2 * u * e * c.x + e * e * b.x, u * u * a.y + 2 * u * e * c.y + e * e * b.y, u * u * a.z + 2 * u * e * c.z + e * e * b.z); }
+      else camera.position.lerpVectors(tween.from.p, tween.to.p, e);
+      controls.target.lerpVectors(tween.from.t, tween.to.t, e);
       if (tween.t >= 1) { applyLimits(tween.fp); tween = null; }
     }
     people.forEach((p, i) => { p.position.y = (p === penjaga ? PJ_Y : 0) + Math.abs(Math.sin(t * 1.6 + i)) * .004; if (p !== penjaga) p.userData.head.rotation.y = Math.sin(t * .7 + i * 2) * .25; });
@@ -637,7 +643,13 @@ export function createWarung(canvas, opts = {}) {
       u.arms[1].rotation.x += (ga - u.arms[1].rotation.x) * k; u.elbows[1].rotation.x += (ge - u.elbows[1].rotation.x) * k;
       if (u.hands && u.hands[1].userData.setCurl) u.hands[1].userData.setCurl(talking ? .1 + .15 * Math.max(0, Math.sin(ts * 3.1)) : .28);
       u.torso.rotation.x += (((talking ? .05 + .02 * Math.sin(ts * 2.4) : Math.sin(t * 1.4 + i) * .01)) - u.torso.rotation.x) * k;
-    }); stepKurir(t, dt); ambience.step(t, dt);
+    });
+    { // mulut & kepala penjaga saat bertanya (dialog ngobrol)
+      const ts = (performance.now() - pjTalk.t0) / 1000, want = pjTalk.on ? Math.max(0, Math.min(1, .55 + .5 * Math.sin(ts * 12) * (.6 + .4 * Math.sin(ts * 3.7)))) : 0;
+      pjTalk.open += (want - pjTalk.open) * Math.min(1, dt * 22); if (penjaga.userData.setTalk) penjaga.userData.setTalk(pjTalk.open);
+      if (pjTalk.on) pjHead.rotation.x += (Math.sin(ts * 6) * .05 - pjHead.rotation.x) * kdt(.2, dt); else pjHead.rotation.x *= 1 - kdt(.2, dt);
+    }
+    stepKurir(t, dt); ambience.step(t, dt);
     if (handoffs.length) stepHandoffs();
     if (rainLines.visible) stepRain(dt);
     if (flights.length) stepFlights();
@@ -699,7 +711,7 @@ export function createWarung(canvas, opts = {}) {
     /** Sembunyikan barang dagangan yang belum terbuka (ids = id barang terkunci); tidak bisa diklik & tanpa lencana. */
     setLockedItems(ids) { const s = new Set(ids); items.forEach(i => { if (i.act.type === 'item') i.obj.visible = !s.has(i.act.id); }); stock.forEach(d => { d.obj.visible = !s.has(d.id); }); tables.forEach((t, i) => { t.visible = TABLE_ITEMS[i].some(id => !s.has(id)); }); sembako.visible = ['minyak', 'gula', 'sabun', 'susu', 'telur', 'teh'].some(id => !s.has(id)); },   // meja & rak gantung muncul bila ada isinya
     setStaff, setQuality: q => setQuality(q), get quality() { return quality; },
-    controls, items, itemRects, setVisitors, setTalking, pick: pickItem, penjagaAct, highlight, project, badges, syncPeople, syncTray, headPos, resize: resizeTo, frame: step,
+    controls, items, itemRects, setVisitors, setTalking, setPenjagaTalking, pick: pickItem, penjagaAct, highlight, project, badges, syncPeople, syncTray, headPos, resize: resizeTo, frame: step,
     triangles: () => renderer.info.render.triangles,
     rakBensin: rak,
     dispose() { alive = false; cancelAnimationFrame(raf); ro && ro.disconnect(); controls.dispose(); scene.traverse(o => { o.geometry && o.geometry.dispose(); }); renderer.dispose(); },
