@@ -1,4 +1,5 @@
-import { isAsking, isTalking, visitorById, visitors } from './logic/social.js';
+import { isAsking, isTalking, visitorById, visitors, voicePitch } from './logic/social.js';
+import { tone } from './audio.js';
 import { openChat } from './render/social.js';
 import atlasUrl from './assets/atlas.webp';
 import { SFX } from './audio.js';
@@ -80,6 +81,14 @@ export function runAct(act, scene) {
   }
 }
 
+/** Pelanggan di loket sedang mengucapkan kalimatnya (sejak tiba di loket; durasi mengikuti panjang kalimat). */
+export const SAY_CPS = 16;                                          // pelanggan berbicara lebih lambat dari efek ketik dialog agar mulut tidak terlalu cepat berhenti
+export function isSpeaking(c, t = (typeof performance !== 'undefined' ? performance.now() : Date.now())) {
+  if (c.state !== 'wait') return false;
+  if (c.sayAt == null) c.sayAt = t;
+  return (t - c.sayAt) / 1000 * SAY_CPS < (c.say || '').length;
+}
+
 /** Daftar orang 3D dari state game (pelanggan antre + yang sedang pergi), lengkap dengan pose & bawaan. */
 export function crowdFromGame(nextId) {
   const out = [];
@@ -88,16 +97,25 @@ export function crowdFromGame(nextId) {
     const walkAt = c.walkAt ?? 1.1, takeAt = walkAt - 1.1;           // pembayaran pas: fase "terima uang" dulu, lalu mengambil belanjaan
     const entering = !leaving && c.state === 'in', leavingMove = leaving && c.leaveT > walkAt;
     let pose = 'idle', pt = 0;
+    const talk = !leaving && c.state === 'wait' && c.idx === 0 && isSpeaking(c);              // menyampaikan pesanan: mulut bergerak
     if (!leaving && c.stage === 'pay' && c.state === 'wait') pose = 'pay';          // mengulurkan uang
     else if (leaving && c.took) { if (c.leaveT < takeAt) pose = 'pay'; else { pose = c.leaveT - takeAt <= 1.1 ? 'take' : 'idle'; pt = c.leaveT - takeAt; } }
     out.push({
       key: c.k3, type: c.type, look: c.look, x: toWorldX(c.x), z: !leaving && c.idx > 0 ? 1.15 : .55,
       moving: entering || leavingMove, dir: leaving ? (c.x < W / 2 ? -1 : 1) : Math.sign((c.tx ?? c.x) - c.x) || 1, turn: 0,
-      pose, pt, carry: leaving && c.took ? c.carry : null, mood: moodOf(c, leaving),
+      pose, pt, carry: leaving && c.took ? c.carry : null, mood: moodOf(c, leaving), talk,
     });
   };
   G.cust.forEach(c => add(c, false)); G.leaving.forEach(c => add(c, true));
   return out;
+}
+
+/** Suara bicara pelanggan di loket: satu nada pendek tiap dua huruf, nada khas tipe/tokoh (lebih pelan dari dialog). */
+function customerVoice(c) {
+  if (ui.modal || !G.running) return;
+  const n = Math.min((c.say || '').length, Math.floor(((performance.now() - (c.sayAt ?? performance.now())) / 1000) * SAY_CPS));
+  if (c.voiceN == null) c.voiceN = 0;
+  while (c.voiceN < n) { const ch = c.say[c.voiceN]; if (ch && ch !== ' ' && c.voiceN % 2 === 0) { const f = voicePitch(c.reg || c.type) * (1 + (ch.charCodeAt(0) % 5) * .07); tone(f, .045, 'square', .016, 0, -f * .08); } c.voiceN++; }
 }
 
 export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = {}) {
@@ -134,6 +152,7 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
     // dialog ngobrol: kamera pindah ke depan bangku & warga yang bicara menggerakkan mulut; kembali ke sudut semula saat selesai
     const chatting = playing && ui.modal === 'ngobrol', cv = chatting ? visitorById(ui.chatId) : null;
     if (chatting !== wasChatting) { wasChatting = chatting; if (chatting) { camBefore = api.view; scene.setView('ngobrol'); } else if (camBefore) { scene.setView(camBefore); camBefore = null; } }
+    { const ac = playing && G.cust.find(x => x.state === 'wait' && x.idx === 0); if (ac) customerVoice(ac); }
     scene.setTalking(cv && isTalking(cv) ? cv.seat : -1); scene.setPenjagaTalking(!!cv && isAsking(cv));
     scene.setPaket(playing && G.deliveries.some(d => G.abs >= d.eta));
     scene.setVisitors(playing ? visitors().map(v => { const r = regById(v.id); return { key: v.vid, type: r.type, look: r.look, seat: v.seat }; }) : []);

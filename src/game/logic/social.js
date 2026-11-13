@@ -8,6 +8,7 @@ import { isRain } from './day.js';
 import { itemOn, typeOn, addXp } from './level.js';
 import { bond, employedIds, favItems, regById, regTier } from './regulars.js';
 import { applyFx } from './story.js';
+import { CHAT } from '../story/chat.js';
 
 /* ============================================================
    SOSIALISASI DENGAN WARGA
@@ -40,7 +41,7 @@ export const TOPICS = [
     ok: () => true,
     fn(r) {
       bond(r.id, 3); G.energy = clamp(G.energy + 8, 0, 100); addXp(3);
-      let t = pick(KABAR);
+      let t = pick((CHAT[r.id] && CHAT[r.id].kabar) || KABAR);
       if (G.rain && G.h < G.rain.from) t = `Katanya hari ini bakal hujan sekitar jam ${Math.round(G.rain.from)}. Siapkan barang yang laku saat hujan, Nak.`;
       else if (isRain()) t = 'Hujannya awet ya... pembeli ojol pasti banyak yang mampir.';
       return { text: t, gain: '+3 kedekatan · +8 kewarasan' };
@@ -64,7 +65,9 @@ export const TOPICS = [
       bond(r.id, 4); applyFx({ trust: 1 }); addXp(5);
       let gain = '+4 kedekatan · kepercayaan +1';
       if (Math.random() < .3 + .1 * regTier(r.id)) { const tip = (Math.random() < .5 ? 5 : 10) * 1000; G.money += tip; if (G.stats) G.stats.tips += tip; gain += ` · tip Rp ${tip / 1000}.000`; }
-      return { text: `${r.name}: "${pick(CURHAT)}"`, gain };
+      const mine = CHAT[r.id], deep = mine && mine.dalam && regTier(r.id) >= 2 && Math.random() < .5;
+      if (deep) gain += ' · cerita yang lebih dalam';
+      return { text: `${r.name}: "${deep ? pick(mine.dalam) : pick((mine && mine.curhat) || CURHAT)}"`, gain };
     } },
 ];
 

@@ -587,6 +587,11 @@ export function createWarung(canvas, opts = {}) {
       if (it.pose === 'take' && it.carry) { if (!e.bagSent && it.pt > .2) { e.bagSent = true; handoff(makeHolder(it.carry, it.key), pjHand, hand1, 280); handoffs[handoffs.length - 1].lift = HOLD; } } else e.bagSent = false;
       e.bill.visible = it.pose === 'pay' && !e.billSent;
       if (it.mood !== e.mood) { e.mood = it.mood; e.g.userData.setMood(it.mood); }
+      { // bicara: mulut membuka-menutup (suku kata acak) + kepala sedikit mengangguk selama menyampaikan pesanan
+        const ts = t - (e.talkT0 ?? t); if (it.talk && !e.talking) e.talkT0 = t; e.talking = !!it.talk;
+        const want = it.talk ? Math.max(0, Math.min(1, .55 + .5 * Math.sin(ts * 12) * (.6 + .4 * Math.sin(ts * 3.3 + it.key.length)))) : 0;
+        e.mouth = (e.mouth || 0) + (want - (e.mouth || 0)) * Math.min(1, dt * 22); if (e.g.userData.setTalk) e.g.userData.setTalk(e.mouth);
+        e.nod = (e.nod || 0) + ((it.talk ? Math.sin(ts * 6.2) * .05 : 0) - (e.nod || 0)) * Math.min(1, dt * 12); head.rotation.x = e.nod; }
       // target sudut bahu (a) & siku (b); rotation.x positif = terulur/menekuk ke depan (−z)
       let t0 = 0, t1 = 0, u0 = .1, u1 = .1, s0 = 0, s1 = 0;   // s = lengan membuka ke samping agar tidak menembus kepala besar
       if (it.pose === 'pay') { if (e.billSent && e.payT > 1) { t1 = .9; u1 = .6; s1 = .15; } else { t1 = 2.6; u1 = .1; s1 = .48; } t0 = .15; u0 = .15; }

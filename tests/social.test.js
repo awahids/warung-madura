@@ -7,7 +7,9 @@ import { spawnCustomer } from '../src/game/logic/customers';
 import { ITEM_LVL, itemOn } from '../src/game/logic/level';
 import { socialTick, visitors, chat, TOPICS, TALKS, canChat, clearVisitors, speechOf, typedChars, isTalking, markSpeech, TYPE_CPS, isAsking, askChars, askMs, isWaitingAnswer, voicePitch, ASK_TAIL } from '../src/game/logic/social';
 import { regState, regTier } from '../src/game/logic/regulars';
-import { runAct } from '../src/game/engine3d';
+import { runAct, isSpeaking, SAY_CPS } from '../src/game/engine3d';
+import { CHAT } from '../src/game/story/chat';
+import { regById } from '../src/game/logic/regulars';
 import { bubbleSize } from '../src/game/render/scene';
 import { placeBubble } from '../src/game/render/overlay3d';
 import { REGULARS } from '../src/game/story/regulars';
@@ -127,5 +129,30 @@ describe('animasi bicara', () => {
   it('tiap tokoh punya nada suara stabil dalam rentang wajar', () => {
     for (const r of REGULARS) { const f = voicePitch(r.id); expect(f).toBe(voicePitch(r.id)); expect(f).toBeGreaterThanOrEqual(150); expect(f).toBeLessThan(350); }
     expect(new Set(REGULARS.map(r => voicePitch(r.id))).size).toBeGreaterThan(2);
+  });
+
+  it('pelanggan di loket berbicara selama kalimatnya diucapkan, hanya saat sudah di loket', () => {
+    spawnCustomer('ibu'); const c = G.cust[0]; c.say = 'Dek, ibu mau beli beras.';
+    c.state = 'in'; expect(isSpeaking(c, 0)).toBe(false);                 // masih berjalan masuk
+    c.state = 'wait'; const t0 = 1000; expect(isSpeaking(c, t0)).toBe(true); expect(c.sayAt).toBe(t0);
+    expect(isSpeaking(c, t0 + 1000 * (c.say.length - 1) / SAY_CPS)).toBe(true);
+    expect(isSpeaking(c, t0 + 1000 * (c.say.length + 1) / SAY_CPS)).toBe(false);
+  });
+});
+
+describe('obrolan khas tokoh', () => {
+  beforeEach(begin);
+  it('tiap tokoh punya cerita sendiri (kabar, curhat, dan cerita dalam)', () => {
+    for (const r of REGULARS) { const c = CHAT[r.id]; expect(c, r.id).toBeTruthy(); for (const k of ['kabar', 'curhat', 'dalam']) { expect(c[k].length, `${r.id}.${k}`).toBeGreaterThan(0); c[k].forEach(l => expect(l.length).toBeGreaterThan(15)); } }
+  });
+  it('obrolan memakai cerita tokoh itu; cerita dalam hanya muncul bila sudah Akrab', () => {
+    const mk = id => ({ vid: 1, id, seat: 0, until: G.abs + 150, talks: TALKS, used: {}, log: null, talked: false });
+    G.rain = null; G.social = { v: [mk('rani')], nid: 2, chats: 0 };
+    const r = chat(1, 'kabar'); expect(CHAT.rani.kabar.includes(r.text)).toBe(true);
+    // Asing: tidak pernah cerita dalam
+    for (let i = 0; i < 40; i++) { G.social = { v: [mk('rani')], nid: 2, chats: 0 }; regState('rani').aff = 20; const x = chat(1, 'curhat'); expect(CHAT.rani.dalam.some(d => x.text.includes(d))).toBe(false); }
+    // Akrab: kadang cerita dalam
+    let deep = 0; for (let i = 0; i < 60; i++) { G.social = { v: [mk('rani')], nid: 2, chats: 0 }; regState('rani').aff = 60; const x = chat(1, 'curhat'); if (CHAT.rani.dalam.some(d => x.text.includes(d))) deep++; }
+    expect(deep).toBeGreaterThan(5); expect(deep).toBeLessThan(60); expect(regById('rani').name).toBe('Adik Rani');
   });
 });
