@@ -112,13 +112,13 @@ export const ASK_TAIL = 380;                                       // jeda singk
 export const askMs = v => (v && v.ask ? v.ask.length / TYPE_CPS * 1000 : 0);
 /** Pemain (penjaga) sedang bertanya: kalimat tanya diketik dulu sebelum warga menjawab. */
 export const isAsking = (v, t = nowMs()) => !!v && !!v.ask && v.askAt != null && t < v.askAt + askMs(v);
-export const askChars = (v, t = nowMs()) => (v && v.ask ? Math.max(0, Math.min(v.ask.length, Math.floor((t - v.askAt) / 1000 * TYPE_CPS))) : 0);
+export const askChars = (v, t = nowMs()) => (v && v.ask ? Math.max(0, Math.min(v.ask.length, Math.floor((t - v.askAt) / 1000 * TYPE_CPS + 1e-6))) : 0);
 /** Jeda setelah pemain bertanya, sebelum warga mulai menjawab. */
 export const isWaitingAnswer = (v, t = nowMs()) => !!v && v.speechAt != null && t < v.speechAt && !isAsking(v, t);
 /** Nada suara tiap warga (Hz) — stabil per tokoh. */
 export const voicePitch = id => 150 + ([...String(id)].reduce((s, ch) => s + ch.charCodeAt(0), 0) % 9) * 22;
 /** Jumlah karakter yang sudah terucap. */
-export const typedChars = (v, t = nowMs()) => { const n = speechOf(v).length; return v && v.speechAt != null ? Math.max(0, Math.min(n, Math.floor((t - v.speechAt) / 1000 * TYPE_CPS))) : n; };
+export const typedChars = (v, t = nowMs()) => { const n = speechOf(v).length; return v && v.speechAt != null ? Math.max(0, Math.min(n, Math.floor((t - v.speechAt) / 1000 * TYPE_CPS + 1e-6))) : n; };
 /** Sedang berbicara = teks belum selesai terucap. */
 export const isTalking = (v, t = nowMs()) => !!v && v.speechAt != null && t >= v.speechAt && typedChars(v, t) < speechOf(v).length;
 export function clearVisitors() { const s = state(); s.v = []; }
