@@ -75,6 +75,23 @@ export function drawOverlay3D(view) {
     const p = view.headOf(c);
     drawBubble(c, p ? { x: clamp(p.x + 70, 8, W - 304), y: clamp(p.y - 30, HUD_H + 8, 250) } : undefined);
   }
+  courierPrompt(view);
   drawFloats(); drawHUD(); drawTooltip();
   drawModals();
+}
+
+/** Kiriman tiba: tombol besar (berfungsi dari sudut kamera mana pun) + gelembung di atas kepala kurir bila terlihat. */
+function courierPrompt(view) {
+  if (!view.courierWaiting || ui.modal) return;
+  const pulse = .5 + .5 * Math.sin(ui.frame / 8);
+  button(14, HUD_H + 12, 236, 46, 'TERIMA KIRIMAN', () => view.acceptCourier(), { col: 'green', s: 18, tip: 'Terima barang dari kurir (tombol K)' });
+  T('Kurir menunggu di depan warung', 14 + 118, HUD_H + 74, { s: 12, a: 'center', c: '#fff', stroke: 'rgba(0,0,0,.7)', sw: 3 });
+  const p = view.courierHead;
+  if (p && p.x > 40 && p.x < W - 40 && p.y > 90) {
+    const w = 190, x = clamp(p.x - w / 2, 8, W - w - 8), y = p.y - 62 - pulse * 5;
+    ctx.fillStyle = 'rgba(0,0,0,.3)'; rr(ctx, x + 3, y + 4, w, 40, 12); ctx.fill();
+    ctx.fillStyle = '#fff6d8'; rr(ctx, x, y, w, 40, 12); ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = '#c98a1a'; ctx.stroke();
+    ctx.fillStyle = '#fff6d8'; ctx.beginPath(); ctx.moveTo(p.x - 9, y + 38); ctx.lineTo(p.x, y + 52); ctx.lineTo(p.x + 9, y + 38); ctx.fill();
+    T('Kiriman tiba! Klik kurir', x + w / 2, y + 26, { s: 15, a: 'center', c: '#5a3a1a' });
+  }
 }

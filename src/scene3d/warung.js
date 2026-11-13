@@ -155,8 +155,6 @@ export function createWarung(canvas, opts = {}) {
   const promoSign = new THREE.Group(); promoSign.position.set(-2.55, 1.7, .55); promoSign.rotation.y = Math.PI / 2;
   promoSign.add(new THREE.Mesh(new THREE.PlaneGeometry(.55, .4), new THREE.MeshStandardMaterial({ map: signTex('PROMO', '#c0281a', '#ffe9a0') })));
   scene.add(promoSign); reg({ type: 'promo' }, promoSign, { proxy: { size: [.6, .45, .2] } });
-  const paket = new THREE.Group(); paket.position.set(-1.7, 0, .95); paket.visible = false;
-  const pk = kardus(); pk.scale.setScalar(1.3); paket.add(pk); scene.add(paket); reg({ type: 'paket' }, paket);
 
   /* ---------- area luar ---------- */
   // meja display di teras, setinggi dada, supaya barang besar terlihat DI ATAS barang di meja kasir dari balik meja
@@ -479,15 +477,22 @@ export function createWarung(canvas, opts = {}) {
   };
   /** Kurir: berjalan masuk saat kiriman tiba, menunggu di samping kardus, pergi setelah barang diterima. */
   const kurir = personFor('kurir'); kurir.visible = false; scene.add(kurir);
-  const KUR = { x: -6.5, on: false, home: -2.35, away: -6.5, z: 1.7 };
+  // kurir berdiri di depan meja (sisi kiri layar dari sudut penjaga) sambil memegang kardus; bisa diklik untuk menerima kiriman
+  const KUR = { x: 6.5, on: false, home: .66, away: 6.5, z: .62 };
+  const paket = new THREE.Group(); paket.visible = false;                       // kardus kiriman: di pelukan kurir
+  { const pk = kardus(); pk.scale.setScalar(1.25); paket.add(pk); paket.position.set(0, .1, -.34); kurir.userData.torso.add(paket); }
+  reg({ type: 'kurir' }, kurir, { proxy: { size: [.8, 1.9, .85], at: [0, .95, -.12] } });
   const stepKurir = (t, dt) => {
     const tx = KUR.on ? KUR.home : KUR.away, dx = tx - KUR.x, moving = Math.abs(dx) > .03;
     if (moving) KUR.x += Math.sign(dx) * Math.min(Math.abs(dx), 2.4 * dt);
     kurir.visible = KUR.on || KUR.x > KUR.away + .05; if (!kurir.visible) return;
     const { legs, arms, head } = kurir.userData, ph = t * 9;
     kurir.position.set(KUR.x, moving ? Math.abs(Math.sin(ph)) * .03 : 0, KUR.z);
-    kurir.rotation.y += angDiff(kurir.rotation.y, moving ? (dx > 0 ? -Math.PI / 2 : Math.PI / 2) : -.5) * kdt(.18, dt);
-    const sw = moving ? Math.sin(ph) : 0; legs[0].rotation.x = sw * .55; legs[1].rotation.x = -sw * .55; arms[0].rotation.x = -sw * .4; arms[1].rotation.x = sw * .4;
+    kurir.rotation.y += angDiff(kurir.rotation.y, moving ? (dx > 0 ? -Math.PI / 2 : Math.PI / 2) : 0) * kdt(.18, dt);   // diam: menghadap meja
+    const sw = moving ? Math.sin(ph) : 0; legs[0].rotation.x = sw * .55; legs[1].rotation.x = -sw * .55;
+    // memegang kardus dengan kedua lengan selama menunggu/berjalan masuk; setelah diterima, lengan mengayun lagi
+    const el = kurir.userData.elbows, hold = KUR.on, ka = kdt(.2, dt); paket.visible = hold;
+    for (let i = 0; i < 2; i++) { const at = hold ? 1.05 : (i ? sw : -sw) * .4, et = hold ? .8 : .15; arms[i].rotation.x += (at - arms[i].rotation.x) * ka; el[i].rotation.x += (et - el[i].rotation.x) * ka; }
     head.rotation.y = moving ? 0 : Math.sin(t * .7) * .25;
   };
   const ambience = createAmbience({ scene, addGlow });
@@ -577,7 +582,9 @@ export function createWarung(canvas, opts = {}) {
     get doorOpen() { return doorTarget > .5; },
     setView, get view() { return view; },
     setAutoRotate(v) { controls.autoRotate = v; },
-    setPaket(v) { paket.visible = v; KUR.on = v; },
+    setPaket(v) { KUR.on = v; },
+    kurirHead: () => (kurir.visible ? new THREE.Vector3(kurir.position.x, 1.95, kurir.position.z) : null),   // kepala kurir (dunia) bila terlihat
+    get kurirAtHome() { return KUR.on && Math.abs(KUR.x - KUR.home) < .05; },
     /** Diagnostik: posisi benda yang sedang terbang dari tangan ke tangan. */
     ambience: () => ambience.state(),
     /** Diagnostik: tempatkan kamera bebas (posisi, sasaran) untuk memeriksa sudut di luar tiga tampilan baku. */

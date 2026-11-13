@@ -46,10 +46,21 @@ const describe = act => {
     case 'kopi-minum': return 'Seduh kopi — +18 energi (pakai 1 kopi sachet)';
     case 'buku': return 'Buku Catatan — cek stok & harga';
     case 'promo': return G.promo ? 'Promo sedang aktif' : 'Pasang promo Rp 20.000 (pembeli lebih ramai)';
-    case 'paket': return 'Kardus dari kurir — klik untuk terima barang';
+    case 'kurir': case 'paket': return 'Kurir — klik untuk menerima kiriman barang';
     default: return '';
   }
 };
+/** Kiriman sudah tiba dan menunggu diterima? */
+export const deliveryArrived = () => G.deliveries.some(d => G.abs >= d.eta);
+/** Terima kiriman dari kurir (klik kurir/kardus, tombol layar, atau tombol K); penjaga menjangkau kurir. */
+export function acceptDelivery(scene) {
+  if (!deliveryArrived()) return false;
+  const hp = scene && scene.kurirHead && scene.kurirHead();
+  receiveDelivery();
+  if (hp && scene) scene.penjagaAct('reach', hp.clone().setY(1.2), hp.clone().setY(1.1));
+  return true;
+}
+
 /** Jalankan aksi game untuk objek 3D yang diklik. */
 export function runAct(act, scene) {
   if (act.type === 'buku') { ui.modal = 'notebook'; SFX.click(); return; }
@@ -60,7 +71,7 @@ export function runAct(act, scene) {
     case 'hitung': doHitung(); break;
     case 'kopi-minum': { const cd = G.drinkCd; drinkKopi(); if (G.drinkCd > cd) scene && scene.penjagaAct('drink'); break; }
     case 'promo': tapPromo(); break;
-    case 'paket': receiveDelivery(); break;
+    case 'kurir': case 'paket': acceptDelivery(scene); break;
     default: break;
   }
 }
@@ -135,7 +146,10 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
     if (usable && !ui.touch) ui.tooltip = describe(act);
   };
 
-  const view = { badges: [], headOf: c => { const hp = c.k3 && scene.headPos(c.k3); return hp ? scene.project(hp) : null; } };
+  const view = {
+    badges: [], headOf: c => { const hp = c.k3 && scene.headPos(c.k3); return hp ? scene.project(hp) : null; },
+    courierWaiting: false, courierHead: null, acceptCourier: () => acceptDelivery(scene),
+  };
 
   // mode otomatis: ukur FPS rata-rata ±3 detik setelah main dimulai; di bawah ~28 fps → turun ke grafis Rendah (diingat)
   let fpsN = 0, fpsSum = 0, fpsDone = false;
@@ -155,6 +169,8 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
     ctx.clearRect(0, 0, W, H);
     ui.hits = []; const tip = ui.tooltip; ui.tooltip = tip;
     view.badges = G.screen === 'play' ? scene.badges() : [];
+    view.courierWaiting = G.screen === 'play' && G.running && deliveryArrived();   // tombol & gelembung 'terima kiriman'
+    const kh = view.courierWaiting && scene.kurirHead(); view.courierHead = kh ? scene.project(kh) : null;
     drawOverlay3D(view);
     if (ui.shake > 0) ui.shake = 0;
     overlay.style.cursor = ui.hits.some(h => inRect(mouse.x, mouse.y, h.x, h.y, h.w, h.h)) || ui.tooltip || ui.longTip ? 'pointer' : 'default';
@@ -164,7 +180,7 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
   const start = () => {
     scene = createWarung(glCanvas, { game: true, controlsEl: overlay });
     scene.setQuality(effectiveQuality()); onQuality(q => scene && scene.setQuality(q));
-    if (import.meta.env.DEV) window.__game3d = { G, ui, scene, runAct, ...customersApi, ...dayApi }; // hanya debug/tes UI
+    if (import.meta.env.DEV) window.__game3d = { G, ui, mouse, scene, runAct, ...customersApi, ...dayApi }; // hanya debug/tes UI
     scene.controls.enablePan = false;
     makeIcons(); ui.hasSave = !!loadSave();
     resize(); ro = new ResizeObserver(resize); ro.observe(stack.parentElement);
@@ -192,6 +208,7 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
     };
     const onKey = e => {
       if (e.key === '1') api.setView('luar'); else if (e.key === '2') api.setView('pembeli'); else if (e.key === '3') api.setView('penjaga');
+      else if ((e.key === 'k' || e.key === 'K') && G.screen === 'play' && !ui.modal && canAct()) acceptDelivery(scene);
     };
     overlay.addEventListener('pointerdown', onDownCapture, true);
     overlay.addEventListener('pointerdown', onDown);

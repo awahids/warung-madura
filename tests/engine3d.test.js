@@ -5,7 +5,7 @@ import { freshState } from '../src/game/persist';
 import { startDay, openShop } from '../src/game/logic/day';
 import { spawnCustomer, active, addToTray, doHitung, giveBill, confirmChange, carryKind } from '../src/game/logic/customers';
 import { update } from '../src/game/update';
-import { toWorldX, crowdFromGame, runAct, moodOf, pointerToNdc } from '../src/game/engine3d';
+import { toWorldX, crowdFromGame, runAct, moodOf, pointerToNdc, acceptDelivery, deliveryArrived } from '../src/game/engine3d';
 
 function begin() { setG(freshState(G)); G.story.chapterSeen = 99; G.xp = 1e6; G.stock = { ...START_STOCK }; ui.modal = null; startDay(); G.door = 1; openShop(); G.firstCust = false; G.spawnCd = 1e9; }
 
@@ -119,5 +119,21 @@ describe('ketukan di layar sentuh', () => {
     expect(pointerToNdc({ clientX: 100, clientY: 50 }, rect)).toEqual([-1, 1]);    // pojok kiri atas
     expect(pointerToNdc({ clientX: 740, clientY: 410 }, rect)).toEqual([1, -1]);   // pojok kanan bawah
     const [x, y] = pointerToNdc({ clientX: 260, clientY: 140 }, rect); expect(x).toBeCloseTo(-.5); expect(y).toBeCloseTo(.5);
+  });
+
+  it('kiriman kurir: diterima lewat klik kurir/kardus/tombol hanya bila sudah tiba', () => {
+    G.deliveries = [{ items: { aqua: 12 }, eta: G.abs + 30 }];
+    const before = G.stock.aqua || 0;
+    expect(deliveryArrived()).toBe(false);
+    expect(acceptDelivery(null)).toBe(false);
+    runAct({ type: 'kurir' }, null);
+    expect(G.deliveries).toHaveLength(1); expect(G.stock.aqua || 0).toBe(before);   // belum tiba: tidak terjadi apa-apa
+    G.abs += 31;
+    expect(deliveryArrived()).toBe(true);
+    runAct({ type: 'kurir' }, null);                                                 // klik kurir
+    expect(G.deliveries).toHaveLength(0); expect(G.stock.aqua).toBe(before + 12);
+    G.deliveries = [{ items: { cola: 6 }, eta: G.abs - 1 }];
+    runAct({ type: 'paket' }, null);                                                 // klik kardus (kompatibel lama)
+    expect(G.deliveries).toHaveLength(0);
   });
 });
