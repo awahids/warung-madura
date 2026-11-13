@@ -3,7 +3,7 @@ import { createEngine3D } from '../game/engine3d';
 import Loading from './Loading';
 import OrientationGuard from './OrientationGuard';
 
-const VIEWS = [['luar', 'Luar'], ['pembeli', 'Pembeli'], ['penjaga', 'Penjaga']];
+const VIEWS = [['luar', 'Luar'], ['pembeli', 'Pembeli'], ['penjaga', 'Penjaga'], ['jalan', 'Jalan-jalan']];
 
 /** Game utuh versi 3D: logika game yang sama, tampilan warung 3D + HUD di atasnya. */
 export default function Game3D() {

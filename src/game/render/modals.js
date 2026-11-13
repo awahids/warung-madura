@@ -1,4 +1,6 @@
+import { MAX_RESTS, restsLeft } from '../logic/home.js';
 import { ngobrolModal } from './social.js';
+import { rumahModal } from './home.js';
 import { SFX } from '../audio.js';
 import { H, W, WIN_GOAL } from '../constants.js';
 import { BY, ITEMS } from '../data.js';
@@ -49,6 +51,7 @@ function drawModalBody() {
   else if (ui.modal === 'kulkas') kulkasModal();
   else if (ui.modal === 'staff') staffModal();
   else if (ui.modal === 'ngobrol') ngobrolModal();
+  else if (ui.modal === 'rumah') rumahModal();
   else if (ui.modal === 'summary') summary();
   else if (ui.modal === 'help') help();
   else if (ui.modal === 'pause') pauseMenu();
@@ -419,17 +422,19 @@ export function help() {
   button(x + w / 2 - 100, y + h - 74, 200, 50, 'MENGERTI', () => { ui.modal = G.screen === 'play' && G.running ? null : null; }, { col: 'green' });
 }
 export function pauseMenu() {
-  const x = 440, y = 56, w = 400, h = 608; panel(x, y, w, h);
-  T('JEDA', x + w / 2, y + 60, { s: 36, a: 'center', c: '#6b3a14' });
-  button(x + 50, y + 90, w - 100, 52, 'LANJUT', () => { ui.modal = null; }, { col: 'green' });
-  button(x + 50, y + 156, w - 100, 46, 'Suara: ' + (G.sound ? 'NYALA' : 'MATI'), () => { G.sound = !G.sound; save(); }, { col: 'blue', s: 16 });
-  button(x + 50, y + 214, w - 100, 46, featureOn('auto') ? 'Kembalian otomatis: ' + (G.auto ? 'ON' : 'OFF') : `Kembalian otomatis: Level ${FEATURE_LVL.auto}`, () => { G.auto = !G.auto; save(); }, { col: G.auto ? 'green' : 'grey', s: 15, disabled: !featureOn('auto') });
-  button(x + 50, y + 272, w - 100, 46, 'Mode santai (tanpa cicilan): ' + (story().easy ? 'ON' : 'OFF'), () => { story().easy = !story().easy; save(); }, { col: story().easy ? 'green' : 'grey', s: 14, tip: 'Cicilan utang ditiadakan. Kepercayaan & kejadian tetap jalan.' });
-  if (ui.mode3d) button(x + 50, y + 330, w - 100, 46, 'Grafis 3D: ' + qualityLabel(), cycleQuality, { col: 'blue', s: 15, tip: 'Otomatis menurunkan kualitas bila FPS rendah. Rendah: tanpa bayangan & pantulan.' });
-  button(x + 50, y + (ui.mode3d ? 388 : 330), w - 100, 46, `PENCAPAIAN ${unlockedCount()}/${ACH.length}`, () => { ui.modal = 'ach'; }, { col: 'yellow', tc: '#4a2a00', s: 16 });
-  button(x + 50, y + (ui.mode3d ? 446 : 388), w - 100, 46, 'CARA MAIN', () => { ui.modal = 'help'; }, { col: 'wood', s: 16 });
-  button(x + 50, y + (ui.mode3d ? 504 : 446), w - 100, 46, 'MENU UTAMA', () => { save(); ui.modal = null; G.screen = 'title'; ui.hasSave = !!loadSave(); }, { col: 'red', s: 16 });
-  T('Kemajuan tersimpan tiap akhir hari.', x + w / 2, y + (ui.mode3d ? 584 : 528), { s: 13, a: 'center', c: '#7a5a3a', w: '600' });
+  const x = 440, y = 24, w = 400, h = 672; panel(x, y, w, h);
+  T('JEDA', x + w / 2, y + 56, { s: 34, a: 'center', c: '#6b3a14' });
+  let by = y + 76; const nxt = (hh = 44) => { const v = by; by += hh + 10; return v; };
+  button(x + 50, nxt(48), w - 100, 48, 'LANJUT', () => { ui.modal = null; }, { col: 'green' });
+  button(x + 50, nxt(), w - 100, 44, 'Suara: ' + (G.sound ? 'NYALA' : 'MATI'), () => { G.sound = !G.sound; save(); }, { col: 'blue', s: 16 });
+  button(x + 50, nxt(), w - 100, 44, featureOn('auto') ? 'Kembalian otomatis: ' + (G.auto ? 'ON' : 'OFF') : `Kembalian otomatis: Level ${FEATURE_LVL.auto}`, () => { G.auto = !G.auto; save(); }, { col: G.auto ? 'green' : 'grey', s: 15, disabled: !featureOn('auto') });
+  button(x + 50, nxt(), w - 100, 44, 'Mode santai (tanpa cicilan): ' + (story().easy ? 'ON' : 'OFF'), () => { story().easy = !story().easy; save(); }, { col: story().easy ? 'green' : 'grey', s: 14, tip: 'Cicilan utang ditiadakan. Kepercayaan & kejadian tetap jalan.' });
+  button(x + 50, nxt(), w - 100, 44, `PULANG ISTIRAHAT (${restsLeft()}/${MAX_RESTS})`, () => { ui.modal = 'rumah'; ui.homeResult = null; }, { col: 'blue', s: 15, tip: 'Tutup warung sebentar, pulihkan kewarasan, dapat cerita rumah' });
+  if (ui.mode3d) button(x + 50, nxt(), w - 100, 44, 'Grafis 3D: ' + qualityLabel(), cycleQuality, { col: 'blue', s: 15, tip: 'Otomatis menurunkan kualitas bila FPS rendah. Rendah: tanpa bayangan & pantulan.' });
+  button(x + 50, nxt(), w - 100, 44, `PENCAPAIAN ${unlockedCount()}/${ACH.length}`, () => { ui.modal = 'ach'; }, { col: 'yellow', tc: '#4a2a00', s: 16 });
+  button(x + 50, nxt(), w - 100, 44, 'CARA MAIN', () => { ui.modal = 'help'; }, { col: 'wood', s: 16 });
+  button(x + 50, nxt(), w - 100, 44, 'MENU UTAMA', () => { save(); ui.modal = null; G.screen = 'title'; ui.hasSave = !!loadSave(); }, { col: 'red', s: 16 });
+  T('Kemajuan tersimpan tiap akhir hari.', x + w / 2, y + h - 22, { s: 13, a: 'center', c: '#7a5a3a', w: '600' });
 }
 export function winModal() {
   const x = 340, y = 150, w = 600, h = 400; panel(x, y, w, h);

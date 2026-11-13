@@ -60,9 +60,9 @@ export function attachInput(cv) {
     if (G.screen !== 'play') return;
     if (e.key === 'Escape') {
       if (!ui.modal) ui.modal = 'pause';
-      else if (['pause', 'help', 'notebook', 'phone', 'level', 'ach', 'kasbon', 'regulars', 'kulkas', 'staff', 'ngobrol'].includes(ui.modal)) ui.modal = null;
-    } else if (e.key === ' ' && !ui.modal) { e.preventDefault(); doHitung(); }
-    else if ((e.key === 'w' || e.key === 'W') && !ui.modal && canAct()) { const v = visitors().find(canChat); if (v) openChat(v.vid); }
+      else if (['pause', 'help', 'notebook', 'phone', 'level', 'ach', 'kasbon', 'regulars', 'kulkas', 'staff', 'ngobrol', 'rumah'].includes(ui.modal) && !ui.homeResult) ui.modal = null;
+    } else if (e.key === ' ' && !ui.modal && !ui.walk) { e.preventDefault(); doHitung(); }
+    else if ((e.key === 'w' || e.key === 'W') && !ui.modal && !ui.walk && canAct()) { const v = visitors().find(canChat); if (v) openChat(v.vid); }
   };
   cv.addEventListener('pointermove', onMove);
   cv.addEventListener('pointerdown', onDown);

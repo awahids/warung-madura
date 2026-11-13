@@ -77,8 +77,7 @@ export function drawOverlay3D(view) {
     const at = placeBubble(w, hh, p, view);
     drawBubble(c, at, { compact: true, tail: p ? { x: p.x, y: p.y + 14 } : undefined });
   }
-  courierPrompt(view);
-  view.socialChip = socialChip(14, HUD_H + 106);
+  if (view.walkUI) walkUI(view); else { courierPrompt(view); view.socialChip = socialChip(14, HUD_H + 106); }
   drawFloats(); drawHUD(); drawTooltip();
   drawModals();
 }
@@ -116,6 +115,26 @@ export function placeBubble(w, hh, head, view) {
   // gerak halus ke lokasi pilihan
   ui.bubbleAt = ui.bubbleAt || { x: best.x, y: best.y }; ui.bubbleAt.x += (best.x - ui.bubbleAt.x) * .25; ui.bubbleAt.y += (best.y - ui.bubbleAt.y) * .25;
   return { x: ui.bubbleAt.x, y: ui.bubbleAt.y };
+}
+
+/** Mode jalan-jalan: petunjuk tombol, joystick virtual, tombol aksi terdekat, dan tombol kembali ke meja. */
+function walkUI(view) {
+  if (ui.modal) return;
+  const st = view.stick;
+  ctx.save(); ctx.globalAlpha = .9;
+  T(ui.touch ? 'Geser joystick untuk berjalan · tombol AKSI di kanan' : 'WASD / panah: jalan · Shift: lari · E: aksi · G: kembali ke meja', W / 2, HUD_H + 22, { s: 13, a: 'center', w: '700', c: '#fff', stroke: 'rgba(0,0,0,.7)', sw: 4 });
+  ctx.restore();
+  button(14, HUD_H + 10, 230, 42, 'KEMBALI KE MEJA (G)', () => view.exitWalk(), { col: 'wood', s: 14 });
+  // joystick
+  ctx.save();
+  ctx.fillStyle = 'rgba(20,12,4,.35)'; ctx.beginPath(); ctx.arc(st.x, st.y, st.r + 8, 0, 7); ctx.fill();
+  ctx.lineWidth = 3; ctx.strokeStyle = st.active ? 'rgba(255,228,92,.9)' : 'rgba(255,255,255,.45)'; ctx.beginPath(); ctx.arc(st.x, st.y, st.r + 8, 0, 7); ctx.stroke();
+  for (const [dx, dy] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) { ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.beginPath(); ctx.arc(st.x + dx * (st.r - 12), st.y + dy * (st.r - 12), 4, 0, 7); ctx.fill(); }
+  ctx.fillStyle = st.active ? '#ffe45c' : 'rgba(255,255,255,.75)'; ctx.strokeStyle = 'rgba(60,30,10,.8)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(st.x + st.kx * st.r, st.y + st.ky * st.r, 30, 0, 7); ctx.fill(); ctx.stroke();
+  ctx.restore();
+  // tombol aksi
+  const pr = view.walkPrompt;
+  if (pr) button(W - 280, H - 132, 250, 64, pr.label.toUpperCase() + (ui.touch ? '' : '  (E)'), pr.run, { col: 'green', s: 15 });
 }
 
 /** Kiriman tiba: tombol besar (berfungsi dari sudut kamera mana pun) + gelembung di atas kepala kurir bila terlihat. */

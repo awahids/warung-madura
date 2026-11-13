@@ -200,6 +200,13 @@ export function createWarung(canvas, opts = {}) {
   const winMat = addGlow(new THREE.MeshBasicMaterial({ color: '#8d99a3' }), '#ffe9a0', '#8d99a3');
   const building = (x, z, w, h, d, c) => scene.add(box(w, h, d, std(c, { roughness: .95 }), x, h / 2, z));
   building(-4.4, -1.6, 3.2, 3.4, 3.6, '#b9a58a'); building(4.5, -1.6, 3.2, 3.0, 3.6, '#a8b3a2');
+  // RUMAH: pintu, tanda, jendela hangat & undakan di bangunan kiri (tujuan "pulang istirahat")
+  { const door = box(.95, 2.0, .08, std('#6b4a2a', { roughness: .8 }), -4.4, 1.0, .24); scene.add(door);
+    scene.add(box(1.15, 2.1, .04, std('#4a3220', { roughness: .8 }), -4.4, 1.05, .21), box(1.5, .1, .45, std('#a7a59d', { roughness: .9 }), -4.4, .05, .45));
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.1, .34), new THREE.MeshStandardMaterial({ map: signTex('RUMAH', '#6b3a14', '#ffe9a0'), roughness: .6 })); sign.position.set(-4.4, 2.45, .235); scene.add(sign);
+    scene.add(box(.07, .12, .05, std('#d4a82a', { metalness: .7 }), -4.12, 1.0, .3));
+    const winGlow = addGlow(new THREE.MeshBasicMaterial({ color: '#8d99a3' }), '#ffd98a', '#8d99a3');
+    [-5.4, -3.4].forEach(x => { const w = new THREE.Mesh(new THREE.PlaneGeometry(.7, .8), winGlow); w.position.set(x, 1.6, .215); scene.add(w); scene.add(box(.8, .06, .05, std('#4a3220'), x, 1.17, .22)); }); }
   for (let i = 0; i < 9; i++) building(-26 + i * 6.5, 20 + (i % 2) * 2, rnd(4, 6), rnd(5, 11), 5, pick(bColors));
   const wins = new THREE.InstancedMesh(new THREE.PlaneGeometry(.7, .9), winMat, 90); { const m = new THREE.Matrix4(); for (let i = 0; i < 90; i++) { m.makeTranslation(-26 + (i % 30) * 1.7, 2 + Math.floor(i / 30) * 2.6, 17.4); wins.setMatrixAt(i, m); } } scene.add(wins);
   const tree = new THREE.Group(); tree.position.set(4.4, 0, 1.0); scene.add(tree);
@@ -297,6 +304,46 @@ export function createWarung(canvas, opts = {}) {
   const pjTalk = { on: false, t0: 0, open: 0 };
   const setPenjagaTalking = on => { if (on !== pjTalk.on) { pjTalk.on = on; pjTalk.t0 = performance.now(); } };
   const setTalking = seat => { if (seat !== talk.seat) { talk.seat = seat; talk.t0 = performance.now(); } };
+  /* ---------- MODE JALAN: penjaga digerakkan pemain (WASD/panah, joystick) ---------- */
+  const walk = { on: false, x: -.4, z: .85, face: Math.PI, spd: 0, ph: 0, cx: 0, cz: 3, lastSet: 0 };
+  const WALL = [   // kotak penghalang [x0, x1, z0, z1]
+    [-2.32, -2.16, -3.4, .06], [2.16, 2.32, -3.4, .06],                    // dinding warung kiri/kanan
+    [-6.2, -2.8, -3.5, .2], [2.9, 6.2, -3.5, .2],                         // rumah (kiri) & bangunan kanan
+    [-1.4, 1.4, -1.15, -.45], [1.22, 2.18, -3.06, -2.34],                 // meja kasir, kulkas
+    [.475, 1.725, .02, .325], [1.575, 2.425, .02, .325], [-2.25, -1.25, .02, .325],   // meja display teras (bagian depan; celah ±.45 m di belakangnya agar bisa lewat dari dalam warung)
+    [2.4, 3.8, .7, 1.1], [4.2, 4.6, .8, 1.2], [-3.35, -3.05, 1.1, 1.4], [-2.9, -2.5, .35, .75], [-2.46, -2.14, .79, 1.11],   // bangku, pohon, tiang, tong, dingklik
+  ];
+  const WALK_BOUNDS = [-8.5, 8.5, -3.0, 6.6];
+  const blockedAt = (x, z, r = .18) => x < WALK_BOUNDS[0] || x > WALK_BOUNDS[1] || z < WALK_BOUNDS[2] || z > WALK_BOUNDS[3] || WALL.some(b => x + r > b[0] && x - r < b[1] && z + r > b[2] && z - r < b[3]);
+  const setWalk = on => {
+    if (on === walk.on) return;
+    walk.on = on; controls.enabled = !on;
+    if (on) { walk.x = -.4; walk.z = .85; walk.face = 0; penjaga.visible = true; walk.cx = camera.position.x; walk.cz = camera.position.z; controls.minDistance = .01; controls.maxDistance = 100; camera.fov = 52; camera.updateProjectionMatrix(); tween = null; }
+    else { penjaga.position.set(.2, PJ_Y, PJ_Z); pj.yaw = Math.PI; penjaga.rotation.y = Math.PI; penjaga.userData.legs.forEach(l => { l.rotation.x = 0; }); }
+  };
+  /** Satu langkah jalan: (ix, iz) arah masukan −1..1 dalam sumbu dunia (x kanan, z ke arah jalan), run = berlari. */
+  const walkStep = (ix, iz, run, dt) => {
+    let mx = ix, mz = iz; const m = Math.hypot(mx, mz); if (m > 1) { mx /= m; mz /= m; }
+    const sp = (run ? 4.2 : 2.5) * Math.min(1, m) * dt;
+    if (m > .05) {
+      const nx = walk.x + mx / Math.max(m, 1e-6) * sp, nz = walk.z + mz / Math.max(m, 1e-6) * sp;
+      if (!blockedAt(nx, walk.z)) walk.x = nx; if (!blockedAt(walk.x, nz)) walk.z = nz;       // geser sepanjang dinding
+      walk.face = Math.atan2(-mx, -mz); walk.spd += (Math.min(1, m) * (run ? 1.5 : 1) - walk.spd) * Math.min(1, dt * 12);
+    } else walk.spd += (0 - walk.spd) * Math.min(1, dt * 12);
+    return { x: walk.x, z: walk.z };
+  };
+  const stepWalk = (t, dt) => {
+    walk.ph += dt * (6 + walk.spd * 4) * (walk.spd > .05 ? 1 : 0);
+    const u = penjaga.userData, sw = Math.sin(walk.ph) * Math.min(1, walk.spd);
+    penjaga.position.set(walk.x, Math.abs(Math.sin(walk.ph)) * .03 * Math.min(1, walk.spd), walk.z);
+    pj.yaw += angDiff(pj.yaw, walk.face) * kdt(.25, dt); penjaga.rotation.y = pj.yaw;
+    u.legs[0].rotation.x = sw * .6; u.legs[1].rotation.x = -sw * .6; u.arms[0].rotation.x = -sw * .5; u.arms[1].rotation.x = sw * .5;
+    u.elbows[0].rotation.x = .15 + Math.max(0, -sw) * .3; u.elbows[1].rotation.x = .15 + Math.max(0, sw) * .3;
+    u.torso.rotation.x = -.04 * Math.min(1, walk.spd);
+    // kamera orang ketiga mengikuti dengan lembut (searah jalan, sedikit dari atas)
+    const gx = walk.x * .8, gz = walk.z + 4.7; walk.cx += (gx - walk.cx) * kdt(.1, dt); walk.cz += (gz - walk.cz) * kdt(.1, dt);
+    camera.position.set(walk.cx, 2.85, walk.cz); controls.target.set(walk.x * .9, 1.0, walk.z - .2); controls.target.y = 1.0;
+  };
   const staffFigs = new Map(), STAFF_AT = [[1.75, -1.85], [-1.05, -2.1]];
   const setStaff = list => {
     const want = new Set(list.map(s => s.id));
@@ -632,8 +679,8 @@ export function createWarung(canvas, opts = {}) {
       controls.target.lerpVectors(tween.from.t, tween.to.t, e);
       if (tween.t >= 1) { applyLimits(tween.fp); tween = null; }
     }
-    people.forEach((p, i) => { p.position.y = (p === penjaga ? PJ_Y : 0) + Math.abs(Math.sin(t * 1.6 + i)) * .004; if (p !== penjaga) p.userData.head.rotation.y = Math.sin(t * .7 + i * 2) * .25; });
-    stepPenjaga(t, dt);
+    people.forEach((p, i) => { if (p === penjaga && walk.on) return; p.position.y = (p === penjaga ? PJ_Y : 0) + Math.abs(Math.sin(t * 1.6 + i)) * .004; if (p !== penjaga) p.userData.head.rotation.y = Math.sin(t * .7 + i * 2) * .25; });
+    if (walk.on) stepWalk(t, dt); else stepPenjaga(t, dt);
     visSlots.forEach((sl, i) => {
       if (!sl.fig) return;
       const u = sl.fig.userData, talking = talk.seat === i, ts = (performance.now() - talk.t0) / 1000, k = kdt(.18, dt);
@@ -716,7 +763,7 @@ export function createWarung(canvas, opts = {}) {
     /** Sembunyikan barang dagangan yang belum terbuka (ids = id barang terkunci); tidak bisa diklik & tanpa lencana. */
     setLockedItems(ids) { const s = new Set(ids); items.forEach(i => { if (i.act.type === 'item') i.obj.visible = !s.has(i.act.id); }); stock.forEach(d => { d.obj.visible = !s.has(d.id); }); tables.forEach((t, i) => { t.visible = TABLE_ITEMS[i].some(id => !s.has(id)); }); sembako.visible = ['minyak', 'gula', 'sabun', 'susu', 'telur', 'teh'].some(id => !s.has(id)); },   // meja & rak gantung muncul bila ada isinya
     setStaff, setQuality: q => setQuality(q), get quality() { return quality; },
-    controls, items, itemRects, setVisitors, setTalking, setPenjagaTalking, pick: pickItem, penjagaAct, highlight, project, badges, syncPeople, syncTray, headPos, resize: resizeTo, frame: step,
+    setWalk, walkStep, get walkPos() { return { x: walk.x, z: walk.z, on: walk.on }; }, controls, items, itemRects, setVisitors, setTalking, setPenjagaTalking, pick: pickItem, penjagaAct, highlight, project, badges, syncPeople, syncTray, headPos, resize: resizeTo, frame: step,
     triangles: () => renderer.info.render.triangles,
     rakBensin: rak,
     dispose() { alive = false; cancelAnimationFrame(raf); ro && ro.disconnect(); controls.dispose(); scene.traverse(o => { o.geometry && o.geometry.dispose(); }); renderer.dispose(); },

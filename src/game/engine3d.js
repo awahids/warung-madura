@@ -1,4 +1,4 @@
-import { isAsking, isTalking, visitorById, visitors, voicePitch } from './logic/social.js';
+import { canChat, isAsking, isTalking, visitorById, visitors, voicePitch } from './logic/social.js';
 import { tone } from './audio.js';
 import { openChat } from './render/social.js';
 import atlasUrl from './assets/atlas.webp';
@@ -118,6 +118,8 @@ function customerVoice(c) {
   while (c.voiceN < n) { const ch = c.say[c.voiceN]; if (ch && ch !== ' ' && c.voiceN % 2 === 0) { const f = voicePitch(c.reg || c.type) * (1 + (ch.charCodeAt(0) % 5) * .07); tone(f, .045, 'square', .016, 0, -f * .08); } c.voiceN++; }
 }
 
+const STICK = { x: 140, y: 590, r: 64, hit: 120 };   // joystick virtual (koordinat layar 1280×720)
+
 export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = {}) {
   ui.cv = overlay; ui.mode3d = true; setCtx(overlay.getContext('2d'));
   ui.touch = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
@@ -168,14 +170,39 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
 
   const hover = () => {
     ui.tooltip = '';
-    if (!alive || G.screen !== 'play' || ui.modal || mouse.x < 0 || overHit() || ui.dragDoor) { scene.highlight(null); return; }
+    if (!alive || G.screen !== 'play' || ui.modal || ui.walk || mouse.x < 0 || overHit() || ui.dragDoor) { scene.highlight(null); return; }
     const o = scene.pick(...ndcOf());
     const act = o && o.userData.act, usable = act && (act.type === 'buku' || canAct());
     scene.highlight(usable ? o : null);
     if (usable && !ui.touch) ui.tooltip = describe(act);
   };
 
+  const keys = new Set(), stick = { id: null, x: 0, y: 0 };
+  let viewBeforeWalk = 'penjaga';
+  /** Masuk/keluar mode jalan-jalan. Keluar: penjaga kembali ke meja dan kamera ke sudut semula/pilihan. */
+  function setWalkMode(on, toView) {
+    if (on === !!ui.walk && !toView) return;
+    if (on) { if (G.screen !== 'play') return; viewBeforeWalk = api.view === 'jalan' ? 'penjaga' : api.view; ui.walk = true; scene.setWalk(true); api.view = 'jalan'; api.onView && api.onView('jalan'); toast('Jalan-jalan: WASD/panah (atau joystick). E = aksi. G = kembali ke meja.', '#cfe8ff'); }
+    else { ui.walk = false; keys.clear(); stick.x = stick.y = 0; stick.id = null; scene.setWalk(false); const v = toView || viewBeforeWalk; api.view = v; scene.setView(v); api.onView && api.onView(v); }
+  }
+  /** Gerakkan penjaga dari masukan keyboard/joystick & cari interaksi terdekat. */
+  function stepWalkInput(dt) {
+    if (!ui.walk) { view.walkPrompt = null; view.walkUI = false; return; }
+    if (G.screen !== 'play') { setWalkMode(false); return; }
+    let ix = stick.x, iz = stick.y;
+    if (keys.has('l')) ix -= 1; if (keys.has('r')) ix += 1; if (keys.has('u')) iz -= 1; if (keys.has('d')) iz += 1;
+    if (!ui.modal) scene.walkStep(ix, iz, keys.has('run') || Math.hypot(stick.x, stick.y) > .92, dt); else scene.walkStep(0, 0, false, dt);
+    view.walkUI = true; view.stick = { ...STICK, kx: stick.x, ky: stick.y, active: stick.id !== null };
+    const p = scene.walkPos, d = (x, z) => Math.hypot(p.x - x, p.z - z); let pr = null;
+    const vv = visitors().find(x => canChat(x));
+    if (deliveryArrived() && scene.kurirAtHome && d(.66, .62) < 2.1) pr = { label: 'Terima kiriman', run: () => acceptDelivery(scene) };
+    else if (vv && d(3.1, .9) < 2.2) pr = { label: `Ngobrol dengan ${(regById(vv.id) || {}).name || 'warga'}`, run: () => { setWalkMode(false); openChat(vv.vid); } };
+    else if (d(-4.4, .6) < 1.5) pr = { label: 'Pulang istirahat', run: () => { ui.homeResult = null; ui.modal = 'rumah'; } };
+    else if (d(.2, -1.3) < 1.4 || (p.z < -.2 && p.x > -2.1 && p.x < 2.1)) pr = { label: 'Kembali ke meja', run: () => setWalkMode(false) };
+    view.walkPrompt = pr;
+  }
   const view = {
+    walkPrompt: null, walkUI: false, stick: null, exitWalk: () => setWalkMode(false),
     badges: [], headOf: c => { const hp = c.k3 && scene.headPos(c.k3); return hp ? scene.project(hp) : null; },
     itemRects: [], courierWaiting: false, courierHead: null, acceptCourier: () => acceptDelivery(scene),
   };
@@ -197,7 +224,8 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
     scene.frame(rdt, t);
     ctx.clearRect(0, 0, W, H);
     ui.hits = []; const tip = ui.tooltip; ui.tooltip = tip;
-    view.badges = G.screen === 'play' ? scene.badges() : [];
+    stepWalkInput(rdt);
+    view.badges = G.screen === 'play' && !ui.walk ? scene.badges() : [];
     view.itemRects = G.screen === 'play' ? scene.itemRects() : [];
     view.courierWaiting = G.screen === 'play' && G.running && deliveryArrived();   // tombol & gelembung 'terima kiriman'
     const kh = view.courierWaiting && scene.kurirHead(); view.courierHead = kh ? scene.project(kh) : null;
@@ -217,18 +245,29 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
     detach = attachInput(overlay);
 
     // jangan putar kamera saat menyentuh UI / menarik pintu / modal terbuka
-    const guard = () => { scene.controls.enabled = !(overHit() || ui.modal || G.doorState === 'closed' || G.screen !== 'play' && false); };
+    const guard = () => { scene.controls.enabled = !ui.walk && !(overHit() || ui.modal || G.doorState === 'closed'); };
     const onDownCapture = e => {
       const r = overlay.getBoundingClientRect(); mouse.x = (e.clientX - r.left) / r.width * W; mouse.y = (e.clientY - r.top) / r.height * H; guard();
+      // joystick virtual (mode jalan): sentuh/klik di sekitar pangkalnya
+      if (ui.walk && !ui.modal && Math.hypot(mouse.x - STICK.x, mouse.y - STICK.y) < STICK.hit && stick.id === null) {
+        stick.id = e.pointerId; try { overlay.setPointerCapture(e.pointerId); } catch { /* abaikan */ }
+        moveStick(e); e.stopImmediatePropagation();
+      }
     };
+    const moveStick = e => {
+      const r = overlay.getBoundingClientRect(), px = (e.clientX - r.left) / r.width * W - STICK.x, py = (e.clientY - r.top) / r.height * H - STICK.y, m = Math.hypot(px, py), k = Math.min(1, m / STICK.r);
+      stick.x = m > 0 ? px / m * k : 0; stick.y = m > 0 ? py / m * k : 0;
+    };
+    const onStickMove = e => { if (stick.id === e.pointerId) moveStick(e); };
+    const endStick = e => { if (stick.id === e.pointerId) { stick.id = null; stick.x = stick.y = 0; } };
     const onDown = e => {
-      if (ui.consumed || G.screen !== 'play' || ui.modal) return;
+      if (ui.consumed || G.screen !== 'play' || ui.modal || ui.walk) return;   // jalan-jalan: barang tidak bisa diklik dari jauh
       const o = scene.pick(...pointerToNdc(e, overlay.getBoundingClientRect())); const act = o && o.userData.act; if (!act) return;
       pending = { act, o, x: e.clientX, y: e.clientY, long: false };
       if (ui.touch) pressTimer = setTimeout(() => { if (pending) { pending.long = true; ui.longTip = describe(act); } }, 420);
     };
     const onUp = e => {
-      scene.controls.enabled = true; clearTimeout(pressTimer);
+      endStick(e); scene.controls.enabled = !ui.walk; clearTimeout(pressTimer);
       if (pending) {
         const { act, o, x, y, long } = pending; pending = null;
         const moved = Math.hypot(e.clientX - x, e.clientY - y) > 8;
@@ -236,16 +275,26 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
       }
       ui.longTip = '';
     };
+    const WALK_KEYS = { w: 'u', arrowup: 'u', s: 'd', arrowdown: 'd', a: 'l', arrowleft: 'l', d: 'r', arrowright: 'r' };
+    const onKeyUp = e => { keys.delete(WALK_KEYS[e.key.toLowerCase()]); if (e.key === 'Shift') keys.delete('run'); };
     const onKey = e => {
-      if (e.key === '1') api.setView('luar'); else if (e.key === '2') api.setView('pembeli'); else if (e.key === '3') api.setView('penjaga');
+      const lk = e.key.toLowerCase();
+      if (ui.walk && !ui.modal && WALK_KEYS[lk]) { keys.add(WALK_KEYS[lk]); e.preventDefault(); return; }
+      if (e.key === 'Shift') keys.add('run');
+      if (G.screen === 'play' && !ui.modal) {
+        if (lk === 'g') { setWalkMode(!ui.walk); return; }
+        if (lk === 'e' && ui.walk && view.walkPrompt) { view.walkPrompt.run(); return; }
+      }
+      if (e.key === '1') api.setView('luar'); else if (e.key === '2') api.setView('pembeli'); else if (e.key === '3') api.setView('penjaga'); else if (e.key === '4') api.setView('jalan');
       else if ((e.key === 'k' || e.key === 'K') && G.screen === 'play' && !ui.modal && canAct()) acceptDelivery(scene);
     };
     overlay.addEventListener('pointerdown', onDownCapture, true);
     overlay.addEventListener('pointerdown', onDown);
-    const onCancel = () => { clearTimeout(pressTimer); pending = null; ui.longTip = ''; scene.controls.enabled = true; };
+    const onCancel = () => { clearTimeout(pressTimer); pending = null; ui.longTip = ''; scene.controls.enabled = !ui.walk; };
     overlay.addEventListener('pointerup', onUp);
-    overlay.addEventListener('pointercancel', onCancel);
-    window.addEventListener('keydown', onKey);
+    overlay.addEventListener('pointercancel', e => { endStick(e); onCancel(); });
+    overlay.addEventListener('pointermove', onStickMove);
+    window.addEventListener('keydown', onKey); window.addEventListener('keyup', onKeyUp); window.addEventListener('blur', () => keys.clear());
     cleanups.push(() => { overlay.removeEventListener('pointerdown', onDownCapture, true); overlay.removeEventListener('pointerdown', onDown); overlay.removeEventListener('pointerup', onUp); overlay.removeEventListener('pointercancel', onCancel); window.removeEventListener('keydown', onKey); });
     last = performance.now(); raf = requestAnimationFrame(loop);
     onReady && onReady(api);
@@ -253,8 +302,9 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
 
   const api = {
     view: 'luar', onView: null,
-    setView(name) { api.view = name; scene && scene.setView(name); api.onView && api.onView(name); },
-    destroy() { ui.mode3d = false; onQuality(null); alive = false; cancelAnimationFrame(raf); detach(); cleanups.forEach(f => f()); ro && ro.disconnect(); scene && scene.dispose(); IMG.onload = IMG.onerror = null; fx.floats.length = 0; },
+    setView(name) { if (name === 'jalan') { setWalkMode(true); return; } if (ui.walk) setWalkMode(false, name); else { api.view = name; scene && scene.setView(name); api.onView && api.onView(name); } },
+    get walking() { return !!ui.walk; },
+    destroy() { ui.walk = false; ui.mode3d = false; onQuality(null); alive = false; cancelAnimationFrame(raf); detach(); cleanups.forEach(f => f()); ro && ro.disconnect(); scene && scene.dispose(); IMG.onload = IMG.onerror = null; fx.floats.length = 0; },
     get scene() { return scene; },
   };
 

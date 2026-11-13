@@ -18,7 +18,7 @@ import { toast } from '../widgets.js';
 export function startDay(loaded) {
   G.abs = (G.day - 1) * 1440 + DAY_START * 60; G.h = DAY_START; G.energy = 100;
   G.door = 0; G.doorState = 'closed'; G.running = false; G.closing = false;
-  G.social = { v: [], nid: 1, chats: 0 }; G.buzz = null;
+  G.social = { v: [], nid: 1, chats: 0 }; G.buzz = null; G.home = { rests: 0, recent: (G.home && G.home.recent) || [] };
   G.cust = []; G.leaving = []; G.tray = {}; G.promo = false; G.spawnCd = 3; G.idle = 0; G.cart = {};
   G.rain = Math.random() < .32 ? { from: rnd(8, 17), len: rnd(1.5, 3.2) } : null;
   G.stats = { waste: 0, xp: 0, served: 0, revenue: 0, profit: 0, spent: 0, tips: 0, left: 0, sold: {}, kasbonNew: 0, kasbonPaid: 0, bonus: 0 };
