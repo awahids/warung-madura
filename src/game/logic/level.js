@@ -26,7 +26,7 @@ export function progress() {
 }
 
 /* ---------- yang dibuka tiap level ---------- */
-export const ITEM_LVL = { kopi: 1, rokok: 1, aqua: 1, mie: 1, snack: 1, kerupuk: 1, cola: 2, bensin: 3, galon: 4, redbull: 5, beras: 6, gas: 8 };
+export const ITEM_LVL = { kopi: 1, rokok: 1, aqua: 1, mie: 1, snack: 1, kerupuk: 1, cola: 2, bensin: 3, galon: 4, redbull: 5, beras: 6, gas: 8, telur: 2, minyak: 3, gula: 4, sabun: 5, susu: 6, teh: 7 };
 export const TYPE_LVL = { ojol: 1, pemuda: 1, cowok: 1, ibu: 2, pelajar: 3, juragan: 4, tukang: 5, hoodie: 6, turis: 7 };
 export const FEATURE_LVL = { promo: 2, kasbon: 3, kulkas: 4, reorder: 5, karyawan: 7, auto: 6, express: 8 };
 export const FEATURE_NAME = { promo: 'Promo warung', kasbon: 'Kasbon pelanggan', kulkas: 'Kulkas (masa simpan ×2)', karyawan: 'Karyawan (dari pelanggan tetap)', reorder: 'Pesan ulang di HP', auto: 'Kembalian otomatis', express: 'Kurir ekspres (30 mnt)' };

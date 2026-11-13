@@ -13,25 +13,31 @@ export const ITEMS = [
   { id: 'beras',   name: 'Beras 1 Kg',     price: 15000, pack: 4,  packCost: 52000, spr: 'beras2' },
   { id: 'kerupuk', name: 'Kerupuk',        price: 1000,  pack: 20, packCost: 14000, spr: 'toples', shelf: 8 },
   { id: 'snack',   name: 'Keripik Renteng',price: 2000,  pack: 10, packCost: 13000, spr: null, shelf: 10 },
+  { id: 'telur',   name: 'Telur Ayam',     price: 2500,  pack: 30, packCost: 60000, spr: null, shelf: 10 },
+  { id: 'minyak',  name: 'Minyak Goreng 1 L', price: 18000, pack: 6, packCost: 90000, spr: null },
+  { id: 'gula',    name: 'Gula Pasir 1 Kg', price: 17000, pack: 5,  packCost: 70000, spr: null },
+  { id: 'sabun',   name: 'Sabun Mandi',    price: 5000,  pack: 12, packCost: 42000, spr: null },
+  { id: 'susu',    name: 'Susu Kental Manis', price: 4000, pack: 12, packCost: 36000, spr: null },
+  { id: 'teh',     name: 'Teh Celup',      price: 5000,  pack: 10, packCost: 35000, spr: null },
 ];
 export const BY = {}; ITEMS.forEach(i => { i.cost = i.packCost / i.pack; BY[i.id] = i; });
-export const START_STOCK = { kopi: 15, rokok: 20, bensin: 6, aqua: 12, cola: 6, redbull: 4, mie: 8, galon: 4, gas: 3, beras: 6, kerupuk: 15, snack: 10 };
+export const START_STOCK = { kopi: 15, rokok: 20, bensin: 6, aqua: 12, cola: 6, redbull: 4, mie: 8, galon: 4, gas: 3, beras: 6, kerupuk: 15, snack: 10, telur: 20, minyak: 4, gula: 4, sabun: 8, susu: 8, teh: 6 };
 
 export const TYPES = {
   ojol:    { spr: 'ojol',    name: 'Bang Ojol',  patience: 26, say: ['Bang, cepetan ya, ada orderan!', 'Bang, bentar doang kok.', 'Pesenan saya dong, Bang!'],
              w: { kopi: 3, rokok: 3, bensin: 2.5, aqua: 2, snack: 1, redbull: 1.2 } },
   pemuda:  { spr: 'pemuda',  name: 'Pemuda Kampung',  patience: 36, say: ['Mas, beli ini ya.', 'Ada yang dingin nggak, Mas?', 'Buat begadang nih, Mas.'],
-             w: { mie: 3, aqua: 2, cola: 2.2, snack: 2, rokok: 1.2, kerupuk: 1 } },
+             w: { mie: 3, aqua: 2, cola: 2.2, snack: 2, rokok: 1.2, kerupuk: 1, susu: .8, telur: .6 } },
   cowok:   { spr: 'cowok',   name: 'Bapak Muda', patience: 34, say: ['Bang, ada nggak?', 'Biasa ya, Bang.', 'Ngopi dulu, Bang.'],
-             w: { rokok: 3, kopi: 2.2, redbull: 2, bensin: 2, aqua: 1 } },
+             w: { rokok: 3, kopi: 2.2, redbull: 2, bensin: 2, aqua: 1, teh: .8, sabun: .5 } },
   ibu:     { spr: 'ibu',     name: 'Ibu Warga',     patience: 42, say: ['Dek, ibu mau beli...', 'Lagi ada beras, Dek?', 'Tolong ambilin ya, Nak.'],
-             w: { beras: 3, galon: 3, gas: 2, kerupuk: 2, mie: 1, kopi: 1, snack: 1 } },
+             w: { beras: 3, galon: 3, gas: 2, kerupuk: 2, mie: 1, kopi: 1, snack: 1, telur: 3, minyak: 2.5, gula: 2, sabun: 1.5, susu: 1 } },
   juragan: { spr: 'juragan', name: 'Juragan Kampung',   patience: 46, say: ['Assalamualaikum, Nak.', 'Warungnya rame ya, alhamdulillah.', 'Pak Haji mau belanja banyak.'],
-             w: { galon: 2, gas: 2, beras: 2, kopi: 2, rokok: 2, bensin: 1 } },
+             w: { galon: 2, gas: 2, beras: 2, kopi: 2, rokok: 2, bensin: 1, minyak: 1.5, gula: 1.5, telur: 1, teh: 1 } },
   pelajar: { spr: 'pemuda',  name: 'Adik Pelajar', patience: 30, say: ['Kak, beli jajan ya.', 'Istirahat bentar, Kak!', 'Kak, ada yang murah nggak?'],
-             w: { snack: 3, aqua: 2.5, kerupuk: 2, mie: 1.5, cola: 1.5, kopi: .2 } },
+             w: { snack: 3, aqua: 2.5, kerupuk: 2, mie: 1.5, cola: 1.5, kopi: .2, susu: 1 } },
   tukang:  { spr: 'cowok',   name: 'Tukang Bangunan', patience: 38, say: ['Capek nih, habis ngaduk semen.', 'Kopi sama rokok, Dek. Cepetan ya.', 'Istirahat siang dulu, Dek.'],
-             w: { rokok: 3, kopi: 3, aqua: 2, galon: 1.5, mie: 1, bensin: 1 } },
+             w: { rokok: 3, kopi: 3, aqua: 2, galon: 1.5, mie: 1, bensin: 1, teh: 1.5, sabun: .6 } },
   turis:   { spr: 'cowok',   name: 'Turis Bule', patience: 44, say: ['Excuse me, water please?', 'Hello! One cold drink, please.', 'How much is this? Cheap!'],
              w: { aqua: 3, cola: 2.5, redbull: 2, snack: 1.5, mie: 1 } },
   hoodie:  { spr: 'hoodie',  name: '???',        patience: 60, say: ['...', '(berbisik) Jam segini masih buka, ya...', '...Ada yang bisa bikin melek?'],

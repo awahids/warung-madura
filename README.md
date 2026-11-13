@@ -43,6 +43,9 @@ hanya tampilannya yang diganti adegan 3D, dengan HUD/balon pesanan/nampan/modal 
 - Semua 12 barang dagangan terlihat & bisa diklik dari sudut Penjaga: galon, gas, beras, dan rak bensin berada di meja display teras setinggi dada (di atas barang di meja kasir). Diagnostik dev: `scene.reachability()` menembakkan sinar dari kamera ke tiap barang; `scene.heavy()` mencantumkan mesh terberat.
 - LOD menyembunyikan detail terkecil orang yang jauh dari kamera.
 - Kiriman kurir: kurir berjalan ke depan meja membawa kardus; terima dengan klik kurir, tombol hijau **TERIMA KIRIMAN** (berfungsi dari sudut kamera mana pun) atau tombol `K`.
+- **Barang sembako baru** (dibuka bertahap lewat level): telur (Lv 2, bisa basi), minyak goreng (Lv 3), gula (Lv 4), sabun mandi (Lv 5), susu kental manis (Lv 6), teh celup (Lv 7). Di 3D ada rak gantung di tengah warung; di 2D rak sembako di atas; Buku Catatan kini berhalaman.
+- **Balon pesanan** ringkas, ditempatkan otomatis di area yang paling sedikit menutupi barang yang bisa diklik (ekor menunjuk pelanggan) dan memudar bila kursor di atasnya.
+- **Bersosialisasi dengan warga:** pelanggan tetap kadang mampir dan duduk di bangku depan (maks. 2). Klik warga, tombol biru **NGOBROL**, atau tombol `W`. Tiap kunjungan 2 kesempatan: *Tanya kabar* (+kewarasan, kabar kampung/bocoran hujan), *Traktir kopi*, *Minta saran belanja* (warga ikut mempromosikan satu barang hari itu), *Dengarkan curhat* (+kepercayaan, kadang tip). Kedekatan naik sehingga pelanggan makin sabar dan royal. Kode: `logic/social.js`, `render/social.js`.
 - Kamera: Luar / Pembeli / Penjaga (tombol atau tombol keyboard `1` `2` `3`); di layar sentuh tekan-tahan barang menampilkan info.
 - Kode: `src/game/engine3d.js` (jembatan), `src/game/render/overlay3d.js` (UI), `src/scene3d/warung.js` (adegan).
 

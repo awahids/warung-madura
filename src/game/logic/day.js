@@ -18,6 +18,7 @@ import { toast } from '../widgets.js';
 export function startDay(loaded) {
   G.abs = (G.day - 1) * 1440 + DAY_START * 60; G.h = DAY_START; G.energy = 100;
   G.door = 0; G.doorState = 'closed'; G.running = false; G.closing = false;
+  G.social = { v: [], nid: 1, chats: 0 }; G.buzz = null;
   G.cust = []; G.leaving = []; G.tray = {}; G.promo = false; G.spawnCd = 3; G.idle = 0; G.cart = {};
   G.rain = Math.random() < .32 ? { from: rnd(8, 17), len: rnd(1.5, 3.2) } : null;
   G.stats = { waste: 0, xp: 0, served: 0, revenue: 0, profit: 0, spent: 0, tips: 0, left: 0, sold: {}, kasbonNew: 0, kasbonPaid: 0, bonus: 0 };
@@ -67,7 +68,7 @@ export function isRain() { return !!G.rain && G.h >= G.rain.from && G.h < G.rain
 export function openShop() { G.doorState = 'open'; G.door = 1; G.running = true; SFX.good(); toast('Warung BUKA! Selamat berjualan, Juragan.', '#ffe45c'); G.morning.forEach(m => toast(m, '#cfe8ff')); }
 export function endDay(reason) {
   if (G.closing) return; G.closing = true; G.running = false; G.endReason = reason;
-  returnTray();
+  returnTray(); if (G.social) G.social.v = [];
   for (const c of [...G.cust]) { c.bye = 'Yah, udah tutup...'; sendAway(c); }
   G.doorState = 'closing'; SFX.door();
   if (reason === 'faint') { G.money = Math.max(0, G.money - 15000); G.stats.spent += 15000; }

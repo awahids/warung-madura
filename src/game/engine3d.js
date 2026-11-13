@@ -1,3 +1,5 @@
+import { visitors } from './logic/social.js';
+import { openChat } from './render/social.js';
 import atlasUrl from './assets/atlas.webp';
 import { SFX } from './audio.js';
 import { H, W } from './constants.js';
@@ -47,6 +49,7 @@ const describe = act => {
     case 'buku': return 'Buku Catatan — cek stok & harga';
     case 'promo': return G.promo ? 'Promo sedang aktif' : 'Pasang promo Rp 20.000 (pembeli lebih ramai)';
     case 'kurir': case 'paket': return 'Kurir — klik untuk menerima kiriman barang';
+    case 'warga': { const v = visitors().find(x => x.seat === act.slot), r = v && regById(v.id); return r ? `${r.name} — klik untuk ngobrol${v.talks > 0 ? '' : ' (sudah puas ngobrol)'}` : ''; }
     default: return '';
   }
 };
@@ -72,6 +75,7 @@ export function runAct(act, scene) {
     case 'kopi-minum': { const cd = G.drinkCd; drinkKopi(); if (G.drinkCd > cd) scene && scene.penjagaAct('drink'); break; }
     case 'promo': tapPromo(); break;
     case 'kurir': case 'paket': acceptDelivery(scene); break;
+    case 'warga': { const v = visitors().find(x => x.seat === act.slot); if (v) openChat(v.vid); break; }
     default: break;
   }
 }
@@ -127,6 +131,7 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
     const staffKey = playing ? staffList().map(s => s.id).join(',') : '';   // karyawan tampil di warung
     if (staffKey !== staffShown) { staffShown = staffKey; scene.setStaff(staffList().map(s => { const r = regById(s.id); return { id: s.id, type: r.type, look: r.look }; })); }
     scene.setPaket(playing && G.deliveries.some(d => G.abs >= d.eta));
+    scene.setVisitors(playing ? visitors().map(v => { const r = regById(v.id); return { key: v.vid, type: r.type, look: r.look, seat: v.seat }; }) : []);
     // kamera mengikuti layar: judul = memutar dari luar; main = sudut pandang penjaga
     if (G.screen !== prevScreen) {
       prevScreen = G.screen;
@@ -148,7 +153,7 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
 
   const view = {
     badges: [], headOf: c => { const hp = c.k3 && scene.headPos(c.k3); return hp ? scene.project(hp) : null; },
-    courierWaiting: false, courierHead: null, acceptCourier: () => acceptDelivery(scene),
+    itemRects: [], courierWaiting: false, courierHead: null, acceptCourier: () => acceptDelivery(scene),
   };
 
   // mode otomatis: ukur FPS rata-rata ±3 detik setelah main dimulai; di bawah ~28 fps → turun ke grafis Rendah (diingat)
@@ -169,6 +174,7 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
     ctx.clearRect(0, 0, W, H);
     ui.hits = []; const tip = ui.tooltip; ui.tooltip = tip;
     view.badges = G.screen === 'play' ? scene.badges() : [];
+    view.itemRects = G.screen === 'play' ? scene.itemRects() : [];
     view.courierWaiting = G.screen === 'play' && G.running && deliveryArrived();   // tombol & gelembung 'terima kiriman'
     const kh = view.courierWaiting && scene.kurirHead(); view.courierHead = kh ? scene.project(kh) : null;
     drawOverlay3D(view);

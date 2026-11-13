@@ -1,3 +1,4 @@
+import { socialChip } from './social.js';
 import { SFX } from '../audio.js';
 import { H, HUD_H, W } from '../constants.js';
 import { ctx } from '../gfx.js';
@@ -9,7 +10,7 @@ import { button } from '../widgets.js';
 import { drawHUD } from './hud.js';
 import { drawFloats, drawTooltip } from './index.js';
 import { drawModals } from './modals.js';
-import { drawBubble } from './scene.js';
+import { bubbleSize, drawBubble } from './scene.js';
 import { drawTray } from './tray.js';
 import { drawTitleUI } from './title.js';
 
@@ -72,12 +73,49 @@ export function drawOverlay3D(view) {
   drawTray();
   const c = active();
   if (c && !ui.modal) {
-    const p = view.headOf(c);
-    drawBubble(c, p ? { x: clamp(p.x + 70, 8, W - 304), y: clamp(p.y - 30, HUD_H + 8, 250) } : undefined);
+    const p = view.headOf(c), { w, hh } = bubbleSize(c, true);
+    const at = placeBubble(w, hh, p, view);
+    drawBubble(c, at, { compact: true, tail: p ? { x: p.x, y: p.y + 14 } : undefined });
   }
   courierPrompt(view);
+  view.socialChip = socialChip(14, HUD_H + 106);
   drawFloats(); drawHUD(); drawTooltip();
   drawModals();
+}
+
+/* ---------- penempatan balon pesanan: hindari barang yang bisa diklik & panel tetap ---------- */
+const overlapArea = (a, b) => Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) * Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
+let lastSpot = null;
+/** Pilih pojok kiri-atas balon (w×hh): kandidat di sekitar kepala + pojok layar; skor = area barang tertutup + jarak; histeresis agar tak berkedip. */
+export function placeBubble(w, hh, head, view) {
+  const obstacles = [
+    ...view.itemRects.map(r => ({ x: r.x, y: r.y, w: r.w, h: r.h, k: 1 })),
+    { x: 1052, y: 126, w: 216, h: 190, k: 2 },                          // panel misi
+    { x: 350, y: 606, w: 500, h: 114, k: 3 },                           // nampan
+    ...(view.courierWaiting ? [{ x: 14, y: HUD_H + 8, w: 240, h: 90, k: 2 }] : []),
+    ...(view.socialChip ? [{ x: 14, y: HUD_H + 106, w: 240, h: 46, k: 2 }] : []),
+  ];
+  const hx = head ? head.x : 640, hy = head ? head.y : 300, pad = 8;
+  const cands = [
+    [hx + 60, hy - 40], [hx - 60 - w, hy - 40], [hx + 60, hy - hh - 10], [hx - 60 - w, hy - hh - 10], [hx - w / 2, hy - hh - 36],
+    [W - w - 14, HUD_H + 8], [14, HUD_H + 160], [W / 2 - w / 2, HUD_H + 8], [W - w - 14, 330], [14, 330],
+  ].map(([x, y]) => ({ x: clamp(x, pad, W - w - pad), y: clamp(y, HUD_H + pad, 600 - hh) }));
+  const score = c => {
+    const r = { x: c.x, y: c.y, w, h: hh }; let sc = 0;
+    for (const o of obstacles) sc += overlapArea(r, o) * (o.k === 1 ? 1 : 3);
+    const cx = c.x + w / 2, cy = c.y + hh / 2; sc += Math.hypot(cx - hx, cy - hy) * 12;           // dekat kepala pelanggan = lebih baik
+    if (head && head.x > c.x - 20 && head.x < c.x + w + 20 && head.y > c.y - 10 && head.y < c.y + hh + 10) sc += 1e5;   // jangan menutupi kepala sendiri
+    return sc;
+  };
+  let best = cands[0], bs = Infinity; for (const c of cands) { const v = score(c); if (v < bs) { bs = v; best = c; } }
+  if (lastSpot && Math.abs(lastSpot.w - w) < 1 && Math.abs(lastSpot.hh - hh) < 40) {                   // pertahankan lokasi lama kecuali yang baru jauh lebih baik
+    const cur = { x: lastSpot.x, y: clamp(lastSpot.y, HUD_H + pad, 600 - hh) }, cs = score(cur);
+    if (cs <= bs + 6000) best = cur;
+  }
+  lastSpot = { x: best.x, y: best.y, w, hh };
+  // gerak halus ke lokasi pilihan
+  ui.bubbleAt = ui.bubbleAt || { x: best.x, y: best.y }; ui.bubbleAt.x += (best.x - ui.bubbleAt.x) * .25; ui.bubbleAt.y += (best.y - ui.bubbleAt.y) * .25;
+  return { x: ui.bubbleAt.x, y: ui.bubbleAt.y };
 }
 
 /** Kiriman tiba: tombol besar (berfungsi dari sudut kamera mana pun) + gelembung di atas kepala kurir bila terlihat. */

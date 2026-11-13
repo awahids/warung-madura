@@ -1,7 +1,8 @@
+import { socialChip } from './social.js';
 import { SZ, flow, groundShadow, shelfPlank, nameTag, scaleH } from './layout';
 import { ATLAS } from '../atlas.js';
 import { SFX } from '../audio.js';
-import { H, HUD_H, W } from '../constants.js';
+import { FONT, H, HUD_H, W } from '../constants.js';
 import { BY } from '../data.js';
 import { ctx } from '../gfx.js';
 import { ico } from '../icons.js';
@@ -9,10 +10,11 @@ import { drinkKopi, receiveDelivery, usePromo } from '../logic/actions.js';
 import { addToTray, doHitung } from '../logic/customers.js';
 import { darkness, drawBackground } from './background.js';
 import { drawTray } from './tray.js';
-import { SP, badge } from '../sprites.js';
-import { G, ui } from '../state.js';
+import { SP, badge, canAct, hit } from '../sprites.js';
+import { G, mouse, ui } from '../state.js';
+import { itemOn } from '../logic/level.js';
 import { regTier } from '../logic/regulars.js';
-import { T, clamp, rp, rr, wrapText } from '../util.js';
+import { T, clamp, inRect, rp, rr, wrapText } from '../util.js';
 
 export function drawCustomer(c) {
   const sc = (c.sc || 1) * (c.type === 'hoodie' ? 1 : 1);
@@ -23,41 +25,66 @@ export function drawCustomer(c) {
   return hgt;
 }
 
-export function drawBubble(c, at) {
-  const x = at ? at.x : 722, y = at ? at.y : 128, w = 296;
-  const sayL = wrapText(c.say, w - 28, 14, '600');
-  const isPay = c.stage === 'pay';
-  const lines = c.order.length;
-  const hh = 40 + sayL.length * 18 + lines * 36 + (isPay ? 62 : 0) + 22;
+/** Ukuran balon pesanan. compact: versi ringkas untuk mode 3D (tidak menutupi banyak barang). */
+export function bubbleSize(c, compact = false) {
+  const w = compact ? 232 : 296, lines = c.order.length, isPay = c.stage === 'pay';
+  const nSay = compact ? 1 : wrapText(c.say, w - 28, 14, '600').length;
+  const rowH = compact ? 30 : 36, hh = (compact ? 34 : 40) + nSay * (compact ? 17 : 18) + lines * rowH + (isPay ? (compact ? 50 : 62) : 0) + (compact ? 18 : 22);
+  return { w, hh };
+}
+
+/**
+ * Balon pesanan. at = {x, y} pojok kiri-atas; opts.compact = ringkas; opts.tail = {x, y} titik yang ditunjuk ekor (mis. kepala pelanggan);
+ * memudar bila kursor berada di atasnya agar barang di belakangnya tetap terlihat/terklik.
+ */
+export function drawBubble(c, at, opts = {}) {
+  const compact = !!opts.compact, { w, hh } = bubbleSize(c, compact), x = at ? at.x : 722, y = at ? at.y : 128, isPay = c.stage === 'pay';
+  const hover = mouse.x >= x - 20 && mouse.x <= x + w + 20 && mouse.y >= y - 10 && mouse.y <= y + hh + 10;
+  ui.bubbleFade = (ui.bubbleFade ?? 1) + ((hover ? .28 : 1) - (ui.bubbleFade ?? 1)) * .25;
+  ctx.save(); ctx.globalAlpha = ui.bubbleFade;
+  const rowH = compact ? 30 : 36, rowIn = compact ? 26 : 32, icoS = compact ? 26 : 34, fs = compact ? 14 : 15;
   ctx.fillStyle = 'rgba(0,0,0,.25)'; rr(ctx, x + 3, y + 6, w, hh, 14); ctx.fill();
   ctx.fillStyle = '#fffaf0'; rr(ctx, x, y, w, hh, 14); ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = '#5a3a1a'; ctx.stroke();
-  ctx.fillStyle = '#fffaf0'; ctx.beginPath(); ctx.moveTo(x, y + 60); ctx.lineTo(x - 18, y + 76); ctx.lineTo(x, y + 84); ctx.fill();
-  ctx.strokeStyle = '#5a3a1a'; ctx.beginPath(); ctx.moveTo(x, y + 58); ctx.lineTo(x - 18, y + 76); ctx.lineTo(x, y + 86); ctx.stroke();
-  ctx.fillStyle = '#fffaf0'; ctx.fillRect(x - 1, y + 61, 3, 22);
-  let cy = y + 24;
-  T(c.name + (c.reg ? ' ' + '★'.repeat(regTier(c.reg)) : '') + (c.event === 'kasbon' ? '  · KASBON' : ''), x + 14, cy, { s: 15, c: c.event === 'kasbon' ? '#c0392b' : '#8a5424' }); cy += 6;
-  sayL.forEach(l => { cy += 18; T(l, x + 14, cy, { s: 14, w: '600', c: '#3a2a1a' }); });
-  cy += 10;
+  // ekor
+  const tl = opts.tail;
+  if (tl) {
+    const side = tl.x < x ? 'l' : tl.x > x + w ? 'r' : tl.y < y ? 't' : 'b';
+    const ex = side === 'l' ? x : side === 'r' ? x + w : clamp(tl.x, x + 24, x + w - 24), ey = side === 't' ? y : side === 'b' ? y + hh : clamp(tl.y, y + 24, y + hh - 24);
+    const dx = side === 'l' ? -16 : side === 'r' ? 16 : 0, dy = side === 't' ? -16 : side === 'b' ? 16 : 0, px = dy ? 9 : 0, py = dx ? 9 : 0;
+    ctx.fillStyle = '#fffaf0'; ctx.strokeStyle = '#5a3a1a'; ctx.beginPath(); ctx.moveTo(ex - px, ey - py); ctx.lineTo(ex + dx, ey + dy); ctx.lineTo(ex + px, ey + py); ctx.stroke(); ctx.fill();
+    ctx.fillStyle = '#fffaf0'; ctx.fillRect(ex - (dy ? 8 : 2) , ey - (dx ? 8 : 2), dy ? 16 : 4, dx ? 16 : 4);
+  } else {
+    ctx.fillStyle = '#fffaf0'; ctx.beginPath(); ctx.moveTo(x, y + 60); ctx.lineTo(x - 18, y + 76); ctx.lineTo(x, y + 84); ctx.fill();
+    ctx.strokeStyle = '#5a3a1a'; ctx.beginPath(); ctx.moveTo(x, y + 58); ctx.lineTo(x - 18, y + 76); ctx.lineTo(x, y + 86); ctx.stroke();
+    ctx.fillStyle = '#fffaf0'; ctx.fillRect(x - 1, y + 61, 3, 22);
+  }
+  let cy = y + (compact ? 21 : 24);
+  T(c.name + (c.reg ? ' ' + '★'.repeat(regTier(c.reg)) : '') + (c.event === 'kasbon' ? '  · KASBON' : ''), x + 14, cy, { s: compact ? 14 : 15, c: c.event === 'kasbon' ? '#c0392b' : '#8a5424' }); cy += 6;
+  const sayAll = wrapText(c.say, w - 28, compact ? 13 : 14, '600'), sayL = compact ? [sayAll[0] + (sayAll.length > 1 ? '…' : '')] : sayAll;
+  sayL.forEach(l => { cy += compact ? 17 : 18; T(l, x + 14, cy, { s: compact ? 13 : 14, w: '600', c: '#3a2a1a' }); });
+  cy += compact ? 7 : 10;
   for (const l of c.order) {
     const have = G.tray[l.id] || 0, ok = have === l.qty, over = have > l.qty;
-    ctx.fillStyle = ok ? '#dff5d2' : over ? '#fbdada' : '#f4ead2'; rr(ctx, x + 10, cy, w - 20, 32, 8); ctx.fill();
-    ico(l.id, x + 14, cy - 1, 34);
-    T(BY[l.id].name, x + 54, cy + 21, { s: 15, c: '#3a2a1a' });
-    T(`${have}/${l.qty}`, x + w - 48, cy + 22, { s: 16, a: 'right', c: ok ? '#2a8a2a' : over ? '#c0392b' : '#6a5a40' });
-    if (ok) SP('ok', x + w - 18, cy + 16, .5, .5, .5);
-    cy += 36;
+    ctx.fillStyle = ok ? '#dff5d2' : over ? '#fbdada' : '#f4ead2'; rr(ctx, x + 10, cy, w - 20, rowIn, 8); ctx.fill();
+    ico(l.id, x + 14, cy + (rowIn - icoS) / 2, icoS);
+    { const maxW = w - 14 - icoS - 6 - (compact ? 62 : 70); let f = fs; ctx.font = `700 ${f}px ${FONT}`; while (f > 10 && ctx.measureText(BY[l.id].name).width > maxW) { f -= .5; ctx.font = `700 ${f}px ${FONT}`; }
+      T(BY[l.id].name, x + 14 + icoS + 6, cy + rowIn / 2 + 5, { s: f, c: '#3a2a1a' }); }
+    T(`${have}/${l.qty}`, x + w - (compact ? 40 : 48), cy + rowIn / 2 + 6, { s: compact ? 15 : 16, a: 'right', c: ok ? '#2a8a2a' : over ? '#c0392b' : '#6a5a40' });
+    if (ok) SP('ok', x + w - 18, cy + rowIn / 2, compact ? .42 : .5, .5, .5);
+    cy += rowH;
   }
   if (isPay) {
-    cy += 4; ctx.fillStyle = '#e8f1ff'; rr(ctx, x + 10, cy, w - 20, 54, 8); ctx.fill();
-    T(`Total ${rp(c.total)}`, x + 20, cy + 20, { s: 14, c: '#2a3a5a' });
-    T(`Bayar ${rp(c.pay)}`, x + 20, cy + 40, { s: 14, c: '#2a3a5a' });
-    T(`Kembali`, x + w - 20, cy + 20, { s: 12, a: 'right', c: '#2a3a5a' });
-    T(rp(c.change), x + w - 20, cy + 42, { s: 20, a: 'right', c: '#c0392b' });
+    const bh = compact ? 44 : 54; cy += 3; ctx.fillStyle = '#e8f1ff'; rr(ctx, x + 10, cy, w - 20, bh, 8); ctx.fill();
+    T(`Total ${rp(c.total)}`, x + 20, cy + (compact ? 18 : 20), { s: 13, c: '#2a3a5a' });
+    T(`Bayar ${rp(c.pay)}`, x + 20, cy + (compact ? 36 : 40), { s: 13, c: '#2a3a5a' });
+    T('Kembali', x + w - 20, cy + (compact ? 16 : 20), { s: 11, a: 'right', c: '#2a3a5a' });
+    T(rp(c.change), x + w - 20, cy + (compact ? 38 : 42), { s: compact ? 18 : 20, a: 'right', c: '#c0392b' });
   }
   // sabar
   const pr = clamp(c.patience / c.max, 0, 1);
-  ctx.fillStyle = '#d9cbb0'; rr(ctx, x + 14, y + hh - 18, w - 28, 8, 4); ctx.fill();
-  ctx.fillStyle = pr > .5 ? '#5ac85a' : pr > .25 ? '#f0b429' : '#e0463a'; rr(ctx, x + 14, y + hh - 18, Math.max(6, (w - 28) * pr), 8, 4); ctx.fill();
+  ctx.fillStyle = '#d9cbb0'; rr(ctx, x + 14, y + hh - (compact ? 14 : 18), w - 28, compact ? 6 : 8, 4); ctx.fill();
+  ctx.fillStyle = pr > .5 ? '#5ac85a' : pr > .25 ? '#f0b429' : '#e0463a'; rr(ctx, x + 14, y + hh - (compact ? 14 : 18), Math.max(6, (w - 28) * pr), compact ? 6 : 8, 4); ctx.fill();
+  ctx.restore();
 }
 
 export function drawScene() {
@@ -120,6 +147,20 @@ export function drawScene() {
   const et = SP('etalase', 258, 606, scaleH('etalase', SZ.etalase), .5, 1, { fn: () => addToTray('rokok'), tip: `Rokok Ketengan · ${rp(2000)} · stok ${G.stock.rokok}` });
   badge(et, G.stock.rokok || 0);
   nameTag(258, 606 - SZ.etalase - 30, 'ROKOK ' + rp(2000).replace('Rp ', '') + '/btg');
+  // rak sembako (2D): papan kayu di atas dengan ikon barang tambahan (hanya yang sudah terbuka)
+  { const SEMB = ['telur', 'minyak', 'gula', 'sabun', 'susu', 'teh'].filter(itemOn);
+    if (SEMB.length) {
+      const bx = 436, by = 196, bw = SEMB.length * 62 + 24;
+      ctx.fillStyle = 'rgba(0,0,0,.25)'; rr(ctx, bx + 2, by + 5, bw, 16, 5); ctx.fill();
+      const gr = ctx.createLinearGradient(0, by, 0, by + 16); gr.addColorStop(0, '#e0b070'); gr.addColorStop(1, '#9a6430'); ctx.fillStyle = gr; rr(ctx, bx, by, bw, 16, 5); ctx.fill(); ctx.strokeStyle = '#6b4020'; ctx.lineWidth = 2; ctx.stroke();
+      SEMB.forEach((id, i) => {
+        const ix = bx + 12 + i * 62, iy = by - 56, hv = canAct() && inRect(mouse.x, mouse.y, ix, iy, 56, 56), it = BY[id];
+        if (hv) { ctx.fillStyle = 'rgba(255,236,140,.35)'; rr(ctx, ix - 2, iy - 2, 60, 60, 8); ctx.fill(); }
+        ico(id, ix, iy, 56);
+        if (canAct()) { hit(ix, iy, 56, 56, () => addToTray(id), `${it.name} · ${rp(it.price)} · stok ${G.stock[id] || 0}`); if (hv) ui.tooltip = `${it.name} · ${rp(it.price)} · stok ${G.stock[id] || 0}`; }
+        const n = G.stock[id] || 0; ctx.fillStyle = n === 0 ? '#d62f2f' : n <= 2 ? '#e08a1c' : '#3b2412'; ctx.beginPath(); ctx.arc(ix + 50, iy + 6, 13, 0, 7); ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = '#fff'; ctx.stroke(); T(String(n), ix + 50, iy + 11, { s: 13, a: 'center', c: '#fff' });
+      });
+    } }
   // rak minuman: tinggi seragam, jarak merata, berdiri di papan kayu
   const shelf = flow([{ spr: 'toples', id: 'kerupuk' }, { spr: 'mie', id: 'mie' }, { spr: 'aqua', id: 'aqua' }, { spr: 'cola', id: 'cola' }, { spr: 'redbull', id: 'redbull' }], { h: SZ.shelf, gap: 22, x: 420 });
   shelfPlank(shelf.left, shelf.right, 586, shelf.slots);
@@ -146,5 +187,6 @@ export function drawScene() {
   SP('signKasir', 1185, 712, .85, .5, 1);
 
   drawTray();
+  socialChip(362, 560);
 }
 

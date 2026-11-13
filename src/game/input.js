@@ -1,3 +1,6 @@
+import { canAct } from './sprites.js';
+import { canChat, visitors } from './logic/social.js';
+import { openChat } from './render/social.js';
 import { W, H, HUD_H } from './constants';
 import { clamp, inRect } from './util';
 import { audio } from './audio';
@@ -57,8 +60,9 @@ export function attachInput(cv) {
     if (G.screen !== 'play') return;
     if (e.key === 'Escape') {
       if (!ui.modal) ui.modal = 'pause';
-      else if (['pause', 'help', 'notebook', 'phone', 'level', 'ach', 'kasbon', 'regulars', 'kulkas', 'staff'].includes(ui.modal)) ui.modal = null;
+      else if (['pause', 'help', 'notebook', 'phone', 'level', 'ach', 'kasbon', 'regulars', 'kulkas', 'staff', 'ngobrol'].includes(ui.modal)) ui.modal = null;
     } else if (e.key === ' ' && !ui.modal) { e.preventDefault(); doHitung(); }
+    else if ((e.key === 'w' || e.key === 'W') && !ui.modal && canAct()) { const v = visitors().find(canChat); if (v) openChat(v.vid); }
   };
   cv.addEventListener('pointermove', onMove);
   cv.addEventListener('pointerdown', onDown);

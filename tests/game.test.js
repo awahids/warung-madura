@@ -171,7 +171,7 @@ describe('level membuka barang, pembeli, dan fitur', () => {
     expect(itemOn('cola')).toBe(true); expect(G.stock.cola).toBeGreaterThan(0);
     expect(typeOn('ibu')).toBe(true); expect(featureOn('promo')).toBe(true);
     G.money = 100000; usePromo(); expect(G.promo).toBe(true);
-    expect(unlocksAt(2).map(u => u.k).sort()).toEqual(['Barang', 'Fitur', 'Pembeli']);
+    expect(unlocksAt(2).map(u => u.k).sort()).toEqual(['Barang', 'Barang', 'Fitur', 'Pembeli']);   // cola + telur
     addXp(xpAt(8) - G.xp);
     expect(itemOn('gas')).toBe(true); expect(featureOn('express')).toBe(true);
   });
@@ -546,7 +546,7 @@ describe('umur stok & kulkas', () => {
 
   it('hanya barang tertentu bisa basi; kulkas menggandakan masa simpan', async () => {
     const F = await import('../src/game/logic/freshness'), D = await import('../src/game/data');
-    expect(F.perishables().map(i => i.id).sort()).toEqual(['cola', 'kerupuk', 'kopi', 'mie', 'redbull', 'snack']);
+    expect(F.perishables().map(i => i.id).sort()).toEqual(['cola', 'kerupuk', 'kopi', 'mie', 'redbull', 'snack', 'telur']);
     expect(F.shelfOf('kerupuk')).toBe(8); expect(F.shelfOf('aqua')).toBe(0); expect(F.shelfOf('rokok')).toBe(0);
     G.fridge = true; expect(F.shelfOf('kerupuk')).toBe(16); expect(D.BY.kerupuk.shelf).toBe(8);
   });

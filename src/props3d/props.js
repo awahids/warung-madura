@@ -138,6 +138,54 @@ export function gelas() {
   return g;
 }
 
+/* ---- sembako tambahan: minyak, telur, gula, sabun, susu kental manis, teh ---- */
+export function minyak() {
+  const g = new THREE.Group();
+  g.add(lathe([[0, 0], [.036, 0], [.04, .012], [.04, .15], [.032, .18], [.019, .2], [.019, .225], [0, .225]], std('#e0a81c', { roughness: .25, transparent: true, opacity: .92 }), 14));
+  g.add(cyl(.02, .02, std('#c0281a'), .222, 12));
+  const label = new THREE.Mesh(new THREE.CylinderGeometry(.0405, .0405, .075, 14, 1, true), new THREE.MeshStandardMaterial({ map: textTexture([['MINYAK', 46, -6], ['GORENG', 34, 30]], { w: 256, h: 128, bg: '#fff4cf', fg: '#b8731a', accent: '#e0a81c' }), side: THREE.DoubleSide, roughness: .5 }));
+  label.position.y = .085; g.add(label);
+  return g;
+}
+export function telur() {
+  const g = new THREE.Group();
+  g.add(shadowed(new THREE.Mesh(new THREE.BoxGeometry(.3, .02, .32), std('#c9a36a', { roughness: .95 }))));        // alas karton
+  for (const dz of [-.16, .16]) g.add(at3(shadowed(new THREE.Mesh(new THREE.BoxGeometry(.3, .045, .012), std('#b08850', { roughness: .95 }))), 0, .03, dz));
+  for (const dx of [-.15, .15]) g.add(at3(shadowed(new THREE.Mesh(new THREE.BoxGeometry(.012, .045, .32), std('#b08850', { roughness: .95 }))), dx, .03, 0));
+  const egg = new THREE.SphereGeometry(1, 8, 6), inst = new THREE.InstancedMesh(egg, std('#f3e6cc', { roughness: .55 }), 30), m = new THREE.Matrix4(), q = new THREE.Quaternion(), c = new THREE.Color();
+  for (let r = 0; r < 5; r++) for (let k = 0; k < 6; k++) {
+    const i = r * 6 + k; q.setFromEuler(new THREE.Euler(Math.random() * .2 - .1, Math.random() * 6, Math.random() * .2 - .1));
+    m.compose(new THREE.Vector3(-.12 + k * .048, .05, -.125 + r * .062), q, new THREE.Vector3(.019, .026, .019)); inst.setMatrixAt(i, m);
+    inst.setColorAt(i, c.set(Math.random() < .3 ? '#e3b98a' : '#f3e6cc'));
+  }
+  inst.castShadow = false; g.add(inst);
+  return g;
+}
+const at3 = (m, x, y, z) => { m.position.set(x, y, z); return m; };
+export function gula() {
+  const g = new THREE.Group(), tx = textTexture([['GULA', 52, -4], ['1 KG', 30, 34]], { w: 256, h: 192, bg: '#f7f7f4', fg: '#2f80d6', accent: '#2f80d6' });
+  const b = shadowed(new THREE.Mesh(new THREE.BoxGeometry(.1, .16, .06), [std('#ececea'), std('#ececea'), std('#dcdcd8'), std('#dcdcd8'), new THREE.MeshStandardMaterial({ map: tx, roughness: .5 }), std('#ececea')]));
+  b.position.y = .08; g.add(b); g.add(at3(shadowed(new THREE.Mesh(new THREE.BoxGeometry(.104, .012, .064), std('#c9c9c4'))), 0, .16, 0));
+  return g;
+}
+export function sabun() {
+  const g = new THREE.Group(), tx = textTexture([['SABUN', 56, -10], ['MANDI', 36, 32]], { w: 256, h: 128, bg: '#2f9e60', fg: '#fff', accent: '#1a5f3a' });
+  const b = shadowed(new THREE.Mesh(new THREE.BoxGeometry(.085, .035, .055), [std('#2f9e60'), std('#2f9e60'), new THREE.MeshStandardMaterial({ map: tx, roughness: .5 }), std('#1a5f3a'), new THREE.MeshStandardMaterial({ map: tx, roughness: .5 }), std('#2f9e60')]));
+  b.position.y = .0175; g.add(b);
+  return g;
+}
+export function susu() {
+  const g = new THREE.Group(), tx = textTexture([['SUSU', 54, -10], ['KENTAL', 30, 30]], { w: 256, h: 128, bg: '#2d6db5', fg: '#fff', accent: '#e8eef5' });
+  g.add(at3(shadowed(new THREE.Mesh(new THREE.CylinderGeometry(.034, .034, .095, 14), new THREE.MeshStandardMaterial({ map: tx, metalness: .35, roughness: .4 }))), 0, .0475, 0));
+  g.add(cyl(.034, .004, std('#c9ced3', { metalness: .8, roughness: .3 }), .095, 14));
+  return g;
+}
+export function teh() {
+  const g = new THREE.Group(), tx = textTexture([['TEH', 64, -8], ['CELUP', 34, 32]], { w: 256, h: 192, bg: '#c0281a', fg: '#fff', accent: '#f4e2a0' });
+  g.add(at3(shadowed(new THREE.Mesh(new THREE.BoxGeometry(.075, .11, .042), [std('#a81f14'), std('#a81f14'), std('#c0281a'), std('#a81f14'), new THREE.MeshStandardMaterial({ map: tx, roughness: .55 }), std('#a81f14')])), 0, .055, 0));
+  return g;
+}
+
 /** id → { nama, builder, sprite (padanan 2D di atlas), tinggi target (m) untuk model GLB } */
 export const PROPS = [
   { id: 'galon', name: 'Galon 19 L', build: galon, sprite: 'galon', h: .43 },

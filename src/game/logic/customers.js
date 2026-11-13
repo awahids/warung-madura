@@ -30,8 +30,9 @@ export function spawnCustomer(type, ev) {
   const lines = type === 'juragan' ? ri(2, 4) : type === 'hoodie' ? ri(2, 3) : ri(1, 3);
   for (let i = 0; i < lines; i++) {
     const wi = {}, src = reg ? orderWeights(T0.w, reg) : T0.w; for (const k in src) if (itemOn(k)) wi[k] = src[k];
+    if (G.buzz && G.buzz.day === G.day && itemOn(G.buzz.id)) wi[G.buzz.id] = (wi[G.buzz.id] || 0) * 2.2 + 1.6;   // dari mulut ke mulut (ngobrol dengan warga)
     const id = Object.keys(wi).length ? wpick(wi) : 'kopi'; const big = ['bensin', 'gas', 'galon', 'beras'].includes(id);
-    let q = big ? (Math.random() < .2 ? 2 : 1) : id === 'rokok' ? ri(1, 4) : ri(1, 3);
+    let q = big ? (Math.random() < .2 ? 2 : 1) : id === 'rokok' ? ri(1, 4) : id === 'telur' ? ri(2, 5) : ['minyak', 'gula'].includes(id) ? ri(1, 2) : ri(1, 3);
     if (type === 'hoodie') q = Math.max(q, 2);
     map[id] = (map[id] || 0) + q;
   }

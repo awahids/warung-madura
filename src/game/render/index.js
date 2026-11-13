@@ -41,7 +41,7 @@ export function draw() {
     // vignette kewarasan
     if (G.energy < 25 && G.running) { const gg = ctx.createRadialGradient(640, 380, 250, 640, 380, 760); gg.addColorStop(0, 'rgba(0,0,0,0)'); gg.addColorStop(1, `rgba(0,0,0,${(25 - G.energy) / 25 * .6})`); ctx.fillStyle = gg; ctx.fillRect(0, 0, W, H); }
     // bubble pelanggan aktif
-    const c = active(); if (c && !ui.modal) drawBubble(c);
+    const c = active(); if (c && !ui.modal) drawBubble(c, { x: 818, y: 128 }, { compact: true, tail: { x: Math.min(c.x + 60, 810), y: 250 } });
     drawFloats(); drawHUD(); drawTooltip();
     drawModals();
   }

@@ -1,3 +1,4 @@
+import { ngobrolModal } from './social.js';
 import { SFX } from '../audio.js';
 import { H, W, WIN_GOAL } from '../constants.js';
 import { BY, ITEMS } from '../data.js';
@@ -47,6 +48,7 @@ function drawModalBody() {
   else if (ui.modal === 'regulars') regularsModal();
   else if (ui.modal === 'kulkas') kulkasModal();
   else if (ui.modal === 'staff') staffModal();
+  else if (ui.modal === 'ngobrol') ngobrolModal();
   else if (ui.modal === 'summary') summary();
   else if (ui.modal === 'help') help();
   else if (ui.modal === 'pause') pauseMenu();
@@ -63,7 +65,13 @@ export function notebook() {
   button(x + w - 330, y + 22, 250, 40, 'PELANGGAN TETAP', () => { ui.modal = 'regulars'; ui.regPage = 0; }, { col: 'wood', s: 15, tip: 'Kedekatan & kesukaan pelanggan tetap' });
   T('Cek stok & harga. Untuk memesan barang ke grosir, pakai HP.', x + 36, y + 80, { s: 14, w: '600', c: '#7a5a3a' });
   closeBtn(x + w - 36, y + 38, () => { ui.modal = null; });
-  ITEMS.forEach((it, i) => {
+  const PER_N = 12, pagesN = Math.ceil(ITEMS.length / PER_N); ui.notePage = Math.min(ui.notePage || 0, pagesN - 1);
+  if (pagesN > 1) {
+    button(x + w - 250, y + 66, 44, 30, '◀', () => { ui.notePage = (ui.notePage + pagesN - 1) % pagesN; }, { col: 'wood', s: 14 });
+    T(`${ui.notePage + 1}/${pagesN}`, x + w - 190, y + 88, { s: 15, a: 'center', c: '#5a3a1a' });
+    button(x + w - 160, y + 66, 44, 30, '▶', () => { ui.notePage = (ui.notePage + 1) % pagesN; }, { col: 'wood', s: 14 });
+  }
+  ITEMS.slice(ui.notePage * PER_N, ui.notePage * PER_N + PER_N).forEach((it, i) => {
     const col = i % 2, row = Math.floor(i / 2), rx = x + 30 + col * 500, ry = y + 100 + row * 66;
     ctx.fillStyle = 'rgba(255,255,255,.55)'; rr(ctx, rx, ry, 480, 58, 10); ctx.fill(); ctx.strokeStyle = '#d6bf8a'; ctx.lineWidth = 2; ctx.stroke();
     ico(it.id, rx + 8, ry + 5, 48);
