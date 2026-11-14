@@ -147,6 +147,12 @@ export function minyak() {
   label.position.y = .085; g.add(label);
   return g;
 }
+export function telurButir() {   // satu butir telur (untuk nampan/tangan: sekali klik = 1 butir)
+  const g = new THREE.Group();
+  const e = shadowed(new THREE.Mesh(new THREE.SphereGeometry(1, 14, 10), std('#f1dfc0', { roughness: .5 })));
+  e.scale.set(.026, .034, .026); e.position.y = .034; g.add(e);
+  return g;
+}
 export function telur() {
   const g = new THREE.Group();
   g.add(shadowed(new THREE.Mesh(new THREE.BoxGeometry(.3, .02, .32), std('#c9a36a', { roughness: .95 }))));        // alas karton

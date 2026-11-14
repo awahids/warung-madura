@@ -47,8 +47,7 @@ export function vecIcon(g, id) {
 export function vecIcon2(g, id) {
   g.lineJoin = 'round';
   if (id === 'telur') {
-    g.fillStyle = '#c9a36a'; rr(g, 8, 34, 48, 22, 4); g.fill(); g.fillStyle = '#b08850'; for (let i = 0; i < 4; i++) g.fillRect(14 + i * 11, 34, 2, 22);
-    [[18, 30], [32, 28], [46, 30], [25, 40], [39, 40]].forEach(([x, y]) => { g.fillStyle = '#f6ead2'; g.beginPath(); g.ellipse(x, y, 7, 9, 0, 0, 7); g.fill(); g.strokeStyle = 'rgba(120,80,30,.35)'; g.lineWidth = 1.5; g.stroke(); g.fillStyle = 'rgba(255,255,255,.7)'; g.beginPath(); g.ellipse(x - 2, y - 3, 2, 3, 0, 0, 7); g.fill(); });
+    [[19, 42], [45, 42], [32, 28]].forEach(([x, y]) => { g.fillStyle = '#f6ead2'; g.beginPath(); g.ellipse(x, y, 11, 14, 0, 0, 7); g.fill(); g.strokeStyle = 'rgba(120,80,30,.35)'; g.lineWidth = 1.5; g.stroke(); g.fillStyle = 'rgba(255,255,255,.7)'; g.beginPath(); g.ellipse(x - 2, y - 3, 2, 3, 0, 0, 7); g.fill(); });
   } else if (id === 'minyak') {
     g.fillStyle = '#d9a21a'; g.beginPath(); g.moveTo(26, 6); g.lineTo(38, 6); g.lineTo(38, 14); g.quadraticCurveTo(50, 20, 50, 32); g.lineTo(50, 56); g.quadraticCurveTo(50, 60, 46, 60); g.lineTo(18, 60); g.quadraticCurveTo(14, 60, 14, 56); g.lineTo(14, 32); g.quadraticCurveTo(14, 20, 26, 14); g.closePath(); g.fill();
     g.fillStyle = '#c0281a'; g.fillRect(25, 2, 14, 7); g.fillStyle = '#fff6d8'; g.fillRect(14, 30, 36, 20); g.fillStyle = '#b8731a'; g.font = 'bold 10px sans-serif'; g.textAlign = 'center'; g.fillText('MINYAK', 32, 44); g.fillStyle = 'rgba(255,255,255,.45)'; g.fillRect(18, 20, 4, 12);

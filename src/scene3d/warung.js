@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { galon, gas, toples, rakBensin, kardus, beras, aqua, cola, redbull, mie, gelas, bensin, minyak, telur, gula, sabun, susu, teh } from '../props3d/props';
+import { galon, gas, toples, rakBensin, kardus, beras, aqua, cola, redbull, mie, gelas, bensin, minyak, telur, telurButir, gula, sabun, susu, teh } from '../props3d/props';
 import { woodTex, roofTex, slatTex, asphaltTex, concreteTex, bannerTex, signTex, reliefTex } from './textures';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { person, personFor, makeBag, makeBill, ARM } from './people';
@@ -262,7 +262,7 @@ export function createWarung(canvas, opts = {}) {
       case 'snack': o = pouchMini(tex('snack', () => snackTex('KERIPIK', '#d63b2f', '#8a1f18', '#f6c744'))); break;
       case 'rokok': o = new THREE.Mesh(new THREE.BoxGeometry(.058, .088, .024), new THREE.MeshStandardMaterial({ map: tex('cig', () => cigTex(0)), roughness: .6 })); break;
       case 'bensin': o = bensin(); break; case 'aqua': o = aqua(); break; case 'cola': o = cola(); break; case 'redbull': o = redbull(); break;
-      case 'minyak': o = minyak(); break; case 'telur': o = telur(); break; case 'gula': o = gula(); break; case 'sabun': o = sabun(); break; case 'susu': o = susu(); break; case 'teh': o = teh(); break; case 'mie': o = mie(); break; case 'kerupuk': o = toples(); break; case 'galon': o = galon(); break; case 'gas': o = gas(); break; default: o = beras();
+      case 'minyak': o = minyak(); break; case 'telur': o = telurButir(); break; case 'gula': o = gula(); break; case 'sabun': o = sabun(); break; case 'susu': o = susu(); break; case 'teh': o = teh(); break; case 'mie': o = mie(); break; case 'kerupuk': o = toples(); break; case 'galon': o = galon(); break; case 'gas': o = gas(); break; default: o = beras();
     }
     const holder = new THREE.Group(); holder.add(o);
     const b = new THREE.Box3().setFromObject(o), h = Math.max(.01, b.max.y - b.min.y), k = Math.min(2.4, Math.max(.4, .15 / h));
