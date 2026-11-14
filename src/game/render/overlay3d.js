@@ -21,6 +21,17 @@ function stockBadge(b) {
   ctx.fillStyle = n === 0 ? '#d62f2f' : n <= 2 ? '#e08a1c' : '#3b2412';
   ctx.beginPath(); ctx.arc(b.x, b.y, 15, 0, 7); ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = '#fff'; ctx.stroke();
   T(String(n), b.x, b.y + 6, { s: 16, a: 'center', c: '#fff' });
+  if (G.newItems && G.newItems[b.id]) newTag(b.x, b.y - 28);
+}
+// penanda "BARU!" berdenyut di barang yang baru terbuka, hilang setelah pertama kali dipakai
+function newTag(x, y) {
+  const k = 1 + Math.sin(ui.frame / 6) * .08;
+  ctx.save(); ctx.translate(x, y); ctx.scale(k, k);
+  ctx.fillStyle = '#e8312f'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.roundRect(-30, -12, 60, 24, 8); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-6, 12); ctx.lineTo(0, 20); ctx.lineTo(6, 12); ctx.fill();
+  T('BARU!', 0, 6, { s: 16, a: 'center', c: '#fff' });
+  ctx.restore();
 }
 
 function doorPrompt() {

@@ -162,3 +162,7 @@ tests/game.test.js
 ## Deploy
 Push ke `main` → GitHub Actions (`.github/workflows/deploy.yml`) menjalankan lint, test, build, lalu publish ke GitHub Pages.
 Aktifkan sekali di **Settings → Pages → Source: GitHub Actions**. Catatan: GitHub Pages untuk repo *private* hanya tersedia di paket Pro/Team; di paket gratis repo harus *public*.
+
+### Barang baru mudah dikenali
+- **Gula** = kantong plastik bening bulat dengan leher terikat dan label biru "GULA"; **sabun** = batang oval merah muda bertumpuk dengan busa (ikon 2D disesuaikan).
+- Barang yang baru terbuka saat naik level diberi tanda **BARU!** berdenyut (3D dan 2D) sampai pertama kali dimasukkan ke nampan.

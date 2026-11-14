@@ -679,3 +679,14 @@ describe('karyawan', () => {
     const { save, loadSave } = await import('../src/game/persist'); save(); expect(loadSave().story.staff[0]).toMatchObject({ id: 'jaka', loyalty: 95 }); vi.unstubAllGlobals();
   });
 });
+
+import { addXp as _addXp } from '../src/game/logic/level.js';
+describe('penanda BARU! barang yang baru terbuka', () => {
+  it('ditandai saat naik level dan hilang setelah pertama dipakai', async () => {
+    const { G } = await import('../src/game/state.js');
+    G.newItems = {}; G.stock.sabun = 0; G.stock.gula = 0; G.xp = 0;
+    for (let i = 0; i < 12; i++) _addXp(200);
+    expect(G.newItems.sabun).toBe(true);
+    expect(G.newItems.gula).toBe(true);
+  });
+});

@@ -53,13 +53,15 @@ export function vecIcon2(g, id) {
     g.fillStyle = '#d9a21a'; g.beginPath(); g.moveTo(26, 6); g.lineTo(38, 6); g.lineTo(38, 14); g.quadraticCurveTo(50, 20, 50, 32); g.lineTo(50, 56); g.quadraticCurveTo(50, 60, 46, 60); g.lineTo(18, 60); g.quadraticCurveTo(14, 60, 14, 56); g.lineTo(14, 32); g.quadraticCurveTo(14, 20, 26, 14); g.closePath(); g.fill();
     g.fillStyle = '#c0281a'; g.fillRect(25, 2, 14, 7); g.fillStyle = '#fff6d8'; g.fillRect(14, 30, 36, 20); g.fillStyle = '#b8731a'; g.font = 'bold 10px sans-serif'; g.textAlign = 'center'; g.fillText('MINYAK', 32, 44); g.fillStyle = 'rgba(255,255,255,.45)'; g.fillRect(18, 20, 4, 12);
   } else if (id === 'gula') {
-    g.fillStyle = '#f4f4f4'; rr(g, 12, 8, 40, 50, 4); g.fill(); g.strokeStyle = '#c8c8c8'; g.lineWidth = 2; g.stroke();
-    g.fillStyle = '#2f80d6'; g.fillRect(12, 26, 40, 16); g.fillStyle = '#fff'; g.font = 'bold 11px sans-serif'; g.textAlign = 'center'; g.fillText('GULA', 32, 39);
-    g.fillStyle = '#c8c8c8'; for (let i = 0; i < 8; i++) { g.fillRect(12 + i * 5, 6, 3, 5); g.fillRect(12 + i * 5, 55, 3, 5); }
+    g.fillStyle = 'rgba(235,242,250,.9)'; g.beginPath(); g.moveTo(14, 56); g.quadraticCurveTo(6, 34, 16, 18); g.lineTo(48, 18); g.quadraticCurveTo(58, 34, 50, 56); g.closePath(); g.fill(); g.strokeStyle = '#aebccb'; g.lineWidth = 2; g.stroke();
+    g.fillStyle = '#fffaf0'; g.beginPath(); g.ellipse(32, 40, 15, 13, 0, 0, 7); g.fill(); g.fillStyle = '#d9d2c0'; for (let i = 0; i < 14; i++) g.fillRect(20 + (i * 7) % 24, 30 + (i * 5) % 20, 2, 2);
+    g.fillStyle = '#2f80d6'; rr(g, 17, 34, 30, 14, 3); g.fill(); g.fillStyle = '#fff'; g.font = 'bold 11px sans-serif'; g.textAlign = 'center'; g.fillText('GULA', 32, 45);
+    g.fillStyle = '#e8eef5'; g.fillRect(18, 10, 28, 9); g.strokeStyle = '#aebccb'; g.strokeRect(18, 10, 28, 9); g.strokeStyle = '#2f80d6'; g.lineWidth = 3; g.beginPath(); g.arc(32, 19, 5, 0, Math.PI); g.stroke();
   } else if (id === 'sabun') {
-    g.fillStyle = '#2f9e60'; rr(g, 8, 20, 48, 30, 5); g.fill(); g.fillStyle = '#e8f6ee'; g.beginPath(); g.ellipse(32, 35, 17, 9, 0, 0, 7); g.fill();
-    g.fillStyle = '#1a5f3a'; g.font = 'bold 9px sans-serif'; g.textAlign = 'center'; g.fillText('SABUN', 32, 38);
-    g.fillStyle = 'rgba(255,255,255,.7)'; [[46, 14, 4], [52, 8, 3], [40, 8, 3]].forEach(([x, y, r]) => { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); });
+    g.fillStyle = '#f29ab2'; g.beginPath(); g.ellipse(32, 38, 24, 14, -.12, 0, 7); g.fill(); g.strokeStyle = '#c8607c'; g.lineWidth = 2; g.stroke();
+    g.strokeStyle = '#e0708f'; g.lineWidth = 3; g.beginPath(); g.ellipse(32, 36, 11, 6, -.12, 0, 7); g.stroke();
+    g.fillStyle = 'rgba(255,255,255,.55)'; g.beginPath(); g.ellipse(24, 31, 8, 3, -.3, 0, 7); g.fill();
+    g.fillStyle = 'rgba(255,255,255,.9)'; g.strokeStyle = '#bcd6ee'; g.lineWidth = 1.5; [[44, 16, 7], [52, 24, 5], [36, 10, 4], [14, 18, 5]].forEach(([x, y, r]) => { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); g.stroke(); });
   } else if (id === 'susu') {
     g.fillStyle = '#e8eef5'; rr(g, 14, 16, 36, 40, 4); g.fill(); g.fillStyle = '#2d6db5'; g.fillRect(14, 26, 36, 18); g.fillStyle = '#c9ced3'; g.fillRect(14, 12, 36, 6); g.fillRect(14, 54, 36, 5);
     g.fillStyle = '#fff'; g.font = 'bold 10px sans-serif'; g.textAlign = 'center'; g.fillText('SUSU', 32, 39); g.strokeStyle = '#9aa0a6'; g.lineWidth = 2; g.beginPath(); g.arc(32, 8, 5, 0, 7); g.stroke();

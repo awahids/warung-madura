@@ -159,6 +159,7 @@ export function drawScene() {
         ico(id, ix, iy, 56);
         if (canAct()) { hit(ix, iy, 56, 56, () => addToTray(id), `${it.name} · ${rp(it.price)} · stok ${G.stock[id] || 0}`); if (hv) ui.tooltip = `${it.name} · ${rp(it.price)} · stok ${G.stock[id] || 0}`; }
         const n = G.stock[id] || 0; ctx.fillStyle = n === 0 ? '#d62f2f' : n <= 2 ? '#e08a1c' : '#3b2412'; ctx.beginPath(); ctx.arc(ix + 50, iy + 6, 13, 0, 7); ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = '#fff'; ctx.stroke(); T(String(n), ix + 50, iy + 11, { s: 13, a: 'center', c: '#fff' });
+        if (G.newItems && G.newItems[id]) { const k = 1 + Math.sin(ui.frame / 6) * .08; ctx.save(); ctx.translate(ix + 28, iy - 8); ctx.scale(k, k); ctx.fillStyle = '#e8312f'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; rr(ctx, -26, -10, 52, 20, 7); ctx.fill(); ctx.stroke(); T('BARU!', 0, 5, { s: 13, a: 'center', c: '#fff' }); ctx.restore(); }
       });
     } }
   // rak minuman: tinggi seragam, jarak merata, berdiri di papan kayu

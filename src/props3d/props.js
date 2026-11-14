@@ -163,15 +163,29 @@ export function telur() {
 }
 const at3 = (m, x, y, z) => { m.position.set(x, y, z); return m; };
 export function gula() {
-  const g = new THREE.Group(), tx = textTexture([['GULA', 52, -4], ['1 KG', 30, 34]], { w: 256, h: 192, bg: '#f7f7f4', fg: '#2f80d6', accent: '#2f80d6' });
-  const b = shadowed(new THREE.Mesh(new THREE.BoxGeometry(.1, .16, .06), [std('#ececea'), std('#ececea'), std('#dcdcd8'), std('#dcdcd8'), new THREE.MeshStandardMaterial({ map: tx, roughness: .5 }), std('#ececea')]));
-  b.position.y = .08; g.add(b); g.add(at3(shadowed(new THREE.Mesh(new THREE.BoxGeometry(.104, .012, .064), std('#c9c9c4'))), 0, .16, 0));
+  // kantong plastik bening 1 kg: karung bulat gemuk dengan leher terikat pita, butiran gula terlihat, label biru di kedua sisi
+  const g = new THREE.Group();
+  const prof = [[0, 0], [.045, .004], [.07, .03], [.078, .075], [.07, .12], [.045, .155], [.018, .176], [.014, .19]].map(([r, y]) => new THREE.Vector2(r, y));
+  const bag = shadowed(new THREE.Mesh(new THREE.LatheGeometry(prof, 18), new THREE.MeshStandardMaterial({ color: '#f3f7fb', roughness: .22, transparent: true, opacity: .6, side: THREE.DoubleSide, depthWrite: false })));
+  bag.scale.z = .6; g.add(bag);
+  const sugar = shadowed(new THREE.Mesh(new THREE.SphereGeometry(1, 12, 9), new THREE.MeshStandardMaterial({ color: '#fffaf0', roughness: .85, emissive: '#2a2620', emissiveIntensity: .35 })));
+  sugar.scale.set(.062, .068, .036); sugar.position.set(0, .075, 0); g.add(sugar);
+  const tx = textTexture([['GULA', 62, -8], ['PASIR · 1 KG', 24, 36]], { w: 256, h: 128, bg: '#2f80d6', fg: '#fff', accent: '#e8f1ff' });
+  const lm = new THREE.MeshStandardMaterial({ map: tx, roughness: .5 });
+  [1, -1].forEach(d => { const l = new THREE.Mesh(new THREE.PlaneGeometry(.1, .05), lm); l.position.set(0, .08, d * .047); l.rotation.y = d > 0 ? 0 : Math.PI; g.add(l); });
+  const tie = new THREE.Mesh(new THREE.TorusGeometry(.02, .005, 6, 14), std('#d62f2f')); tie.rotation.x = Math.PI / 2; tie.position.y = .168; g.add(tie);
+  const frill = shadowed(new THREE.Mesh(new THREE.ConeGeometry(.035, .04, 10, 1, true), new THREE.MeshStandardMaterial({ color: '#f6f6f2', roughness: .4, transparent: true, opacity: .7, side: THREE.DoubleSide, depthWrite: false })));
+  frill.position.y = .205; frill.scale.z = .5; g.add(frill);
   return g;
 }
 export function sabun() {
-  const g = new THREE.Group(), tx = textTexture([['SABUN', 56, -10], ['MANDI', 36, 32]], { w: 256, h: 128, bg: '#2f9e60', fg: '#fff', accent: '#1a5f3a' });
-  const b = shadowed(new THREE.Mesh(new THREE.BoxGeometry(.085, .035, .055), [std('#2f9e60'), std('#2f9e60'), new THREE.MeshStandardMaterial({ map: tx, roughness: .5 }), std('#1a5f3a'), new THREE.MeshStandardMaterial({ map: tx, roughness: .5 }), std('#2f9e60')]));
-  b.position.y = .0175; g.add(b);
+  // batang sabun oval berwarna merah muda dengan cetakan lingkaran dan busa — jelas berbeda dari kotak
+  const g = new THREE.Group();
+  const bar = shadowed(new THREE.Mesh(new THREE.SphereGeometry(1, 16, 10), new THREE.MeshStandardMaterial({ color: '#f29ab2', roughness: .28, emissive: '#5a1a2a', emissiveIntensity: .15 })));
+  bar.scale.set(.052, .019, .033); bar.position.y = .017; g.add(bar);
+  const emb = shadowed(new THREE.Mesh(new THREE.TorusGeometry(.016, .0035, 5, 16), std('#e0708f', { roughness: .4 }))); emb.rotation.x = Math.PI / 2; emb.position.set(0, .034, 0); emb.scale.set(1.3, 1, 1); g.add(emb);
+  const foam = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: .15, transparent: true, opacity: .82 });
+  [[-.02, .04, .006, .009], [.015, .043, -.008, .007], [.028, .037, .012, .006], [-.005, .047, -.012, .0055], [.002, .037, .014, .005]].forEach(([x, y, z, r]) => { const b = new THREE.Mesh(new THREE.SphereGeometry(r, 8, 6), foam); b.position.set(x, y, z); g.add(b); });
   return g;
 }
 export function susu() {

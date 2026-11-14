@@ -50,7 +50,7 @@ export function addXp(n) {
   for (let L = before + 1; L <= after; L++) {
     G.money += levelBonus(L); if (G.stats) G.stats.bonus += levelBonus(L);
     SFX.good(); toast(`NAIK LEVEL ${L} — ${rankOf(L)}! Bonus Rp ${levelBonus(L).toLocaleString('id-ID')}`, '#ffe45c'); flt('LEVEL ' + L + '!', 640, 300, '#ffe45c');
-    for (const id in ITEM_LVL) if (ITEM_LVL[id] === L && !(G.stock[id] > 0)) G.stock[id] = START_STOCK[id] || 0;   // stok perkenalan barang baru
-    const u = unlocksAt(L); if (u.length) toast('Terbuka: ' + u.map(x => x.text).join(', '), '#cfe8ff');
+    for (const id in ITEM_LVL) if (ITEM_LVL[id] === L && !(G.stock[id] > 0)) { G.stock[id] = START_STOCK[id] || 0; (G.newItems = G.newItems || {})[id] = true; }   // stok perkenalan barang baru + penanda BARU!
+    const u = unlocksAt(L); if (u.length) toast('Terbuka: ' + u.map(x => x.text).join(', ') + ' — cari tanda BARU! di rak', '#cfe8ff');
   }
 }

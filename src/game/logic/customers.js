@@ -73,6 +73,7 @@ export function addToTray(id) {
   if (!itemOn(id)) { SFX.err(); toast(`${BY[id].name} belum dijual — terbuka di Level ${ITEM_LVL[id]}.`, '#ffd0d0'); return; }
   if ((G.stock[id] || 0) <= 0) { SFX.err(); toast(`${BY[id].name} habis! Pesan lewat HP.`, '#ffd0d0'); return; }
   G.stock[id]--; G.tray[id] = (G.tray[id] || 0) + 1; SFX.add();
+  if (G.newItems) delete G.newItems[id];   // sudah dikenali: penanda BARU! hilang
   flt('+1', mouse.x, mouse.y - 10, '#fff');
 }
 export function removeFromTray(id) {

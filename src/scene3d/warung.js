@@ -162,8 +162,8 @@ export function createWarung(canvas, opts = {}) {
     sembako.add(grp); return reg({ type: 'item', id }, grp, { badge: true });
   };
   onShelf('minyak', minyak, [-.72, -.6, -.48], SB[0].y, 1.15);
-  onShelf('gula', gula, [-.28, -.16, -.04, .08], SB[0].y, 1.1);
-  onShelf('sabun', sabun, [.26, .26, .26], SB[0].y, 1.3, .048);      // sabun ditumpuk
+  onShelf('gula', gula, [-.3, -.17, -.04, .09], SB[0].y, 1.05);
+  onShelf('sabun', sabun, [.26, .26, .26, .26], SB[0].y, 1.45, .052);      // batang sabun ditumpuk
   onShelf('susu', susu, [.5, .59, .68, .77], SB[0].y, 1.2);
   onShelf('telur', telur, [-.58, -.2], SB[1].y, 1.05);
   onShelf('teh', teh, [.15, .24, .33, .42], SB[1].y, 1.2);
