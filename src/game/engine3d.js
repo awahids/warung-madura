@@ -209,6 +209,7 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
   const view = {
     walkPrompt: null, walkUI: false, stick: null, exitWalk: () => setWalkMode(false),
     badges: [], headOf: c => { const hp = c.k3 && scene.headPos(c.k3); return hp ? scene.project(hp) : null; },
+    kotaView: false, exitKota: () => api.setView('penjaga'),
     itemRects: [], courierWaiting: false, courierHead: null, acceptCourier: () => acceptDelivery(scene),
   };
 
@@ -220,6 +221,7 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
     fpsSum += rdt;
     if (fpsN >= 40 + 150) { fpsDone = true; if (fpsSum / 150 > 1 / 28 && autoDowngrade()) toast('Grafis diturunkan otomatis agar lancar. Ubah di menu Jeda.', '#cfe8ff'); }
   };
+  const kotaOpen = () => G.screen === 'play' && !!G.kota && G.kota.ch >= 6;
   const loop = now => {
     if (!alive) return;
     const raw = (now - last) / 1000, dt = Math.min(.05, raw), rdt = Math.min(.25, raw); last = now; t += dt;   // rdt: waktu nyata untuk pelunakan gerak
@@ -227,6 +229,7 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
     fpsWatch(rdt);
     const prevHits = ui.hits; ui.hits = prevHits; hover();
     scene.frame(rdt, t);
+    view.kotaView = api.view === 'kota'; if (view.kotaView) { if (!kotaOpen()) api.setView('penjaga'); else scene.syncKota(G.kota); }
     ctx.clearRect(0, 0, W, H);
     ui.hits = []; const tip = ui.tooltip; ui.tooltip = tip;
     stepWalkInput(rdt);
@@ -307,7 +310,8 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
 
   const api = {
     view: 'luar', onView: null,
-    setView(name) { if (name === 'jalan') { setWalkMode(true); return; } if (ui.walk) setWalkMode(false, name); else { api.view = name; scene && scene.setView(name); api.onView && api.onView(name); } },
+    get kotaOpen() { return kotaOpen(); },
+    setView(name) { if (name === 'kota' && !kotaOpen()) return; if (name === 'jalan') { setWalkMode(true); return; } if (ui.walk) setWalkMode(false, name); else { api.view = name; scene && scene.setView(name); api.onView && api.onView(name); } },
     get walking() { return !!ui.walk; },
     destroy() { ui.walk = false; ui.mode3d = false; onQuality(null); alive = false; cancelAnimationFrame(raf); detach(); cleanups.forEach(f => f()); ro && ro.disconnect(); scene && scene.dispose(); IMG.onload = IMG.onerror = null; fx.floats.length = 0; },
     get scene() { return scene; },

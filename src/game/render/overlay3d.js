@@ -5,7 +5,8 @@ import { ctx } from '../gfx.js';
 import { active } from '../logic/customers.js';
 import { hit } from '../sprites.js';
 import { G, ui } from '../state.js';
-import { T, clamp, rr } from '../util.js';
+import { T, clamp, rpk, rr } from '../util.js';
+import { netWorth } from '../logic/kota.js';
 import { button } from '../widgets.js';
 import { drawHUD } from './hud.js';
 import { drawFloats, drawTooltip } from './index.js';
@@ -63,6 +64,7 @@ export function drawOverlay3D(view) {
     if (ui.modal) drawModals();
     return;
   }
+  if (view.kotaView) { kotaOverlay(view); drawFloats(); drawHUD(); drawTooltip(); drawModals(); return; }
   if (G.running && !ui.modal) view.badges.forEach(stockBadge);
   // kesabaran pelanggan yang antre (non-aktif)
   for (const c of G.cust) {
@@ -91,6 +93,18 @@ export function drawOverlay3D(view) {
   if (view.walkUI) walkUI(view); else { courierPrompt(view); view.socialChip = socialChip(14, HUD_H + 106); }
   drawFloats(); drawHUD(); drawTooltip();
   drawModals();
+}
+
+/** Kamera Kota: kartu ringkasan dan tombol menu/kembali; pembeli yang menunggu tetap diberi tahu. */
+function kotaOverlay(view) {
+  if (ui.modal) return;
+  const k = G.kota, c = k && k.city, x = 340, y = 596, w = 600, h = 104;
+  ctx.fillStyle = 'rgba(30,18,8,.86)'; rr(ctx, x, y, w, h, 14); ctx.fill(); ctx.strokeStyle = '#ffd23a'; ctx.lineWidth = 2; ctx.stroke();
+  T(c ? `Kota · hari ${Math.min(c.day, 30)}/30 · kas ${rpk(c.apbd)} · rata-rata ${Math.round((c.ind.sej + c.ind.bers + c.ind.kerja + c.ind.puas) / 4)}` : `Usaha · kekayaan bersih ${rpk(netWorth())}`, x + 20, y + 30, { s: 17, c: '#fff', w: '700' });
+  T('Geser untuk memutar, cubit/gulir untuk zoom. Proyek yang dibangun tampil di sini.', x + 20, y + 54, { s: 13, c: '#e8d8b8', w: '600' });
+  button(x + 20, y + 62, 270, 34, 'MENU USAHA & KOTA', () => { ui.modal = 'kota'; }, { col: 'yellow', tc: '#4a2a00', s: 15 });
+  button(x + 310, y + 62, 270, 34, 'KEMBALI KE WARUNG', () => view.exitKota(), { col: 'green', s: 15 });
+  if (G.cust.length) T('Ada pembeli menunggu di warung!', 640, HUD_H + 40, { s: 18, a: 'center', c: '#fff', stroke: '#b3281e', sw: 5 });
 }
 
 /* ---------- penempatan balon pesanan: hindari barang yang bisa diklik & panel tetap ---------- */

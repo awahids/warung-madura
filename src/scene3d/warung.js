@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { CITY_ORIGIN, createKota } from './kota';
 import { galon, gas, toples, rakBensin, kardus, beras, aqua, cola, redbull, mie, gelas, bensin, minyak, telur, telurButir, gula, sabun, susu, teh } from '../props3d/props';
 import { woodTex, roofTex, slatTex, asphaltTex, concreteTex, bannerTex, signTex, reliefTex } from './textures';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
@@ -29,6 +30,7 @@ export function createWarung(canvas, opts = {}) {
   let envTex = null;
   { const pm = new THREE.PMREMGenerator(renderer); envTex = pm.fromScene(new RoomEnvironment(), .04).texture; scene.environment = envTex; scene.environmentIntensity = .55; pm.dispose(); }
   const camera = new THREE.PerspectiveCamera(50, 1, .05, 90);
+  const kotaScene = createKota(); scene.add(kotaScene.group); let fogBig = false;
   const controls = new OrbitControls(camera, opts.controlsEl || canvas); controls.enableDamping = true; controls.maxPolarAngle = Math.PI * .52;
 
   // registri objek yang bisa diklik (mode game): act = { type, id? }
@@ -497,6 +499,8 @@ export function createWarung(canvas, opts = {}) {
     night = n > .5;
     const bg = sky ? new THREE.Color(sky) : C.dayBg.clone().lerp(C.nightBg, n); scene.background = bg; fog.color.copy(bg);
     fog.near = 18 - 8 * n - (rain ? 6 : 0); fog.far = 60 - 15 * n - (rain ? 25 : 0);
+    if (fogBig) { fog.near = 260; fog.far = 700; }
+    kotaScene.setNight(n);
     hemi.color.copy(C.dayHemi).lerp(C.nightHemi, n); hemi.groundColor.copy(C.dayGnd).lerp(C.nightGnd, n); hemi.intensity = (1.5 - 1.15 * n) * (rain ? .75 : 1);
     sun.intensity = 3 * (1 - n) * (rain ? .45 : 1); moon.intensity = .5 * n;
     const on = smooth(.25, .75, n);
@@ -519,15 +523,17 @@ export function createWarung(canvas, opts = {}) {
     luar: { pos: [4.8, 1.9, 6.4], tgt: [0, 1.1, -.6], fp: false },
     pembeli: { pos: [0, 1.6, 4.6], tgt: [0, 1.3, -1.4], fp: false },
     penjaga: { pos: [.1, 2.0, -2.3], tgt: [.1, 1.05, 1], fp: true },
-    ngobrol: { pos: [2.3, 1.45, 4.5], tgt: [3.1, .85, .9], fp: false },     // dari depan bangku: wajah warga terlihat (dialog menempati bagian bawah layar)
+    ngobrol: { pos: [2.3, 1.45, 4.5], tgt: [3.1, .85, .9], fp: false },
+    kota: { pos: [0, 46, CITY_ORIGIN.z + 48], tgt: [0, 0, CITY_ORIGIN.z + 6], fp: false, far: 600, kota: true },   // diorama kota dari atas     // dari depan bangku: wajah warga terlihat (dialog menempati bagian bawah layar)
   };
-  let tween = null, view = 'luar';
+  let tween = null, view = 'luar', kotaLim = false;
   const applyLimits = fp => {
     controls.enablePan = !fp; controls.enableZoom = !fp; controls.rotateSpeed = fp ? -.35 : 1;
-    controls.minDistance = fp ? .05 : 1.5; controls.maxDistance = fp ? .05 : 16;
+    controls.minDistance = fp ? .05 : kotaLim ? 12 : 1.5; controls.maxDistance = fp ? .05 : kotaLim ? 110 : 16;
   };
   const setView = (name, instant = false) => {
-    const v = VIEWS[name]; if (!v) return; const prevView = view; view = name; penjaga.visible = !v.fp; camera.fov = v.fp ? 64 : 50; camera.updateProjectionMatrix();
+    const v = VIEWS[name]; if (!v) return; const prevView = view; view = name; penjaga.visible = !v.fp; camera.fov = v.fp ? 64 : 50; camera.far = v.far || 90; camera.updateProjectionMatrix();
+    kotaLim = !!v.kota; kotaScene.group.visible = !!v.kota; if (fogBig !== !!v.kota) { fogBig = !!v.kota; setLook({ night: night ? 1 : 0, sky: scene.background && scene.background.getStyle ? scene.background.getStyle() : null }); }
     const from = { p: camera.position.clone(), t: controls.target.clone() };
     let to = { p: new THREE.Vector3(...v.pos), t: new THREE.Vector3(...v.tgt) };
     if (v.fp) { const dir = to.t.clone().sub(to.p).normalize(); to = { p: to.p, t: to.p.clone().add(dir.multiplyScalar(.05)) }; }
@@ -555,6 +561,7 @@ export function createWarung(canvas, opts = {}) {
   /* ---------- mode game: pilih objek, sorotan, proyeksi, kerumunan ---------- */
   /** Objek interaktif di bawah titik ndc (−1..1), atau null. */
   const pickItem = (nx, ny) => {
+    if (view === 'kota') return null;
     ndc.set(nx, ny); ray.setFromCamera(ndc, camera);
     for (const h of ray.intersectObjects(items.filter(i => i.obj.visible).map(i => i.obj), true)) { let o = h.object; while (o && !o.userData.act) o = o.parent; if (o) return o; }
     return null;
@@ -748,7 +755,7 @@ export function createWarung(canvas, opts = {}) {
     setDoor(open) { doorTarget = open ? 1 : 0; },
     setDoorFraction(f) { doorOpen = doorTarget = f; applyDoor(); },
     get doorOpen() { return doorTarget > .5; },
-    setView, get view() { return view; },
+    setView, get view() { return view; }, syncKota: k => kotaScene.sync(k),
     setAutoRotate(v) { controls.autoRotate = v; },
     setPaket(v) { KUR.on = v; },
     kurirHead: () => (kurir.visible ? new THREE.Vector3(kurir.position.x, 1.95, kurir.position.z) : null),   // kepala kurir (dunia) bila terlihat
