@@ -27,7 +27,6 @@ export default function Game3D() {
         <OrientationGuard />
       </div>
       <div className="toolbar">
-        <a href="#/2d" title="Pindah ke tampilan 2D (progres tersimpan sama)"><b>Mode 2D</b></a>
         <span className="spacer" />
         <span>Kamera:</span>
         {VIEWS.map(([id, label]) => (

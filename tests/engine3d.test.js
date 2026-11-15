@@ -103,13 +103,6 @@ describe('jembatan logika → 3D', () => {
     } finally { ui.mode3d = false; }
   });
 
-  it('di mode 2D pembayaran pas tidak menambah waktu berdiri', () => {
-    ui.mode3d = false;
-    spawnCustomer('cowok'); for (let i = 0; i < 300 && !active(); i++) update(1 / 30);
-    const c = active(); c.order = [{ id: 'aqua', qty: 1 }]; c.total = 4000; c.pay = 4000; c.change = 0;
-    addToTray('aqua'); doHitung();
-    expect(c.walkAt).toBeUndefined();
-  });
 });
 
 describe('ketukan di layar sentuh', () => {

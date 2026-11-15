@@ -1,8 +1,5 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
-import GameCanvas from './components/GameCanvas';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import Loading from './components/Loading';
-import Toolbar from './components/Toolbar';
-import OrientationGuard from './components/OrientationGuard';
 
 const Props3D = lazy(() => import('./props3d/Props3D'));
 const Warung3D = lazy(() => import('./scene3d/Warung3D'));
@@ -21,22 +18,5 @@ export default function App() {
   if (route === '#/orang') return <Suspense fallback={<Loading />}><Orang3D /></Suspense>;
   if (route === '#/warung') return <Suspense fallback={<Loading />}><Warung3D /></Suspense>;
   if (route === '#/props') return <Suspense fallback={<Loading />}><Props3D /></Suspense>;
-  return <GameApp />;   // '#/2d' (mode 2D)
-}
-
-function GameApp() {
-  const [ready, setReady] = useState(false);
-  const [error, setError] = useState(null);
-  const onReady = useCallback(() => setReady(true), []);
-  const onError = useCallback(e => setError(e), []);
-  return (
-    <div className="app">
-      <div className="stage">
-        <GameCanvas onReady={onReady} onError={onError} />
-        {(!ready || error) && <Loading error={error} />}
-        <OrientationGuard />
-      </div>
-      <Toolbar />
-    </div>
-  );
+  return <Suspense fallback={<Loading />}><Game3D /></Suspense>;   // rute lain (mis. '#/2d' lama) → game 3D
 }

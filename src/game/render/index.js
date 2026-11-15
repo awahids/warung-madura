@@ -1,13 +1,7 @@
 import { FONT, H, W } from '../constants.js';
 import { ctx } from '../gfx.js';
-import { active } from '../logic/customers.js';
-import { drawDoor } from './door.js';
-import { drawHUD } from './hud.js';
-import { drawModals } from './modals.js';
-import { drawBubble, drawScene } from './scene.js';
-import { drawTitle } from './title.js';
-import { G, fx, mouse, ui } from '../state.js';
-import { T, clamp, inRect, rnd, rr } from '../util.js';
+import { fx, mouse, ui } from '../state.js';
+import { T, clamp, rr } from '../util.js';
 
 /* ---------- loop ---------- */
 export function drawFloats() {
@@ -29,21 +23,4 @@ export function drawTooltip() {
   ctx.fillStyle = 'rgba(20,12,4,.94)'; rr(ctx, x, y, w, h, 10); ctx.fill();
   ctx.strokeStyle = '#ffd23a'; ctx.lineWidth = 2; ctx.stroke();
   T(text, x + 13, y + (big ? 26 : 20), { s: big ? 18 : 14, c: '#fff' });
-}
-export function draw() {
-  ui.hits = []; ui.tooltip = '';
-  ctx.clearRect(0, 0, W, H);
-  if (G.screen === 'title') { drawTitle(); if (ui.modal === 'help') { ui.hits.length = 0; drawModals(); } }
-  else {
-    if (ui.shake > 0) { ctx.save(); ctx.translate(rnd(-ui.shake, ui.shake), rnd(-ui.shake, ui.shake)); }
-    drawScene(); drawDoor();
-    if (ui.shake > 0) ctx.restore();
-    // vignette kewarasan
-    if (G.energy < 25 && G.running) { const gg = ctx.createRadialGradient(640, 380, 250, 640, 380, 760); gg.addColorStop(0, 'rgba(0,0,0,0)'); gg.addColorStop(1, `rgba(0,0,0,${(25 - G.energy) / 25 * .6})`); ctx.fillStyle = gg; ctx.fillRect(0, 0, W, H); }
-    // bubble pelanggan aktif
-    const c = active(); if (c && !ui.modal) drawBubble(c, { x: 818, y: 128 }, { compact: true, tail: { x: Math.min(c.x + 60, 810), y: 250 } });
-    drawFloats(); drawHUD(); drawTooltip();
-    drawModals();
-  }
-  ui.cv.style.cursor = (ui.hits.length && ui.hits.some(h => inRect(mouse.x, mouse.y, h.x, h.y, h.w, h.h))) ? 'pointer' : 'default';
 }

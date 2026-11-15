@@ -1,6 +1,6 @@
 # Juragan Warung 🏪
 
-Simulasi warung Madura 2D yang berjalan di browser. Dibangun dengan **React + Vite**, render game memakai **HTML5 Canvas**; semua sprite berasal dari satu sprite sheet.
+Simulasi warung Madura **3D** yang berjalan di browser. Dibangun dengan **React + Vite** dan **Three.js** (adegan prosedural); HUD, balon, nampan, dan modal digambar di kanvas 2D transparan di atas adegan 3D.
 
 **Main online:** https://awahids.github.io/warung-madura/
 
@@ -28,12 +28,11 @@ Game ini PWA: bisa dipasang ke layar utama dan dimainkan **offline** setelah dib
 - **iPhone/iPad (Safari):** ketuk **Bagikan → Tambah ke Layar Utama**.
 Berkas terkait: `public/manifest.webmanifest`, `public/sw.js` (daftar precache & versi disuntik saat build oleh `vite.config.js`), `public/icons/`.
 
-## Mode 3D (utama) & 2D
-Game terbuka dalam **mode 3D** secara default. Pindah ke 2D lewat tombol **Mode 2D** di bilah bawah (`#/2d`), dan kembali lewat **Mode 3D** (`#/`). Progres tersimpan sama di kedua mode.
+## Mode 3D (satu-satunya mode)
+Game hanya berjalan dalam **3D** (`#/`). Mode 2D lama sudah dihapus; alamat `#/2d` otomatis membuka game 3D, dan progres tersimpan tetap dipakai.
 Material 3D memakai PBR: peta lingkungan (IBL), relief (bump) kayu/beton/aspal/logam, kulit bertekstur pori dengan sheen, kain beranyaman, dan rambut berkilau.
 
-Detail mode 3D: Logika game **sama persis** dengan versi 2D (`src/game/logic`, `update.js`);
-hanya tampilannya yang diganti adegan 3D, dengan HUD/balon pesanan/nampan/modal sebagai lapisan transparan di atasnya.
+Detail mode 3D: Logika game ada di `src/game/logic` dan `update.js`, dengan HUD/balon pesanan/nampan/modal sebagai lapisan transparan di atas adegan 3D.
 - Pelanggan 3D berjalan mengikuti posisi dari logika game (masuk → antre → dilayani → pergi), tipe-nya (ojol, ibu, juragan, dst.) punya penampilan sendiri.
 - Klik barang 3D: renteng (kopi, keripik), etalase (rokok), rak bensin, minuman & mie & toples di meja, galon/gas/beras di meja teras; kalkulator = HITUNG, HP, gelas kopi, buku catatan, spanduk promo, kardus kurir.
 - Pintu besi 3D mengikuti `G.door` (tarik/klik); langit, lampu neon, lampu jalan, jendela gedung, dan hujan mengikuti jam game & cuaca.
@@ -111,7 +110,6 @@ Tiga tipe pembeli baru (`TYPES` di `src/game/data.js`, tampilan di `LOOK`/`VARIA
 - **Adik Pelajar** (Lv 3, seragam putih-abu + dasi, ransel; variasi berhijab): jajan murah (keripik, air mineral, kerupuk, mie, cola), lebih ramai saat berangkat/pulang sekolah.
 - **Pak Tukang** (Lv 5, helm proyek kuning, baju proyek oranye berpita pantul, sarung tangan): rokok, kopi, air mineral, galon; ramai pagi–siang.
 - **Turis Bule** (Lv 7, topi lebar, kamera di dada, baju pantai; variasi wanita bergaun kotak): minuman dingin, selalu membayar pecahan Rp 50.000+ dan sering memberi tip besar; ramai siang saat tidak hujan.
-Di mode 2D, tipe baru memakai sprite pembeli yang sudah ada (atlas sprite 2D tidak diubah).
 
 ## Suasana jalan
 Murni visual, tidak menyentuh logika game (`src/scene3d/ambience.js`):
@@ -164,5 +162,5 @@ Push ke `main` → GitHub Actions (`.github/workflows/deploy.yml`) menjalankan l
 Aktifkan sekali di **Settings → Pages → Source: GitHub Actions**. Catatan: GitHub Pages untuk repo *private* hanya tersedia di paket Pro/Team; di paket gratis repo harus *public*.
 
 ### Barang baru mudah dikenali
-- **Gula** = kantong plastik bening bulat dengan leher terikat dan label biru "GULA"; **sabun** = batang oval merah muda bertumpuk dengan busa (ikon 2D disesuaikan).
-- Barang yang baru terbuka saat naik level diberi tanda **BARU!** berdenyut (3D dan 2D) sampai pertama kali dimasukkan ke nampan.
+- **Gula** = kantong plastik bening bulat dengan leher terikat dan label biru "GULA"; **sabun** = batang oval merah muda bertumpuk dengan busa.
+- Barang yang baru terbuka saat naik level diberi tanda **BARU!** berdenyut sampai pertama kali dimasukkan ke nampan.
