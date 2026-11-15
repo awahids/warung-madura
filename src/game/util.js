@@ -32,3 +32,8 @@ export function wrapText(s, maxW, size, w = '700') {
   }
   if (cur) lines.push(cur); return lines;
 }
+/** Rupiah ringkas untuk angka besar: "Rp 12,5 jt", "Rp 1,25 M". */
+export const rpk = n => {
+  const a = Math.abs(n), sg = n < 0 ? '−' : '', f = v => String(Math.round(v * 100) / 100).replace('.', ',');
+  return a >= 1e9 ? `${sg}Rp ${f(a / 1e9)} M` : a >= 1e6 ? `${sg}Rp ${f(a / 1e6)} jt` : sg + rp(a);
+};

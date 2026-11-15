@@ -7,6 +7,7 @@ import { checkAchievements } from './achievements.js';
 import { bondByName } from './regulars.js';
 import { CATATAN, CHAPTERS, EPILOG, EPILOG_FLAG, POOL, SCRIPT } from '../story/events.js';
 import { addXp, level } from './level.js';
+import { applyKotaFx, kota, netWorth } from './kota.js';
 
 /* ============================================================
    MESIN CERITA & TANGGUNG JAWAB
@@ -24,11 +25,11 @@ export function initStory(day = 1) {
 }
 export const story = () => G.story || (G.story = initStory(G.day || 1));
 
-/** Bab sedang berjalan menurut level: 1 (Lv1–2), 2 (Lv3–4), 3 (Lv5–6), 4 (Lv7), 5 (Lv8+). */
-export const chapterOf = (L = level()) => L <= 2 ? 1 : L <= 4 ? 2 : L <= 6 ? 3 : L === 7 ? 4 : 5;
+/** Bab sedang berjalan menurut level: 1 (Lv1–2), 2 (Lv3–4), 3 (Lv5–6), 4 (Lv7), 5 (Lv8+); bab 6–9 (usaha, miliarder, kampanye, wali kota) ditentukan oleh kemajuan di logic/kota.js. */
+export const chapterOf = (L = level()) => G.kota && G.kota.ch ? G.kota.ch : L <= 2 ? 1 : L <= 4 ? 2 : L <= 6 ? 3 : L === 7 ? 4 : 5;
 export const chapterName = (c = chapterOf()) => CHAPTERS[c - 1];
 export const catatan = (c = chapterOf()) => CATATAN[c - 1];
-export const installment = () => Math.min(INSTALL[chapterOf() - 1], story().debt);
+export const installment = () => Math.min(INSTALL[Math.min(INSTALL.length, chapterOf()) - 1], story().debt);
 
 /* ---------- Kepercayaan warga ---------- */
 export const trust = () => story().trust;
@@ -86,6 +87,7 @@ export function applyFx(fx = {}) {
   if (fx.dueShift) { story().due += fx.dueShift; lines.push(`Cicilan mundur ${fx.dueShift} hari`); }
   if (fx.kasbon) { G.debts.push({ who: fx.kasbon.who, amount: fx.kasbon.amount, day: G.day }); lines.push(`Kasbon ${fx.kasbon.who} ${rp(fx.kasbon.amount)}`); }
   if (fx.bond) for (const b of [].concat(fx.bond)) { bondByName(b.who, b.n); lines.push(`${b.who} ${b.n > 0 ? 'lebih dekat' : 'menjauh'}`); }
+  if (fx.integ || fx.duk || fx.apbd || fx.kota) lines.push(...applyKotaFx(fx));
   if (fx.flag) story().flags[fx.flag] = true;
   if (fx.xp) addXp(fx.xp);
   return lines;
@@ -103,6 +105,8 @@ export function eligible(ev) {
   if (w.noFlag && s.flags[w.noFlag]) return false;
   if (w.trustMin !== undefined && s.trust < w.trustMin) return false;
   if (w.trustMax !== undefined && s.trust > w.trustMax) return false;
+  if (w.wealthMin !== undefined && netWorth() < w.wealthMin) return false;
+  if (w.phase && ![].concat(w.phase).includes(kota().phase)) return false;
   return true;
 }
 /** Pilih kejadian hari ini: urutan bab dulu (yang syaratnya terpenuhi), lalu kolam acak (tanpa ulang dalam 8 terakhir). */
@@ -131,6 +135,7 @@ export const currentEvent = () => eventById(story().cur);
 export function choiceOk(c) {
   const r = c.req; if (!r) return true;
   if (r.money && G.money < r.money) return false;
+  if (r.apbd && !(G.kota && G.kota.city && G.kota.city.apbd >= r.apbd)) return false;
   if (r.stock) for (const id in r.stock) if ((G.stock[id] || 0) < r.stock[id]) return false;
   return true;
 }

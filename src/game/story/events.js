@@ -250,3 +250,7 @@ export const EPILOG = {
   bertahan:  { title: 'BERTAHAN', text: 'Warung tetap buka tiap pagi. Tidak mewah, tidak sepi. Ada hari yang berat, ada hari yang hangat. Pak Haji berkata: "Warung yang bertahan itu sudah separuh jalan. Sisanya, kamu yang tentukan."' },
 };
 export const EPILOG_FLAG = { cabang: 'Cabang di jalan besar sudah berdiri.', layanan: 'Warungmu kini melayani pulsa, token listrik, dan titip paket.', koperasi: 'Warung berjalan sebagai koperasi warga; keuntungan dibagi bersama.' };
+
+/* Babak lanjutan (usaha → miliarder → wali kota): digabung ke daftar bab & kejadian */
+import { KOTA_CATATAN, KOTA_CHAPTERS, KOTA_INTRO, KOTA_POOL, KOTA_SCRIPT } from './kota.js';
+CHAPTERS.push(...KOTA_CHAPTERS); INTRO.push(...KOTA_INTRO); CATATAN.push(...KOTA_CATATAN); SCRIPT.push(...KOTA_SCRIPT); POOL.push(...KOTA_POOL);

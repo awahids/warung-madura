@@ -7,6 +7,7 @@ import { checkAchievements } from './achievements.js';
 import { expireStock, reconcileAll } from './freshness.js';
 import { dawnStaff, payWages } from './staff.js';
 import { changeTrust, dawnStory, repayChance, scheduleStory, settleInstallment } from './story.js';
+import { dawnKota } from './kota.js';
 import { save } from '../persist.js';
 import { G, ui } from '../state.js';
 import { clamp, pick, ri, rnd, rp } from '../util.js';
@@ -26,9 +27,10 @@ export function startDay(loaded) {
   G.events = [];
   if (featureOn('kasbon')) G.events.push({ k: 'kasbon', t: rnd(10, 21), done: false });
   if (typeOn('hoodie') && (G.day >= 2 || Math.random() < .5)) G.events.push({ k: 'mystery', t: rnd(23.3, 24.8), done: false });
+  G.morning = [];
+  if (!loaded) dawnKota();   // babak lanjutan: pendapatan usaha, kampanye, kota (sebelum bab/cerita dijadwalkan)
   scheduleStory(G.events);
   // kasbon pagi
-  G.morning = [];
   if (G.day > 1 && !loaded) {
     const keep = [];
     for (const d of G.debts) {

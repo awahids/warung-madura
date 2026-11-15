@@ -164,3 +164,11 @@ Aktifkan sekali di **Settings → Pages → Source: GitHub Actions**. Catatan: G
 ### Barang baru mudah dikenali
 - **Gula** = kantong plastik bening bulat dengan leher terikat dan label biru "GULA"; **sabun** = batang oval merah muda bertumpuk dengan busa.
 - Barang yang baru terbuka saat naik level diberi tanda **BARU!** berdenyut sampai pertama kali dimasukkan ke nampan.
+
+## Babak lanjutan: miliarder → wali kota
+Setelah epilog Bab 5, menu **JEDA › USAHA & KOTA** terbuka (besok pagi) dan cerita berlanjut ke Bab 6–9:
+- **Bab 6 Juragan Usaha:** beli & upgrade Cabang Warung, Toko Grosir, Minimarket, Kontrakan & Ruko (pendapatan masuk tiap pagi). Target kekayaan bersih (kas + 70% nilai aset) Rp 1 miliar (±50 hari dengan strategi bagus). Kejadian: mitra Koh Awi, kredit bank, uang damai pajak.
+- **Bab 7 Sang Miliarder:** wawancara majalah, banjir kampung, beasiswa; warga memintamu maju (`diminta_calon`) → tombol **MENCALONKAN DIRI** (butuh kepercayaan ≥ 55).
+- **Bab 8 Calon Wali Kota:** kampanye 7 hari lawan Pak Burhan: baliho, safari, sembako, tim sukses, atau *serangan fajar* (kotor, 40% ketahuan, integritas −25); debat & fitnah sebagai kejadian. Hasil: dukungan (kepercayaan, reputasi, kebaikanmu) vs kekuatan lawan. Kalah → simpati +5 dan bisa mencalonkan lagi 5 hari kemudian.
+- **Bab 9 Wali Kota:** 30 hari masa jabatan; kas kota (APBD) dari pajak, 9 proyek (jalan, drainase, pasar, sekolah, puskesmas, taman, sampah, kawasan industri, angkot listrik; maks. 2 berjalan), 4 indikator (kesejahteraan, kebersihan, lapangan kerja, kepuasan) + integritas. Opsi **MARK-UP** proyek: +20% ke kantong pribadi, integritas −12, 25% ketahuan. Ending: *Bapak Pembangunan*, *Wali Kota Biasa*, *Terjerat Korupsi*.
+- Kode: data di `src/game/story/kota.js`, mesin di `src/game/logic/kota.js`, UI di `src/game/render/kota.js`. Warung tetap bisa dimainkan seperti biasa selama babak ini.

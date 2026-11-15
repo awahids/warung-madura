@@ -1,4 +1,6 @@
 import { MAX_RESTS, restsLeft } from '../logic/home.js';
+import { kotaAkhirModal, kotaModal, pilkadaModal } from './kota.js';
+import { usahaOpen } from '../logic/kota.js';
 import { ngobrolModal } from './social.js';
 import { rumahModal } from './home.js';
 import { SFX } from '../audio.js';
@@ -52,6 +54,9 @@ function drawModalBody() {
   else if (ui.modal === 'staff') staffModal();
   else if (ui.modal === 'ngobrol') ngobrolModal();
   else if (ui.modal === 'rumah') rumahModal();
+  else if (ui.modal === 'kota') kotaModal();
+  else if (ui.modal === 'pilkada') pilkadaModal();
+  else if (ui.modal === 'kota_akhir') kotaAkhirModal();
   else if (ui.modal === 'summary') summary();
   else if (ui.modal === 'help') help();
   else if (ui.modal === 'pause') pauseMenu();
@@ -333,6 +338,7 @@ export function epilogModal() {
   let yy = y + 150;
   ep.lines.forEach((l, i) => { const ls = wrapText(l, w - 100, i === 0 ? 20 : 17, '600'); ls.forEach(t => { T(t, x + 50, yy, { s: i === 0 ? 20 : 17, w: '600', c: i === 0 ? '#3a210c' : '#5a3a1a' }); yy += i === 0 ? 28 : 24; }); yy += 10; });
   T(`Level ${level()} · Kepercayaan ${Math.round(trust())}/100 · Saldo ${rp(G.money)}`, x + w / 2, y + h - 110, { s: 15, a: 'center', c: '#7a5a3a', w: '700' });
+  T('Besok: babak baru terbuka — menu JEDA › USAHA & KOTA.', x + w / 2, y + h - 126, { s: 14, a: 'center', c: '#a05a1a', w: '800' });
   button(x + w / 2 - 170, y + h - 84, 340, 56, 'LANJUT MAIN (MODE BEBAS)', () => { ui.modal = null; save(); }, { col: 'green', s: 18 });
 }
 /** Daftar yang dibuka tiap level. */
@@ -424,11 +430,12 @@ export function help() {
 export function pauseMenu() {
   const x = 440, y = 24, w = 400, h = 672; panel(x, y, w, h);
   T('JEDA', x + w / 2, y + 56, { s: 34, a: 'center', c: '#6b3a14' });
-  let by = y + 76; const nxt = (hh = 44) => { const v = by; by += hh + 10; return v; };
+  let by = y + 76; const nxt = (hh = 44) => { const v = by; by += hh + 7; return v; };
   button(x + 50, nxt(48), w - 100, 48, 'LANJUT', () => { ui.modal = null; }, { col: 'green' });
   button(x + 50, nxt(), w - 100, 44, 'Suara: ' + (G.sound ? 'NYALA' : 'MATI'), () => { G.sound = !G.sound; save(); }, { col: 'blue', s: 16 });
   button(x + 50, nxt(), w - 100, 44, featureOn('auto') ? 'Kembalian otomatis: ' + (G.auto ? 'ON' : 'OFF') : `Kembalian otomatis: Level ${FEATURE_LVL.auto}`, () => { G.auto = !G.auto; save(); }, { col: G.auto ? 'green' : 'grey', s: 15, disabled: !featureOn('auto') });
   button(x + 50, nxt(), w - 100, 44, 'Mode santai (tanpa cicilan): ' + (story().easy ? 'ON' : 'OFF'), () => { story().easy = !story().easy; save(); }, { col: story().easy ? 'green' : 'grey', s: 14, tip: 'Cicilan utang ditiadakan. Kepercayaan & kejadian tetap jalan.' });
+  button(x + 50, nxt(), w - 100, 44, usahaOpen() ? 'USAHA & KOTA' : 'USAHA & KOTA (setelah Bab 5)', () => { ui.modal = 'kota'; }, { col: 'yellow', tc: '#4a2a00', s: 16, disabled: !usahaOpen(), tip: 'Kembangkan usaha, jadi miliarder, dan maju sebagai wali kota' });
   button(x + 50, nxt(), w - 100, 44, `PULANG ISTIRAHAT (${restsLeft()}/${MAX_RESTS})`, () => { ui.modal = 'rumah'; ui.homeResult = null; }, { col: 'blue', s: 15, tip: 'Tutup warung sebentar, pulihkan kewarasan, dapat cerita rumah' });
   if (ui.mode3d) button(x + 50, nxt(), w - 100, 44, 'Grafis 3D: ' + qualityLabel(), cycleQuality, { col: 'blue', s: 15, tip: 'Otomatis menurunkan kualitas bila FPS rendah. Rendah: tanpa bayangan & pantulan.' });
   button(x + 50, nxt(), w - 100, 44, `PENCAPAIAN ${unlockedCount()}/${ACH.length}`, () => { ui.modal = 'ach'; }, { col: 'yellow', tc: '#4a2a00', s: 16 });
