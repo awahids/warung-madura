@@ -524,12 +524,12 @@ export function createWarung(canvas, opts = {}) {
     pembeli: { pos: [0, 1.6, 4.6], tgt: [0, 1.3, -1.4], fp: false },
     penjaga: { pos: [.1, 2.0, -2.3], tgt: [.1, 1.05, 1], fp: true },
     ngobrol: { pos: [2.3, 1.45, 4.5], tgt: [3.1, .85, .9], fp: false },
-    kota: { pos: [0, 46, CITY_ORIGIN.z + 48], tgt: [0, 0, CITY_ORIGIN.z + 6], fp: false, far: 600, kota: true },   // diorama kota dari atas     // dari depan bangku: wajah warga terlihat (dialog menempati bagian bawah layar)
+    kota: { pos: [0, 112, CITY_ORIGIN.z + 62], tgt: [0, 0, CITY_ORIGIN.z + 6], fp: false, far: 600, kota: true },   // diorama kota dari atas     // dari depan bangku: wajah warga terlihat (dialog menempati bagian bawah layar)
   };
   let tween = null, view = 'luar', kotaLim = false;
   const applyLimits = fp => {
     controls.enablePan = !fp; controls.enableZoom = !fp; controls.rotateSpeed = fp ? -.35 : 1;
-    controls.minDistance = fp ? .05 : kotaLim ? 12 : 1.5; controls.maxDistance = fp ? .05 : kotaLim ? 110 : 16;
+    controls.minDistance = fp ? .05 : kotaLim ? 14 : 1.5; controls.maxDistance = fp ? .05 : kotaLim ? 170 : 16;
   };
   const setView = (name, instant = false) => {
     const v = VIEWS[name]; if (!v) return; const prevView = view; view = name; penjaga.visible = !v.fp; camera.fov = v.fp ? 64 : 50; camera.far = v.far || 90; camera.updateProjectionMatrix();
