@@ -4,7 +4,7 @@ import * as persist from '../src/game/persist';
 import { startDay } from '../src/game/logic/day';
 import { story } from '../src/game/logic/story';
 import { BIZ, CAMP_ACTS, PROJECTS } from '../src/game/story/kota';
-import { bizIncAt, bizLevel, bizNextCost, buyBiz, campaign, canBuild, city, build, cityAvg, endingOf, isMiliarder, kota, runElection, support, rivalPower } from '../src/game/logic/kota';
+import { bizIncAt, bizLevel, bizNextCost, buyBiz, campaign, canBuild, city, build, cityAvg, isMiliarder, kota, runElection, support, rivalPower } from '../src/game/logic/kota';
 
 /* Simulasi keseimbangan babak lanjutan dengan "pemain" otomatis: pastikan tiap tahap bisa dimenangkan tapi tidak sepele. */
 function begin() { setG(persist.freshState(G)); G.story.chapterSeen = 99; ui.modal = null; startDay(); story().ending = 'dipercaya'; G.day++; startDay(); }

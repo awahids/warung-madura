@@ -46,7 +46,7 @@ describe('babak usaha → miliarder → wali kota', () => {
   });
   it('syarat mencalonkan diri & kampanye sampai pemilihan', () => {
     openBab(); kota().ch = 7; expect(canRun()).toBe(false);
-    story().flags.diminta_calon = true; story().trust = 80; G.rep = 80; G.money = 2e9;
+    story().flags.diminta_calon = true; story().trust = 80; G.rep = 80; G.money = 2e9; kota().duk = 20; kota().rivalBonus = 0;
     expect(canRun()).toBe(true); expect(runForOffice()).toBe(true); expect(kota().phase).toBe('kampanye');
     const s0 = support(); G.money = 500e6; expect(campaign('baliho')).toBe(true); expect(support()).toBe(s0 + 2);
     for (let i = 0; i < 3; i++) campaign('baliho'); expect(campaign('baliho')).toBe(false);   // maks 3×
