@@ -743,6 +743,7 @@ export function createWarung(canvas, opts = {}) {
     stepKurir(t, dt); ambience.step(t, dt);
     if (handoffs.length) stepHandoffs();
     if (rainLines.visible) stepRain(dt);
+    if (kotaScene.group.visible) kotaScene.step(dt);
     if (flights.length) stepFlights();
     controls.update(); renderer.render(scene, camera);
   };

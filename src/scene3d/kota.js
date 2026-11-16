@@ -116,6 +116,38 @@ export function createKota() {
   const ml = label('PUSAT BELANJA', '', '#fff', .8); ml.position.set(58, 6.4, -44); group.add(ml);
   [['DANAU KOTA BARU', -2, -18], ['JEMBATAN WADUK', 0, -30], ['PERUMAHAN TATAR', -58, -24], ['PERUMAHAN KULON', 66, 40]].forEach(([t, x, z]) => { const l = label(t, '', '#bfe6ff', .85); l.position.set(x, 4.2, z); group.add(l); });
 
+  /* ---------- kota yang hidup: mobil di jalan, perahu di danau, lampu rumah menyala malam hari ---------- */
+  const NCAR = 56, carCurves = ROADS.map(r => new THREE.CatmullRomCurve3(r.pts.map(([x, z]) => new THREE.Vector3(x, 0, z)), false, 'centripetal'));
+  const carLen = carCurves.map(c => c.getLength());
+  const cars = Array.from({ length: NCAR }, (_, i) => ({ r: i % ROADS.length === 7 ? 0 : i % ROADS.length, t: rnd(), dir: rnd() < .5 ? 1 : -1, v: 5 + rnd() * 4, lane: .5 + rnd() * .35 }));
+  const CARCOL = ['#e8312f', '#f2f2f2', '#3b6fd9', '#f0b429', '#2f9a6a', '#222222', '#e07a2a'];
+  const carBody = new THREE.InstancedMesh(new THREE.BoxGeometry(2, .65, .95), M('#fff', { roughness: .4 }), NCAR), carTop = new THREE.InstancedMesh(new THREE.BoxGeometry(1.0, .5, .85), M('#9fd0f0', { roughness: .2 }), NCAR);
+  cars.forEach((c, i) => carBody.setColorAt(i, col.set(CARCOL[i % CARCOL.length]))); group.add(carBody, carTop);
+  const wet = (x, z) => inPoly(x, z, lakeP) && !inPoly(x, z, isleP);
+  const boats = []; for (const [x, z] of [[-8, -20], [-2, -38], [-5, 30], [0, 42], [-12, -5], [0, 22], [-10, 20]]) if (wet(x, z)) boats.push({ x, z, a: rnd() * 6.28, v: 1.5 + rnd() * 1.2 });
+  const boatHull = new THREE.InstancedMesh(new THREE.BoxGeometry(2.8, .5, 1.1), M('#f4f4f0'), boats.length), boatCab = new THREE.InstancedMesh(new THREE.BoxGeometry(1.1, .6, .8), M('#e8312f'), boats.length); group.add(boatHull, boatCab);
+  const winMat = walls.material; let nightAmt = 0, carN = 20;
+  const dummy = new THREE.Object3D(), up = new THREE.Vector3(0, 1, 0), tg = new THREE.Vector3(), side = new THREE.Vector3();
+  const step = dt => {
+    for (let i = 0; i < NCAR; i++) {
+      const c = cars[i]; if (i >= carN) { dummy.position.set(0, -50, 0); dummy.scale.setScalar(.001); dummy.updateMatrix(); carBody.setMatrixAt(i, dummy.matrix); carTop.setMatrixAt(i, dummy.matrix); continue; }
+      c.t += c.dir * c.v * dt / carLen[c.r]; if (c.t > 1) c.t -= 1; if (c.t < 0) c.t += 1;
+      const cv = carCurves[c.r], p = cv.getPointAt(c.t); cv.getTangentAt(c.t, tg); if (c.dir < 0) tg.negate(); side.crossVectors(up, tg).normalize();
+      const yaw = Math.atan2(tg.x, tg.z) - Math.PI / 2, onBridge = ROADS[c.r].bridge && p.x > ROADS[c.r].bridge[0] && p.x < ROADS[c.r].bridge[1];
+      dummy.scale.setScalar(1); dummy.rotation.set(0, yaw, 0);
+      dummy.position.set(p.x + side.x * c.lane, (onBridge ? .5 : .42), p.z + side.z * c.lane); dummy.updateMatrix(); carBody.setMatrixAt(i, dummy.matrix);
+      dummy.position.y += .5; dummy.position.x -= Math.cos(yaw) * .15; dummy.position.z += Math.sin(yaw) * .15; dummy.updateMatrix(); carTop.setMatrixAt(i, dummy.matrix);
+    }
+    carBody.instanceMatrix.needsUpdate = carTop.instanceMatrix.needsUpdate = true; if (carBody.instanceColor) carBody.instanceColor.needsUpdate = true;
+    boats.forEach((b, i) => {
+      let nx = b.x + Math.cos(b.a) * b.v * dt, nz = b.z + Math.sin(b.a) * b.v * dt;
+      if (!wet(nx + Math.cos(b.a) * 3, nz + Math.sin(b.a) * 3)) { b.a += 1.2 + rnd(); nx = b.x; nz = b.z; } else { b.x = nx; b.z = nz; b.a += Math.sin(performance.now() / 4000 + i) * dt * .08; }
+      dummy.scale.setScalar(1); dummy.rotation.set(0, -b.a, 0); dummy.position.set(b.x, -.1, b.z); dummy.updateMatrix(); boatHull.setMatrixAt(i, dummy.matrix); dummy.position.set(b.x - Math.cos(b.a) * .3, .4, b.z - Math.sin(b.a) * .3); dummy.updateMatrix(); boatCab.setMatrixAt(i, dummy.matrix);
+    });
+    boatHull.instanceMatrix.needsUpdate = boatCab.instanceMatrix.needsUpdate = true;
+    winMat.emissive.set('#ffcf70'); winMat.emissiveIntensity = .45 * nightAmt;
+  };
+
   const dyn = new THREE.Group(); group.add(dyn);
   const sun = new THREE.DirectionalLight('#fff4d8', 2.2); sun.position.set(30, 60, 30); group.add(sun);
   const amb = new THREE.HemisphereLight('#dfeeff', '#7a8a6a', 1.2); group.add(amb);
@@ -137,8 +169,8 @@ export function createKota() {
   /** state = G.kota (boleh null). Membangun ulang hanya bila ada perubahan. */
   const sync = k => {
     const c = k && k.city, lv = BIZ.map(b => (k && k.biz[b.id]) || 0), done = c ? Object.keys(c.done).sort().join() : '', pr = c ? c.proj.map(p => p.id + p.left).join() : '', bers = c ? Math.round(c.ind.bers / 10) : 4;
-    const s = [lv.join(), done, pr, bers, !!c].join('|'); if (s === sig) return; sig = s;
-    dyn.clear(); buildRoads(!!(c && c.done.jalan), c ? c.ind.bers : 40);
+    const s = [lv.join(), done, pr, bers, !!c, c ? Math.round(c.ind.sej / 5) : 0].join('|'); if (s === sig) return; sig = s;
+    carN = Math.round(14 + (c && c.done.jalan ? 22 : 0) + (c ? c.ind.sej * .2 : 4)); dyn.clear(); buildRoads(!!(c && c.done.jalan), c ? c.ind.bers : 40);
     trees.count = Math.round(treeSpots.length * (.35 + .65 * (c ? c.ind.bers : 40) / 100) + (c && c.done.taman ? 0 : 0));
     const H = hall(); H.position.set(HALL_AT[0], 0, HALL_AT[1]); dyn.add(H); const lh = label('BALAI KOTA', c ? '' : 'belum dilantik'); lh.position.set(HALL_AT[0], 8.5, HALL_AT[1]); dyn.add(lh);
     const rd = new THREE.Mesh(new THREE.TorusGeometry(3.6, .9, 4, 24), M(c && c.done.jalan ? '#3c3d42' : '#77746a')); rd.rotation.x = -Math.PI / 2; rd.position.set(36, .08, -4); dyn.add(rd);   // bundaran di depan Balai Kota
@@ -158,7 +190,7 @@ export function createKota() {
     const wm = warungMini(); wm.position.set(-70, 0, -46); dyn.add(wm); const wl = label('WARUNG', 'asal usul', '#fff', .8); wl.position.set(-70, 4.6, -46); dyn.add(wl);
     BIZ.forEach((b, i) => { const l = lv[i]; if (!l) return; const bb = bizBuilding(b.id, l); bb.position.set(-60 + i * 8.5, 0, -46); dyn.add(bb); const bl = label(b.name, `Lv ${l}`, '#fff', .8); bl.position.set(-60 + i * 8.5, 3 + l * .9, -46); dyn.add(bl); });
   };
-  const setNight = n => { sun.intensity = 2.2 * (1 - .8 * n); amb.intensity = 1.2 - .8 * n; };
+  const setNight = n => { nightAmt = n; sun.intensity = 2.2 * (1 - .8 * n); amb.intensity = 1.2 - .8 * n; };
   const dispose = () => { group.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) { (o.material.map) && o.material.map.dispose(); o.material.dispose(); } }); };
-  return { group, sync, setNight, dispose, get center() { return CITY_ORIGIN; } };
+  return { group, sync, setNight, step, dispose, get center() { return CITY_ORIGIN; } };
 }
