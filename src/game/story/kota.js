@@ -23,10 +23,10 @@ export const KOTA_CATATAN = [
 export const WIN_WEALTH = 1e9;
 /** cost = biaya naik ke level 1; tiap level berikutnya ×2,2. inc = pendapatan/hari di level 1; tiap level ×2. */
 export const BIZ = [
-  { id: 'cabang', name: 'Cabang Warung', desc: 'Warung kedua di jalan besar.', cost: 2.5e6, inc: 800e3 },
-  { id: 'grosir', name: 'Toko Grosir', desc: 'Melayani warung-warung sekampung.', cost: 25e6, inc: 5e6 },
-  { id: 'minimarket', name: 'Minimarket', desc: 'Berpendingin, kasir modern, buka 24 jam.', cost: 150e6, inc: 28e6 },
-  { id: 'properti', name: 'Kontrakan & Ruko', desc: 'Sewa bulanan yang mengalir tiap hari.', cost: 500e6, inc: 95e6 },
+  { id: 'cabang', name: 'Cabang Warung', desc: 'Warung kedua di jalan besar.', cost: 2.5e6, inc: 1.3e6 },
+  { id: 'grosir', name: 'Toko Grosir', desc: 'Melayani warung-warung sekampung.', cost: 25e6, inc: 8e6 },
+  { id: 'minimarket', name: 'Minimarket', desc: 'Berpendingin, kasir modern, buka 24 jam.', cost: 150e6, inc: 45e6 },
+  { id: 'properti', name: 'Kontrakan & Ruko', desc: 'Sewa bulanan yang mengalir tiap hari.', cost: 500e6, inc: 150e6 },
 ];
 export const BIZ_MAX = 5;
 export const BIZ_COST_MUL = 2.2, BIZ_INC_MUL = 2, BIZ_RESALE = .7;
@@ -35,11 +35,11 @@ export const BIZ_COST_MUL = 2.2, BIZ_INC_MUL = 2, BIZ_RESALE = .7;
 export const CAMP_DAYS = 7;
 export const RIVAL = 'Pak Burhan';
 export const CAMP_ACTS = [
-  { id: 'baliho', name: 'Pasang Baliho', cost: 50e6, pts: 4, max: 3, desc: 'Wajahmu ada di tiap perempatan.' },
-  { id: 'safari', name: 'Safari ke Kampung', cost: 20e6, pts: 5, max: 4, desc: 'Datangi warga, dengarkan keluhan.' },
-  { id: 'sembako', name: 'Bagi Sembako', cost: 40e6, pts: 5, max: 3, desc: 'Paket sembako dari warungmu sendiri.' },
-  { id: 'timses', name: 'Tim Sukses Profesional', cost: 100e6, pts: 8, max: 1, desc: 'Konsultan dan relawan terlatih.' },
-  { id: 'uang', name: 'Serangan Fajar (politik uang)', cost: 200e6, pts: 15, max: 1, dirty: true, desc: 'Cepat dan efektif, tapi kotor. 40% ketahuan.' },
+  { id: 'baliho', name: 'Pasang Baliho', cost: 50e6, pts: 2, max: 3, desc: 'Wajahmu ada di tiap perempatan.' },
+  { id: 'safari', name: 'Safari ke Kampung', cost: 20e6, pts: 3, max: 3, desc: 'Datangi warga, dengarkan keluhan.' },
+  { id: 'sembako', name: 'Bagi Sembako', cost: 40e6, pts: 3, max: 2, desc: 'Paket sembako dari warungmu sendiri.' },
+  { id: 'timses', name: 'Tim Sukses Profesional', cost: 100e6, pts: 5, max: 1, desc: 'Konsultan dan relawan terlatih.' },
+  { id: 'uang', name: 'Serangan Fajar (politik uang)', cost: 200e6, pts: 14, max: 1, dirty: true, desc: 'Cepat dan efektif, tapi kotor. 40% ketahuan.' },
 ];
 
 /* ---------- proyek kota ---------- */

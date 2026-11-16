@@ -42,7 +42,7 @@ export const flagBonus = () => (flag('banjir_bantu') ? 4 : 0) + (flag('beasiswa'
 export function support() {
   const k = kota(), s = st(), r = G.rep || 50;
   const integPen = k.integ < 50 ? (50 - k.integ) * .3 : 0;
-  return clamp(Math.round(20 + s.trust * .35 + r * .15 + k.duk + flagBonus() + k.sympathy + k.camp.pts - integPen), 0, 100);
+  return clamp(Math.round(12 + s.trust * .3 + r * .12 + k.duk + flagBonus() + k.sympathy + k.camp.pts - integPen), 0, 100);
 }
 export const rivalPower = () => 52 + kota().rivalBonus;
 export const canRun = () => { const k = kota(); return k.ch >= 7 && k.phase === 'usaha' && flag('diminta_calon') && st().trust >= 55 && G.day - k.lostDay >= 5; };
@@ -84,7 +84,7 @@ export function initCity() {
 }
 export const city = () => kota().city;
 export const cityAvg = () => { const c = city(); return c ? Math.round((c.ind.sej + c.ind.bers + c.ind.kerja + c.ind.puas) / 4) : 0; };
-export const taxPerDay = () => { const c = city(); return c ? Math.round(20e6 + (c.ind.sej + c.ind.kerja) * .6e6) : 0; };
+export const taxPerDay = () => { const c = city(); return c ? Math.round(15e6 + (c.ind.sej + c.ind.kerja) * .45e6) : 0; };
 export const projectBusy = id => !!city() && city().proj.some(p => p.id === id);
 export const canBuild = id => {
   const c = city(), p = PROJECTS.find(x => x.id === id);
@@ -112,7 +112,7 @@ export function applyKotaFx(fx = {}) {
 export function endingOf() {
   const k = kota(), avg = cityAvg(), c = city();
   if (k.integ < 40) return 'korup';
-  if (avg >= 62 && k.integ >= 70 && c.ind.puas >= 60) return 'bapak';
+  if (avg >= 58 && k.integ >= 70 && c.ind.puas >= 60) return 'bapak';
   return 'biasa';
 }
 
@@ -132,7 +132,7 @@ export function dawnKota() {
 function cityDawn() {
   const c = city(), k = kota();
   const tax = taxPerDay(); c.apbd += tax; c.taxToday = tax;
-  for (const key in c.ind) c.ind[key] = clamp(c.ind[key] - (key === 'bers' ? .4 : .25), 0, 100);
+  for (const key in c.ind) c.ind[key] = clamp(c.ind[key] - (key === 'bers' ? .25 : .15), 0, 100);
   c.ind.puas = clamp(c.ind.puas + ((c.ind.sej + c.ind.bers + c.ind.kerja) / 3 - 50) * .06, 0, 100);
   const rest = [];
   for (const p of c.proj) {

@@ -23,8 +23,8 @@ describe('babak usaha → miliarder → wali kota', () => {
   });
   it('membeli usaha mengurangi kas dan memberi pendapatan harian', () => {
     openBab(); G.money = 10e6; expect(buyBiz('cabang')).toBe(true);
-    expect(G.money).toBe(7.5e6); expect(bizLevel('cabang')).toBe(1); expect(incomePerDay()).toBe(800000);
-    const m = G.money; G.day++; startDay(); expect(G.money).toBe(m + 800000);
+    expect(G.money).toBe(7.5e6); expect(bizLevel('cabang')).toBe(1); expect(incomePerDay()).toBe(1300000);
+    const m = G.money; G.day++; startDay(); expect(G.money).toBe(m + 1300000);
     expect(buyBiz('grosir')).toBe(false);   // kas kurang
   });
   it('pendapatan tidak ganda saat hari yang sama dimuat ulang', () => {
@@ -42,13 +42,13 @@ describe('babak usaha → miliarder → wali kota', () => {
       for (;;) { const opts = BIZ.map(b => { const l = bizLevel(b.id); if (l >= 5) return null; const c = Math.round(b.cost * 2.2 ** l), g = bizIncAt(b, l + 1) - bizIncAt(b, l); return { id: b.id, c, roi: c / g }; }).filter(o => o && o.c <= G.money).sort((a, b) => a.roi - b.roi); if (!opts.length) break; buyBiz(opts[0].id); }
       G.day++; startDay(); days++;
     }
-    expect(days).toBeGreaterThanOrEqual(25); expect(days).toBeLessThanOrEqual(70);
+    expect(days).toBeGreaterThanOrEqual(25); expect(days).toBeLessThanOrEqual(45);
   });
   it('syarat mencalonkan diri & kampanye sampai pemilihan', () => {
     openBab(); kota().ch = 7; expect(canRun()).toBe(false);
     story().flags.diminta_calon = true; story().trust = 80; G.rep = 80; G.money = 2e9;
     expect(canRun()).toBe(true); expect(runForOffice()).toBe(true); expect(kota().phase).toBe('kampanye');
-    const s0 = support(); G.money = 500e6; expect(campaign('baliho')).toBe(true); expect(support()).toBe(s0 + 4);
+    const s0 = support(); G.money = 500e6; expect(campaign('baliho')).toBe(true); expect(support()).toBe(s0 + 2);
     for (let i = 0; i < 3; i++) campaign('baliho'); expect(campaign('baliho')).toBe(false);   // maks 3×
     for (let i = 0; i < CAMP_DAYS; i++) { G.day++; startDay(); ui.modal = null; }
     expect(kota().phase).toBe('wali'); expect(chapterOf()).toBe(9); expect(city()).toBeTruthy();

@@ -99,20 +99,52 @@ export function createKota() {
   const roads = new THREE.Group(); group.add(roads);
 
   /* kawasan perumahan statis: rumah beratap merah berbaris seperti peta satelit */
+  const winMats = [];
   const plots = Object.values(PLOT).map(([x, z]) => [x, z, 8.5, 6.5]).concat([[HALL_AT[0], HALL_AT[1], 9, 7], [58, -44, 11, 6]]);
   const blocked = (x, z) => inWater(x, z, 1.6) || nearRoad(x, z, 1.6) || plots.some(([px, pz, hx, hz]) => Math.abs(x - px) < hx && Math.abs(z - pz) < hz) || (z < -40 && x < -28 && x > -78 && z > -50 && Math.abs(x + 50) < 24);
-  const ZONES = [[-76, -36, -30, 52, .92], [18, 31, -8, 54, .9], [40, 78, 12, 60, .88], [38, 78, -32, -10, .8], [-28, -16, 34, 56, .8], [-78, -58, -54, -36, .4]];
-  const spots = []; for (const [x0, x1, z0, z1, d] of ZONES) for (let x = x0; x <= x1; x += 3.4) for (let z = z0; z <= z1; z += 3.1) if (!blocked(x, z) && rnd() < d) spots.push([x + (rnd() - .5) * .3, z + (rnd() - .5) * .3, Math.floor(rnd() * 3)]);
-  const wallG = new THREE.BoxGeometry(2, 1.1, 1.6), roofG = new THREE.ConeGeometry(1.45, .9, 4); roofG.rotateY(Math.PI / 4); roofG.scale(1, 1, .85);
-  const walls = new THREE.InstancedMesh(wallG, M('#e8dccb'), spots.length), roofs = new THREE.InstancedMesh(roofG, M('#c9512f'), spots.length);
-  const mx = new THREE.Matrix4(), col = new THREE.Color(), ROOF = ['#c9512f', '#b8432a', '#d9693c', '#9a3a2a'];
-  spots.forEach(([x, z, v], i) => { mx.makeTranslation(x, .55, z); walls.setMatrixAt(i, mx); mx.makeTranslation(x, 1.55, z); roofs.setMatrixAt(i, mx); roofs.setColorAt(i, col.set(ROOF[v])); });
-  group.add(walls, roofs);
+  const ZONES = [[-76, -36, -30, 52, .94], [18, 31, -8, 54, .92], [40, 78, 12, 60, .9], [38, 78, -32, -10, .85], [-28, -16, 34, 56, .85], [-78, -58, -54, -36, .45]];
+  /* tata letak: baris rumah menghadap jalan lingkungan; tiap 6 baris ada gang; sebagian bangunan jadi apartemen */
+  const spots = [], lanes = [], aparts = [];
+  for (const [x0, x1, z0, z1, d] of ZONES) {
+    let row = 0;
+    for (let z = z0; z <= z1; z += 3.1, row++) {
+      const lane = row % 6 === 5;
+      for (let x = x0; x <= x1; x += 3.4) {
+        if (blocked(x, z)) continue;
+        if (lane) { lanes.push([x, z]); continue; }
+        if (rnd() >= d) continue;
+        const px = x + (rnd() - .5) * .25, pz = z + (rnd() - .5) * .2, facing = row % 6 < 3 ? 0 : Math.PI;
+        if (x0 >= 18 && x0 < 40 && rnd() < .11 || (x0 >= 38 && rnd() < .06)) aparts.push([px, pz, 3 + Math.floor(rnd() * 4)]);
+        else spots.push({ x: px, z: pz, rot: facing + (rnd() < .12 ? Math.PI / 2 : 0), sx: .85 + rnd() * .35, sy: .9 + rnd() * .35, sz: .9 + rnd() * .25, wall: Math.floor(rnd() * 5), roof: Math.floor(rnd() * 6), lawn: Math.floor(rnd() * 3) });
+      }
+    }
+  }
+  const N = spots.length, mx = new THREE.Matrix4(), col = new THREE.Color(), dm = new THREE.Object3D();
+  const WALL = ['#efe6d6', '#f4f0e6', '#e9d3b4', '#d9d4c8', '#f0d9c4'], ROOF = ['#c9512f', '#b8432a', '#d9693c', '#9a3a2a', '#7a6a5a', '#c46a3a'], LAWN = ['#74a84e', '#6a9c48', '#86b05a'];
+  const prism = new THREE.CylinderGeometry(1, 1, 2.3, 3); prism.rotateZ(Math.PI / 2); prism.rotateX(-Math.PI / 2); prism.scale(1, .62, 1.08);
+  const lawnM = new THREE.InstancedMesh(new THREE.BoxGeometry(3.1, .05, 2.9), M('#fff', { roughness: 1 }), N), walls = new THREE.InstancedMesh(new THREE.BoxGeometry(2, 1, 1.6), M('#fff'), N), roofs = new THREE.InstancedMesh(prism, M('#fff', { roughness: .7 }), N);
+  const doors = new THREE.InstancedMesh(new THREE.BoxGeometry(.34, .62, .08), M('#5a3a22'), N), slabs = new THREE.InstancedMesh(new THREE.BoxGeometry(.95, .04, 1.1), M('#9a9a96'), N);
+  const place = (mesh, i, sp, ox, oy, oz, sx = 1, sy = 1, sz = 1) => { dm.position.set(sp.x, 0, sp.z); dm.rotation.set(0, sp.rot, 0); dm.updateMatrix(); mx.copy(dm.matrix); const l = new THREE.Matrix4().compose(new THREE.Vector3(ox, oy, oz), new THREE.Quaternion(), new THREE.Vector3(sx, sy, sz)); mx.multiply(l); mesh.setMatrixAt(i, mx); };
+  spots.forEach((sp, i) => {
+    place(lawnM, i, sp, 0, .03, 0); lawnM.setColorAt(i, col.set(LAWN[sp.lawn]));
+    place(walls, i, sp, 0, .5 * sp.sy, 0, sp.sx, sp.sy, sp.sz); walls.setColorAt(i, col.set(WALL[sp.wall]));
+    place(roofs, i, sp, 0, sp.sy + .3 * sp.sy, 0, sp.sx, sp.sy * .9 + .2, sp.sz); roofs.setColorAt(i, col.set(ROOF[sp.roof]));
+    place(doors, i, sp, -.3 * sp.sx, .31, .8 * sp.sz); place(slabs, i, sp, .55 * sp.sx, .05, 1.1 * sp.sz);
+  });
+  group.add(lawnM, walls, roofs, doors, slabs);
+  // gang antar baris rumah
+  const laneM = new THREE.InstancedMesh(new THREE.BoxGeometry(3.5, .05, 1.5), M('#8d8a82', { roughness: 1 }), lanes.length); lanes.forEach(([x, z], i) => { mx.makeTranslation(x, .04, z); laneM.setMatrixAt(i, mx); }); group.add(laneM);
+  // apartemen & ruko: kotak tinggi berjendela (tekstur kanvas) yang menyala malam hari
+  const winCv = (lit) => { const c = document.createElement('canvas'); c.width = 128; c.height = 128; const g = c.getContext('2d'); g.fillStyle = lit ? '#000' : '#e6e2d8'; g.fillRect(0, 0, 128, 128); for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) { g.fillStyle = lit ? (((x * 7 + y * 3) % 5) ? '#ffcf70' : '#000') : '#5a7890'; g.fillRect(10 + x * 30, 8 + y * 30, 18, 18); } const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; return t; };
+  const aptMat = new THREE.MeshStandardMaterial({ map: winCv(false), emissiveMap: winCv(true), emissive: '#fff', emissiveIntensity: 0, roughness: .6 });
+  const tall = (w, h, d, floors) => { const g = new THREE.BoxGeometry(w, h, d); const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setY(i, uv.getY(i) * floors / 4); return g; };
+  aparts.forEach(([x, z, fl]) => { const m = new THREE.Mesh(tall(2.8, fl * .9, 2.6, fl), aptMat); m.position.set(x, fl * .45, z); group.add(m); const rf = box(3, .12, 2.8, M('#7a7a78'), x, fl * .9, z); group.add(rf); });
+  winMats.push(aptMat);
   // pohon: tampil makin banyak bila kota bersih
-  const treeSpots = []; for (let i = 0; i < 700 && treeSpots.length < 260; i++) { const x = -78 + rnd() * 156, z = -53 + rnd() * 106; if (!blocked(x, z) && !spots.some(([sx, sz]) => Math.abs(sx - x) < 2 && Math.abs(sz - z) < 2)) treeSpots.push([x, z, .8 + rnd() * .6]); }
+  const treeSpots = []; for (let i = 0; i < 700 && treeSpots.length < 260; i++) { const x = -78 + rnd() * 156, z = -53 + rnd() * 106; if (!blocked(x, z) && !spots.some(sp => Math.abs(sp.x - x) < 2 && Math.abs(sp.z - z) < 2)) treeSpots.push([x, z, .8 + rnd() * .6]); }
   const trees = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1.1, 0), M('#3f8f3a', { flatShading: true }), treeSpots.length); treeSpots.forEach(([x, z, k], i) => { mx.makeScale(k, k, k); mx.setPosition(x, 1.1 * k, z); trees.setMatrixAt(i, mx); }); group.add(trees);
   // pusat belanja & lahan parkir (dekoratif), seperti kawasan komersial di peta
-  const mall = new THREE.Group(); mall.add(box(18, 3.6, 9, M('#f4f2ec'))); mall.add(box(18.4, .3, 9.4, M('#c9c4b8'), 0, 3.6, 0)); mall.add(box(17, .06, 8, M('#4a4b50'), 0, 0, 8.5)); mall.position.set(58, 0, -44); group.add(mall);
+  const mall = new THREE.Group(); mall.add(box(18, 3.6, 9, new THREE.MeshStandardMaterial({ map: winCv(false), emissiveMap: winCv(true), emissive: '#fff', emissiveIntensity: 0 }))); [-6, 0, 6].forEach(x => mall.add(box(1.6, .6, 1.2, M('#9a9a98'), x, 3.9, 0))); mall.add(box(6, .25, 2, M('#d62f2f'), 0, 2.4, 5)); [-2.6, 2.6].forEach(x => mall.add(cyl(.12, 2.4, M('#cfcfcf'), x, 0, 5.8, 6))); mall.add(box(18.4, .3, 9.4, M('#c9c4b8'), 0, 3.6, 0)); mall.add(box(17, .06, 8, M('#4a4b50'), 0, 0, 8.5)); mall.position.set(58, 0, -44); group.add(mall);
   const ml = label('PUSAT BELANJA', '', '#fff', .8); ml.position.set(58, 6.4, -44); group.add(ml);
   [['DANAU KOTA BARU', -2, -18], ['JEMBATAN WADUK', 0, -30], ['PERUMAHAN TATAR', -58, -24], ['PERUMAHAN KULON', 66, 40]].forEach(([t, x, z]) => { const l = label(t, '', '#bfe6ff', .85); l.position.set(x, 4.2, z); group.add(l); });
 
@@ -126,7 +158,7 @@ export function createKota() {
   const wet = (x, z) => inPoly(x, z, lakeP) && !inPoly(x, z, isleP);
   const boats = []; for (const [x, z] of [[-8, -20], [-2, -38], [-5, 30], [0, 42], [-12, -5], [0, 22], [-10, 20]]) if (wet(x, z)) boats.push({ x, z, a: rnd() * 6.28, v: 1.5 + rnd() * 1.2 });
   const boatHull = new THREE.InstancedMesh(new THREE.BoxGeometry(2.8, .5, 1.1), M('#f4f4f0'), boats.length), boatCab = new THREE.InstancedMesh(new THREE.BoxGeometry(1.1, .6, .8), M('#e8312f'), boats.length); group.add(boatHull, boatCab);
-  const winMat = walls.material; let nightAmt = 0, carN = 20;
+  let nightAmt = 0, carN = 20;
   const dummy = new THREE.Object3D(), up = new THREE.Vector3(0, 1, 0), tg = new THREE.Vector3(), side = new THREE.Vector3();
   const step = dt => {
     for (let i = 0; i < NCAR; i++) {
@@ -145,7 +177,7 @@ export function createKota() {
       dummy.scale.setScalar(1); dummy.rotation.set(0, -b.a, 0); dummy.position.set(b.x, -.1, b.z); dummy.updateMatrix(); boatHull.setMatrixAt(i, dummy.matrix); dummy.position.set(b.x - Math.cos(b.a) * .3, .4, b.z - Math.sin(b.a) * .3); dummy.updateMatrix(); boatCab.setMatrixAt(i, dummy.matrix);
     });
     boatHull.instanceMatrix.needsUpdate = boatCab.instanceMatrix.needsUpdate = true;
-    winMat.emissive.set('#ffcf70'); winMat.emissiveIntensity = .45 * nightAmt;
+    winMats.forEach(m => { m.emissiveIntensity = 1.1 * nightAmt; });
   };
 
   const dyn = new THREE.Group(); group.add(dyn);
