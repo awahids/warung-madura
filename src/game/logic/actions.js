@@ -7,6 +7,7 @@ import { FEATURE_LVL, discountOf, etaOf, featureOn, itemOn, level } from './leve
 import { stockIn } from './freshness.js';
 import { hasRole } from './regulars.js';
 import { orderBlocked } from './story.js';
+import { hargaMul } from './kota.js';
 import { rp } from '../util.js';
 import { flt, toast } from '../widgets.js';
 
@@ -36,7 +37,7 @@ export function usePromo() {
   G.money -= 20000; G.stats.spent += 20000; G.promo = true; SFX.good(); toast('Promo dipasang! Pembeli lebih ramai hari ini.', '#9dff8c');
 }
 /** Harga paket setelah diskon grosir sesuai level. */
-export const packPrice = it => Math.round(it.packCost * (1 - discountOf(level())));
+export const packPrice = it => Math.round(it.packCost * (1 - discountOf(level())) * hargaMul());
 export const EXPRESS_FEE = .15;
 export const EXPRESS_MIN = 30;
 export const baseCost = () => ITEMS.reduce((s, i) => s + (itemOn(i.id) ? (G.cart[i.id] || 0) * packPrice(i) : 0), 0);

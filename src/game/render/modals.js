@@ -1,5 +1,5 @@
 import { MAX_RESTS, restsLeft } from '../logic/home.js';
-import { kotaAkhirModal, kotaModal, pilkadaModal } from './kota.js';
+import { kotaAkhirModal, kotaModal, pilkadaModal, tenderModal } from './kota.js';
 import { usahaOpen } from '../logic/kota.js';
 import { ngobrolModal } from './social.js';
 import { rumahModal } from './home.js';
@@ -56,6 +56,7 @@ function drawModalBody() {
   else if (ui.modal === 'rumah') rumahModal();
   else if (ui.modal === 'kota') kotaModal();
   else if (ui.modal === 'pilkada') pilkadaModal();
+  else if (ui.modal === 'tender') tenderModal();
   else if (ui.modal === 'kota_akhir') kotaAkhirModal();
   else if (ui.modal === 'summary') summary();
   else if (ui.modal === 'help') help();

@@ -1,7 +1,8 @@
 import { SFX } from '../audio.js';
-import { BIZ, BIZ_COST_MUL, BIZ_INC_MUL, BIZ_MAX, BIZ_RESALE, CAMP_ACTS, CAMP_DAYS, CITY_DAYS, ENDINGS, IND, MARKUP, MARKUP_CAUGHT, MARKUP_INTEG, MAX_PROJ, PROJECTS, RIVAL, WIN_WEALTH } from '../story/kota.js';
+import { AUDIT_DAYS, DPRD_MIN, DPRD_MIN_COST, ENDING_ARREST, EPROC_COST, NAMES, PERMIT_DAYS, RUSH_DAYS, RUSH_PCT } from '../story/dunia.js';
+import { BIZ, BIZ_COST_MUL, BIZ_INC_MUL, BIZ_MAX, BIZ_RESALE, CAMP_ACTS, CAMP_DAYS, CITY_DAYS, ENDINGS, IND, MAX_PROJ, PROJECTS, RIVAL, WIN_WEALTH } from '../story/kota.js';
 import { G, ui } from '../state.js';
-import { clamp, ri, rpk } from '../util.js';
+import { clamp, pick, ri, rpk } from '../util.js';
 import { toast } from '../widgets.js';
 
 /* ============================================================
@@ -10,21 +11,36 @@ import { toast } from '../widgets.js';
    Catatan: modul ini tidak mengimpor story.js (menghindari impor melingkar) — flag & kepercayaan diakses lewat G.story.
    ============================================================ */
 export function initKota() {
-  return { ch: 0, phase: 'none', biz: {}, duk: 0, integ: 80, rivalBonus: ri(-4, 6), camp: { day: 0, pts: 0, uses: {} }, sympathy: 0, lost: 0, lostDay: -99, lastDay: 0, city: null, ending: null, tab: 'usaha' };
+  return { ch: 0, phase: 'none', biz: {}, duk: 0, integ: 80, rivalBonus: ri(-4, 6), camp: { day: 0, pts: 0, uses: {} }, sympathy: 0, lost: 0, lostDay: -99, lastDay: 0, city: null, ending: null, dunia: initDunia(), ready: {}, tab: 'usaha' };
 }
-export const kota = () => G.kota || (G.kota = initKota());
+export function initDunia() { return { jejak: 0, sorotan: 0, dprd: 55, harga: 1, fees: 0, force: null, saingan: 0, eproc: false, lhkpn: false, arrest: false, log: [], auditN: 0, kpkDay: 0 }; }
+export const kota = () => { const k = G.kota || (G.kota = initKota()); if (!k.dunia) k.dunia = initDunia(); if (!k.ready) k.ready = {}; return k; };
+export const dn = () => kota().dunia;
 const st = () => G.story || (G.story = { trust: 50, flags: {}, kabar: [] });
 const flag = f => !!st().flags[f];
 const setFlag = f => { st().flags[f] = true; };
 const addTrust = n => { const s = st(); s.trust = clamp(Math.round((s.trust + n) * 10) / 10, 0, 100); };
-const note = t => { (G.morning || (G.morning = [])).push(t); st().kabar && st().kabar.push(t); };
+const note = (t, kind = '') => { (G.morning || (G.morning = [])).push(t); st().kabar && st().kabar.push(t); const l = kota().dunia.log; l.push({ day: G.day, text: t, kind }); if (l.length > 24) l.shift(); };
 
 /* ---------- usaha ---------- */
 export const bizLevel = id => kota().biz[id] || 0;
 export const bizCostAt = (b, lvl) => Math.round(b.cost * BIZ_COST_MUL ** (lvl - 1));
 export const bizIncAt = (b, lvl) => lvl <= 0 ? 0 : Math.round(b.inc * BIZ_INC_MUL ** (lvl - 1));
 export const bizNextCost = id => { const b = BIZ.find(x => x.id === id), l = bizLevel(id); return l >= BIZ_MAX ? null : bizCostAt(b, l + 1); };
-export const incomePerDay = () => BIZ.reduce((s, b) => s + bizIncAt(b, bizLevel(b.id)), 0);
+export const incomeNominal = () => BIZ.reduce((s, b) => s + bizIncAt(b, bizLevel(b.id)), 0);
+const permitOk = id => G.day >= (kota().ready[id] || 0);
+/** Pendapatan nyata hari ini: usaha yang izinnya sudah keluar × lalu lintas pelanggan ÷ inflasi. */
+export const incomePerDay = () => Math.round(BIZ.reduce((s, b) => s + (permitOk(b.id) ? bizIncAt(b, bizLevel(b.id)) : 0), 0) * bizMul());
+export const hargaMul = () => (G.kota && G.kota.dunia ? G.kota.dunia.harga : 1);
+/** Pengali jumlah pembeli warung & usaha: ekonomi kota, saingan baru, inflasi. */
+export function trafficMul() {
+  const k = G.kota; if (!k || !k.ch) return 1; const d = k.dunia || {}; let m = 1;
+  if (k.city) m *= .9 + (k.city.ind.sej + k.city.ind.kerja) / 200 * .4;
+  if (d.saingan > 0) m *= .85;
+  if (d.harga > 1.1) m *= .97;
+  return m;
+}
+export const bizMul = () => trafficMul() / Math.pow(hargaMul(), .6);
 export const assetValue = () => Math.round(BIZ.reduce((s, b) => { let c = 0; for (let l = 1; l <= bizLevel(b.id); l++) c += bizCostAt(b, l); return s + c; }, 0) * BIZ_RESALE);
 export const netWorth = () => Math.round((G.money || 0) + assetValue());
 export const isMiliarder = () => netWorth() >= WIN_WEALTH;
@@ -32,7 +48,8 @@ export const usahaOpen = () => kota().ch >= 6;
 export function buyBiz(id) {
   const k = kota(), c = bizNextCost(id), b = BIZ.find(x => x.id === id);
   if (!k.ch || c === null || G.money < c) { SFX.err(); return false; }
-  G.money -= c; k.biz[id] = bizLevel(id) + 1; SFX.good();
+  const isNew = !bizLevel(id); G.money -= c; k.biz[id] = bizLevel(id) + 1; SFX.good();
+  if (isNew) { k.ready[id] = G.day + PERMIT_DAYS; if (!dn().force) dn().force = 'd_izin'; toast(`Izin ${b.name} diproses ${PERMIT_DAYS} hari.`, '#ffe0a0'); }
   toast(`${b.name} ${k.biz[id] === 1 ? 'dibuka' : 'naik ke Lv ' + k.biz[id]}! +${rpk(bizIncAt(b, k.biz[id]) - bizIncAt(b, k.biz[id] - 1))}/hari`, '#cfe8ff');
   return true;
 }
@@ -68,7 +85,7 @@ export function runElection() {
   const share = clamp(Math.round(50 + (sc - rv) * .9), 25, 78);
   k.result = { win, share, score: sc, rival: rv };
   if (win) {
-    k.phase = 'wali'; k.ch = 9; setFlag('wali'); k.city = initCity(); k.tab = 'kota';
+    k.phase = 'wali'; k.ch = 9; setFlag('wali'); k.city = initCity(); k.tab = 'politik'; dn().dprd = clamp(Math.round(40 + (share - 50) * 1.2), 20, 80);
     G.morning && G.morning.push(`Kamu terpilih jadi wali kota dengan ${share}% suara!`);
   } else {
     k.phase = 'usaha'; k.ch = 7; k.lost++; k.lostDay = G.day; k.sympathy += 5; k.camp = { day: 0, pts: 0, uses: {} };
@@ -86,62 +103,172 @@ export const city = () => kota().city;
 export const cityAvg = () => { const c = city(); return c ? Math.round((c.ind.sej + c.ind.bers + c.ind.kerja + c.ind.puas) / 4) : 0; };
 export const taxPerDay = () => { const c = city(); return c ? Math.round(15e6 + (c.ind.sej + c.ind.kerja) * .45e6) : 0; };
 export const projectBusy = id => !!city() && city().proj.some(p => p.id === id);
+export const needsDprd = id => (PROJECTS.find(x => x.id === id) || {}).cost >= DPRD_MIN_COST;
+export const dprdBlock = id => needsDprd(id) && dn().dprd < DPRD_MIN;
 export const canBuild = id => {
   const c = city(), p = PROJECTS.find(x => x.id === id);
-  return !!c && !!p && !c.done[id] && !projectBusy(id) && c.proj.length < MAX_PROJ && c.apbd >= p.cost;
+  return !!c && !!p && (!c.done[id] || !!(c.broken && c.broken[id])) && !projectBusy(id) && c.proj.length < MAX_PROJ && c.apbd >= p.cost * .7 && !dprdBlock(id);
 };
-function addInd(fx) { const c = city(); if (!c || !fx) return; for (const key in fx) c.ind[key] = clamp(c.ind[key] + fx[key], 0, 100); }
-export function build(id, markup = false) {
-  const c = city(), p = PROJECTS.find(x => x.id === id), k = kota(); if (!canBuild(id)) { SFX.err(); return false; }
-  c.apbd -= p.cost; c.proj.push({ id, left: p.days }); SFX.click();
-  if (markup) {
-    const skim = Math.round(p.cost * MARKUP); G.money += skim; k.integ = clamp(k.integ - MARKUP_INTEG, 0, 100); c.mark++; setFlag('korup_awal');
-    if (Math.random() < MARKUP_CAUGHT) { c.caught++; addInd({ puas: -15 }); const fine = skim * 2; G.money = Math.max(0, G.money - fine); toast(`Mark-up ketahuan! Denda ${rpk(fine)}, kepuasan warga anjlok.`, '#ff9a8a'); }
-    else toast(`Mark-up diam-diam: +${rpk(skim)}`, '#ffd0a0');
-  } else toast(`${p.name} mulai dibangun (${p.days} hari).`, '#cfe8ff');
+function addInd(fx, mul = 1) { const c = city(); if (!c || !fx) return; for (const key in fx) c.ind[key] = clamp(c.ind[key] + Math.round(fx[key] * mul * 10) / 10, 0, 100); }
+
+/** Tiga–empat penawar tender: jujur (mahal tapi bagus), murah (kualitas rendah), kroni & milik sendiri (menawarkan fee) bila tidak ada lelang terbuka. */
+export function makeBids(id) {
+  const p = PROJECTS.find(x => x.id === id), d = dn(), bids = [];
+  bids.push({ key: 'jujur', name: pick(NAMES.jujur), price: p.cost, quality: ri(85, 95), rel: .9, fee: 0 });
+  const cheap = Math.round(p.cost * (.75 + Math.random() * .1)); bids.push({ key: 'murah', name: pick(NAMES.murah), price: cheap, quality: ri(40, 55), rel: .5, fee: d.eproc ? 0 : Math.round(cheap * .08) });
+  if (!d.eproc) {
+    const dear = Math.round(p.cost * (1.25 + Math.random() * .15)); bids.push({ key: 'kroni', name: pick(NAMES.kroni), price: dear, quality: ri(60, 75), rel: .7, fee: Math.round(dear * .15) });
+    if (Object.values(kota().biz).some(v => v > 0)) { const own = Math.round(p.cost * 1.1); bids.push({ key: 'sendiri', name: 'Usaha milikmu', price: own, quality: ri(70, 82), rel: .85, fee: Math.round(own * .12), conflict: true }); }
+  }
+  return bids;
+}
+export function startTender(id) {
+  const c = city(); if (!c) return false;
+  if (dprdBlock(id)) { SFX.err(); toast('DPRD menahan anggaran proyek besar. Dekati dewan dulu.', '#ffd0d0'); return false; }
+  if (!canBuild(id)) { SFX.err(); return false; }
+  c.tender = { id, bids: makeBids(id), rush: false }; ui.modal = 'tender'; return true;
+}
+export const cancelTender = () => { const c = city(); if (c) c.tender = null; ui.modal = 'kota'; };
+export const rushCost = bid => Math.round(bid.price * RUSH_PCT);
+export function awardTender(i) {
+  const c = city(), t = c && c.tender; if (!t) return false;
+  const bid = t.bids[i]; if (!bid || c.apbd < bid.price || (t.rush && G.money < rushCost(bid))) { SFX.err(); return false; }
+  const ok = award(t.id, bid, t.rush); c.tender = null; ui.modal = 'kota'; return ok;
+}
+function award(id, bid, rush) {
+  const c = city(), p = PROJECTS.find(x => x.id === id), k = kota(), d = dn();
+  c.apbd -= bid.price; if (c.broken && c.broken[id]) { c.broken[id] = false; c.done[id] = false; }
+  const days = Math.max(1, p.days + (bid.rel < .6 ? 1 : 0) - (rush ? RUSH_DAYS : 0));
+  c.proj.push({ id, left: days, days, price: bid.price, quality: bid.quality, rel: bid.rel, who: bid.name, key: bid.key, fee: bid.fee });
+  SFX.click();
+  if (bid.fee > 0) {   // fee/komisi masuk kantong pribadi: itulah korupsi
+    G.money += bid.fee; d.fees += bid.fee; c.mark++; setFlag('korup_awal');
+    d.jejak = clamp(d.jejak + (bid.key === 'kroni' ? 7 : bid.key === 'sendiri' ? 8 : 4), 0, 100); d.sorotan = clamp(d.sorotan + 2, 0, 100); k.integ = clamp(k.integ - (bid.key === 'kroni' ? 8 : bid.key === 'sendiri' ? 6 : 5), 0, 100);
+    toast(`${bid.name}: fee ${rpk(bid.fee)} masuk kantong. Jejak bertambah.`, '#ffd0a0');
+  } else toast(`${p.name} dikerjakan ${bid.name} (${days} hari).`, '#cfe8ff');
+  if (rush) { G.money -= rushCost(bid); d.jejak = clamp(d.jejak + 3, 0, 100); k.integ = clamp(k.integ - 4, 0, 100); }
   return true;
 }
+/** Jalan pintas (uji/otomatis): tender dengan penawar jujur, atau kroni bila markup = true. */
+export function build(id, markup = false) {
+  const c = city(); if (!canBuild(id)) { SFX.err(); return false; }
+  const bids = makeBids(id), bid = markup ? (bids.find(b => b.key === 'kroni') || bids.find(b => b.key === 'murah')) : bids[0];
+  if (c.apbd < bid.price) { SFX.err(); return false; }
+  return award(id, bid, false);
+}
+export const projectEffect = q => .5 + .5 * q / 100;
 export function applyKotaFx(fx = {}) {
-  const k = kota(), lines = [];
-  if (fx.integ) { k.integ = clamp(k.integ + fx.integ, 0, 100); lines.push(`Integritas ${fx.integ > 0 ? '+' : '−'}${Math.abs(fx.integ)}`); }
-  if (fx.duk) { k.duk += fx.duk; lines.push(`Dukungan ${fx.duk > 0 ? '+' : '−'}${Math.abs(fx.duk)}`); }
+  const k = kota(), d = dn(), lines = [], sgn = n => (n > 0 ? '+' : '−') + Math.abs(n);
+  if (fx.integ) { k.integ = clamp(k.integ + fx.integ, 0, 100); lines.push(`Integritas ${sgn(fx.integ)}`); }
+  if (fx.duk) { k.duk += fx.duk; lines.push(`Dukungan ${sgn(fx.duk)}`); }
   if (fx.apbd && city()) { city().apbd = Math.max(0, city().apbd + fx.apbd); lines.push(`Kas kota ${fx.apbd > 0 ? '+' : '−'}${rpk(Math.abs(fx.apbd))}`); }
-  if (fx.kota) { addInd(fx.kota); for (const key in fx.kota) lines.push(`${IND[key]} ${fx.kota[key] > 0 ? '+' : '−'}${Math.abs(fx.kota[key])}`); }
+  if (fx.kota) { addInd(fx.kota); for (const key in fx.kota) lines.push(`${IND[key]} ${sgn(fx.kota[key])}`); }
+  if (fx.jejak) { d.jejak = clamp(d.jejak + fx.jejak, 0, 100); lines.push(`Jejak korupsi ${sgn(fx.jejak)}`); }
+  if (fx.sorotan) { d.sorotan = clamp(d.sorotan + fx.sorotan, 0, 100); lines.push(`Sorotan media ${sgn(fx.sorotan)}`); }
+  if (fx.dprd) { d.dprd = clamp(d.dprd + fx.dprd, 0, 100); lines.push(`Dukungan DPRD ${sgn(fx.dprd)}`); }
+  if (fx.harga) { d.harga = clamp(d.harga + fx.harga, .9, 1.6); lines.push(`Indeks harga ${sgn(Math.round(fx.harga * 100))}%`); }
+  if (fx.saingan) { d.saingan += fx.saingan; lines.push(`Pelanggan berkurang ${fx.saingan} hari`); }
+  if (fx.izin === 'cepat') { for (const id in k.ready) if (k.ready[id] > G.day) k.ready[id] = G.day; lines.push('Usaha buka lebih cepat'); }
+  if (fx.returnFees) { const f = d.fees; if (city()) city().apbd += f; G.money = Math.max(0, G.money - f); d.fees = 0; lines.push(`Fee dikembalikan ${rpk(f)}`); }
+  if (fx.inspect && city()) { for (const p of city().proj) { if (fx.inspect === 'perbaiki') { p.quality = Math.min(95, p.quality + 20); p.left += 2; } else p.quality = Math.min(95, p.quality + 10); } lines.push(fx.inspect === 'perbaiki' ? 'Kualitas proyek naik, jadwal mundur' : 'Kontraktor disanksi'); }
+  if (fx.audit) resolveAudit(fx.audit, lines);
   return lines;
 }
+/** Hasil audit BPK: skor dari jejak korupsi + sorotan media; bisa berujung temuan, denda, penyelidikan KPK, atau penangkapan. */
+export function resolveAudit(mode, lines = []) {
+  const d = dn(), k = kota(); d.auditN++;
+  let S = d.jejak + d.sorotan * .4 + ri(-8, 8); if (d.eproc) S *= .75; if (mode === 'pengacara') S *= .75;
+  if (mode === 'sogok') { if (Math.random() < .35) { S = 100; lines.push('Auditor ternyata merekam suapmu!'); } else { S -= 30; d.jejak = clamp(d.jejak + 12, 0, 100); lines.push('Auditor menerima... jejak baru tercipta'); } }
+  S = Math.round(S);
+  if (S >= 75) { d.arrest = true; d.sorotan = clamp(d.sorotan + 30, 0, 100); lines.push('Temuan pidana! Kasus dilimpahkan ke KPK.'); }
+  else if (S >= 50) { const pen = Math.round(d.fees * 1.5); G.money = Math.max(0, G.money - pen); d.sorotan = clamp(d.sorotan + 20, 0, 100); k.integ = clamp(k.integ - 10, 0, 100); addInd({ puas: -8 }); d.force = 'd_kpk'; lines.push(`Temuan serius: denda ${rpk(pen)}, KPK akan memanggilmu.`); }
+  else if (S >= 25) { const fine = Math.round(d.fees * .3); G.money = Math.max(0, G.money - fine); d.sorotan = clamp(d.sorotan + 5, 0, 100); k.integ = clamp(k.integ - 3, 0, 100); lines.push(`Temuan administrasi: denda ${rpk(fine)}.`); }
+  else { k.integ = clamp(k.integ + 3, 0, 100); addInd({ puas: 2 }); lines.push('Opini WTP: tidak ada temuan berarti.'); }
+  note(`Audit BPK ke-${d.auditN}: skor risiko ${S}.`, 'audit');
+  return S;
+}
+/** Program antikorupsi: lelang terbuka (e-procurement) menutup celah fee/kroni; LHKPN melaporkan harta. */
+export function setEproc() { const c = city(), d = dn(); if (!c || d.eproc || c.apbd < EPROC_COST) { SFX.err(); return false; } c.apbd -= EPROC_COST; d.eproc = true; k_integ(4); d.dprd = clamp(d.dprd - 5, 0, 100); SFX.good(); toast('Lelang terbuka diterapkan: tanpa fee, tanpa kroni.', '#cfe8ff'); return true; }
+export function reportAssets() { const d = dn(); if (d.lhkpn) { SFX.err(); return false; } d.lhkpn = true; k_integ(3); d.sorotan = Math.max(0, d.sorotan - 5); SFX.good(); toast('LHKPN dilaporkan. Warga menilai kamu terbuka.', '#cfe8ff'); return true; }
+const k_integ = n => { const k = kota(); k.integ = clamp(k.integ + n, 0, 100); };
+/** Syarat tambahan kejadian dunia nyata (when). */
+export function kotaWhenOk(w) {
+  const d = dn(), c = city();
+  if (w.jejakMin !== undefined && d.jejak < w.jejakMin) return false;
+  if (w.jejakMax !== undefined && d.jejak > w.jejakMax) return false;
+  if (w.dprdMax !== undefined && d.dprd > w.dprdMax) return false;
+  if (w.hargaMin !== undefined && d.harga < w.hargaMin) return false;
+  if (w.puasMax !== undefined && !(c && c.ind.puas <= w.puasMax)) return false;
+  if (w.kerjaMax !== undefined && !(c && c.ind.kerja <= w.kerjaMax)) return false;
+  if (w.bizMin !== undefined && Object.values(kota().biz).filter(v => v > 0).length < w.bizMin) return false;
+  if (w.done && !(c && c.done[w.done] && !(c.broken && c.broken[w.done]))) return false;
+  if (w.notDone && c && c.done[w.notDone] && !(c.broken && c.broken[w.notDone])) return false;
+  if (w.proyekJalan && !(c && c.proj.length)) return false;
+  return true;
+}
+export function takeForcedEvent() { const d = G.kota && G.kota.dunia; if (d && d.force) { const f = d.force; d.force = null; return f; } return null; }
 export function endingOf() {
   const k = kota(), avg = cityAvg(), c = city();
-  if (k.integ < 40) return 'korup';
-  if (avg >= 58 && k.integ >= 70 && c.ind.puas >= 60) return 'bapak';
+  if (dn().arrest) return 'tangkap';
+  if (k.integ < 40 || dn().jejak >= 70) return 'korup';
+  if (avg >= 54 && k.integ >= 70 && c.ind.puas >= 60) return 'bapak';
   return 'biasa';
 }
 
 /* ---------- awal hari ---------- */
 /** Dipanggil saat hari baru dimulai (sebelum cerita dijadwalkan): buka babak, pendapatan usaha, kampanye, kota. */
 export function dawnKota() {
-  const k = kota(), s = st();
+  const k = kota(), s = st(), d = dn();
   if (!k.ch && s.ending) { k.ch = 6; k.phase = 'usaha'; setFlag('babak_usaha'); }
   if (!k.ch || k.lastDay === G.day) return;
   k.lastDay = G.day;
+  if (d.arrest && !k.ending) { k.ending = 'tangkap'; ui.modal = 'kota_akhir'; SFX.down(); note('OTT KPK di rumah dinas pagi ini.', 'kpk'); return; }
+  // ekonomi: harga bergerak, saingan reda, sorotan & jejak memudar pelan
+  d.harga = clamp(d.harga + (1 - d.harga) * .02 + (Math.random() - .5) * .012, .9, 1.6); if (d.saingan > 0) d.saingan--;
+  d.sorotan = Math.max(0, d.sorotan - 1.5); d.jejak = Math.max(0, d.jejak - .15);
   const inc = incomePerDay();
-  if (inc > 0 && G.day > 1) { G.money += inc; note(`Pendapatan usaha ${rpk(inc)}.`); }
+  if (incomeNominal() > 0 && G.day > 1) {
+    G.money += inc; note(inc ? `Pendapatan usaha ${rpk(inc)}${d.saingan > 0 ? ' (ada saingan baru)' : ''}.` : 'Usaha belum menghasilkan: izin masih diproses.', 'usaha');
+    if (incomeNominal() && d.harga > 1.12) note(`Harga naik ${Math.round((d.harga - 1) * 100)}%: margin usaha menipis.`, 'harga');
+  }
   if (k.ch === 6 && isMiliarder()) { k.ch = 7; setFlag('miliarder'); note('Kekayaan bersihmu menembus Rp 1 miliar!'); }
   if (k.phase === 'kampanye') { k.camp.day++; if (k.camp.day >= CAMP_DAYS) runElection(); }
   else if (k.phase === 'wali' && k.city) cityDawn();
 }
+const setForce = id => { const d = dn(); if (!d.force) d.force = id; };
 function cityDawn() {
-  const c = city(), k = kota();
+  const c = city(), k = kota(), d = dn(); c.broken = c.broken || {}; c.fail = c.fail || {}; c.qual = c.qual || {}; c.applied = c.applied || {};
   const tax = taxPerDay(); c.apbd += tax; c.taxToday = tax;
   for (const key in c.ind) c.ind[key] = clamp(c.ind[key] - (key === 'bers' ? .25 : .15), 0, 100);
   c.ind.puas = clamp(c.ind.puas + ((c.ind.sej + c.ind.bers + c.ind.kerja) / 3 - 50) * .06, 0, 100);
   const rest = [];
   for (const p of c.proj) {
+    // gangguan nyata di lapangan: molor karena cuaca/material, biaya membengkak (kontraktor kurang andal lebih sering)
+    if (Math.random() < (1 - p.rel) * .35) { p.left++; note(`${PROJECTS.find(x => x.id === p.id).name} molor sehari (${p.who}: material terlambat).`, 'proyek'); }
+    if (Math.random() < (1 - p.rel) * .12) { const extra = Math.round(p.price * (.08 + Math.random() * .12)); c.apbd = Math.max(0, c.apbd - extra); note(`Biaya ${PROJECTS.find(x => x.id === p.id).name} membengkak ${rpk(extra)} (addendum kontrak).`, 'proyek'); }
     p.left--; if (p.left > 0) { rest.push(p); continue; }
-    const def = PROJECTS.find(x => x.id === p.id); c.done[p.id] = true; addInd(def.fx); SFX.good();
-    note(`${def.name} selesai!`); toast(`${def.name} selesai!`, '#ffe45c');
+    const def = PROJECTS.find(x => x.id === p.id), m = projectEffect(p.quality); c.done[p.id] = true; c.qual[p.id] = p.quality; c.applied[p.id] = { fx: def.fx, m, fee: p.fee > 0 }; addInd(def.fx, m); SFX.good();
+    note(`${def.name} selesai (kualitas ${p.quality}, ${p.who}).`, 'proyek'); toast(`${def.name} selesai!`, '#ffe45c');
+    if (p.quality < 55 && Math.random() < (60 - p.quality) / 55) c.fail[p.id] = c.day + ri(5, 14);
   }
   c.proj = rest; c.day++;
+  // bangunan berkualitas buruk rusak: efeknya hilang, warga marah, penyelidikan mengendus fee
+  for (const id of Object.keys(c.fail)) {
+    if (c.day < c.fail[id]) continue; delete c.fail[id]; const ap = c.applied[id], def = PROJECTS.find(x => x.id === id);
+    c.broken[id] = true; if (ap) addInd(ap.fx, -ap.m); addInd({ puas: -8 }); d.sorotan = clamp(d.sorotan + 15, 0, 100); d.jejak = clamp(d.jejak + (ap && ap.fee ? 10 : 4), 0, 100);
+    note(`${def.name} RUSAK: kontraktor asal-asalan! Warga marah, media menyorot.`, 'rusak');
+  }
   note(`Kas kota +${rpk(tax)}.`);
+  if (d.jejak >= 85 && Math.random() < .5) { d.arrest = true; note('Penyidik sudah mengantongi bukti kuat.', 'kpk'); }
+  // pemicu peristiwa: audit terjadwal, panggilan KPK, pelapor, demo, DPRD
+  if (AUDIT_DAYS.includes(c.day)) setForce('d_audit');
+  else if (c.day === d.kpkDay) setForce('d_kpk');
+  else {
+    const pw = d.jejak > 20 ? d.sorotan / 500 + (100 - c.ind.puas) / 2000 + d.jejak / 1500 : 0;
+    if (Math.random() < pw) setForce('d_whistle');
+    else if (c.ind.puas < 35 && Math.random() < .35) setForce('d_demo');
+    else if (d.dprd < DPRD_MIN && c.day % 5 === 0) setForce('d_jatah');
+  }
   if (c.day > CITY_DAYS && !k.ending) { k.ending = endingOf(); ui.modal = 'kota_akhir'; SFX.ending(); }
 }
-export const endingInfo = () => ENDINGS[kota().ending] || null;
+export const endingInfo = () => (kota().ending === 'tangkap' ? ENDING_ARREST : ENDINGS[kota().ending]) || null;

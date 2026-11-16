@@ -1,3 +1,4 @@
+import { trafficMul } from './logic/kota.js';
 import { SFX } from './audio.js';
 import { DAY_END, DAY_START, HOUR_SEC, W } from './constants.js';
 import { RATE } from './data.js';
@@ -52,7 +53,7 @@ export function update(dt) {
   // spawn
   const ri0 = clamp(Math.floor(G.h) - DAY_START, 0, RATE.length - 1);
   const repMul = .75 + G.rep / 100 * .55, rainMul = isRain() ? .75 : 1;
-  const p = RATE[ri0] * .55 * repMul * rainMul * (G.promo ? 1.4 : 1) * dh;
+  const p = RATE[ri0] * .55 * repMul * rainMul * (G.promo ? 1.4 : 1) * trafficMul() * dh;
   G.idle = G.cust.length ? 0 : G.idle + dt;
   G.spawnCd -= dt;
   if (G.spawnCd <= 0 && G.h < DAY_END - .6) {

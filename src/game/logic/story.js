@@ -7,7 +7,7 @@ import { checkAchievements } from './achievements.js';
 import { bondByName } from './regulars.js';
 import { CATATAN, CHAPTERS, EPILOG, EPILOG_FLAG, POOL, SCRIPT } from '../story/events.js';
 import { addXp, level } from './level.js';
-import { applyKotaFx, kota, netWorth } from './kota.js';
+import { applyKotaFx, kota, kotaWhenOk, netWorth, takeForcedEvent } from './kota.js';
 
 /* ============================================================
    MESIN CERITA & TANGGUNG JAWAB
@@ -87,7 +87,7 @@ export function applyFx(fx = {}) {
   if (fx.dueShift) { story().due += fx.dueShift; lines.push(`Cicilan mundur ${fx.dueShift} hari`); }
   if (fx.kasbon) { G.debts.push({ who: fx.kasbon.who, amount: fx.kasbon.amount, day: G.day }); lines.push(`Kasbon ${fx.kasbon.who} ${rp(fx.kasbon.amount)}`); }
   if (fx.bond) for (const b of [].concat(fx.bond)) { bondByName(b.who, b.n); lines.push(`${b.who} ${b.n > 0 ? 'lebih dekat' : 'menjauh'}`); }
-  if (fx.integ || fx.duk || fx.apbd || fx.kota) lines.push(...applyKotaFx(fx));
+  if (fx.integ || fx.duk || fx.apbd || fx.kota || fx.jejak || fx.sorotan || fx.dprd || fx.harga || fx.audit || fx.izin || fx.saingan || fx.returnFees || fx.inspect) lines.push(...applyKotaFx(fx));
   if (fx.flag) story().flags[fx.flag] = true;
   if (fx.xp) addXp(fx.xp);
   return lines;
@@ -106,15 +106,17 @@ export function eligible(ev) {
   if (w.trustMin !== undefined && s.trust < w.trustMin) return false;
   if (w.trustMax !== undefined && s.trust > w.trustMax) return false;
   if (w.wealthMin !== undefined && netWorth() < w.wealthMin) return false;
+  if (!kotaWhenOk(w)) return false;
   if (w.phase && ![].concat(w.phase).includes(kota().phase)) return false;
   return true;
 }
 /** Pilih kejadian hari ini: urutan bab dulu (yang syaratnya terpenuhi), lalu kolam acak (tanpa ulang dalam 8 terakhir). */
 export function pickEvent() {
   const s = story(), ch = chapterOf(), L = level();
+  const fid = takeForcedEvent(), forced = fid && eventById(fid); if (forced) return forced;
   const scripted = SCRIPT.find(e => e.ch <= ch && !s.done.includes(e.id) && eligible(e));
   if (scripted) return scripted;
-  const pool = POOL.filter(e => e.minLevel <= L && !s.recent.includes(e.id) && eligible(e));
+  const pool = POOL.filter(e => !e.forceOnly && e.minLevel <= L && !s.recent.includes(e.id) && eligible(e));
   return pool.length ? pick(pool) : null;
 }
 /** Kartu pembuka bab: tampil sekali saat bab baru dimulai (setelah warung dibuka). */

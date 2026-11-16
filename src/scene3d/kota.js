@@ -200,7 +200,7 @@ export function createKota() {
 
   /** state = G.kota (boleh null). Membangun ulang hanya bila ada perubahan. */
   const sync = k => {
-    const c = k && k.city, lv = BIZ.map(b => (k && k.biz[b.id]) || 0), done = c ? Object.keys(c.done).sort().join() : '', pr = c ? c.proj.map(p => p.id + p.left).join() : '', bers = c ? Math.round(c.ind.bers / 10) : 4;
+    const c = k && k.city, lv = BIZ.map(b => (k && k.biz[b.id]) || 0), done = c ? Object.keys(c.done).filter(i => c.done[i]).sort().join() + '!' + Object.keys(c.broken || {}).filter(i => c.broken[i]).join() : '', pr = c ? c.proj.map(p => p.id + p.left).join() : '', bers = c ? Math.round(c.ind.bers / 10) : 4;
     const s = [lv.join(), done, pr, bers, !!c, c ? Math.round(c.ind.sej / 5) : 0].join('|'); if (s === sig) return; sig = s;
     carN = Math.round(14 + (c && c.done.jalan ? 22 : 0) + (c ? c.ind.sej * .2 : 4)); dyn.clear(); buildRoads(!!(c && c.done.jalan), c ? c.ind.bers : 40);
     trees.count = Math.round(treeSpots.length * (.35 + .65 * (c ? c.ind.bers : 40) / 100) + (c && c.done.taman ? 0 : 0));
@@ -208,15 +208,16 @@ export function createKota() {
     const rd = new THREE.Mesh(new THREE.TorusGeometry(3.6, .9, 4, 24), M(c && c.done.jalan ? '#3c3d42' : '#77746a')); rd.rotation.x = -Math.PI / 2; rd.position.set(36, .08, -4); dyn.add(rd);   // bundaran di depan Balai Kota
     for (const [id, [x, z]] of Object.entries(PLOT)) {
       const def = PROJECTS.find(p => p.id === id), g = new THREE.Group(); g.position.set(x, 0, z);
-      const ds = c && c.done[id], run = c && c.proj.find(p => p.id === id);
+      const bk = c && c.broken && c.broken[id], ds = c && c.done[id] && !bk, run = c && c.proj.find(p => p.id === id);
       let sub = '';
-      if (ds) { g.add(BUILD[id]()); sub = 'selesai'; }
+      if (bk) { const b = BUILD[id](); b.scale.y = .4; b.rotation.z = .08; g.add(b); sub = 'RUSAK!'; }
+      else if (ds) { g.add(BUILD[id]()); sub = 'selesai'; }
       else if (run) {
         const prog = 1 - run.left / def.days, b = BUILD[id](); b.scale.y = Math.max(.12, prog); g.add(b); sub = `sisa ${run.left} hari`;
         [[-5, -3.5], [5, -3.5], [-5, 3.5], [5, 3.5]].forEach(([px, pz]) => g.add(cyl(.1, 4.4, M('#f0b429'), px, 0, pz, 6)));
         const crane = new THREE.Group(); crane.add(cyl(.18, 8, M('#f0b429'), 0, 0, 0, 6)); crane.add(box(7, .25, .25, M('#f0b429'), -2.5, 8, 0)); crane.add(box(.1, 2.2, .1, M('#444'), -5.4, 5.8, 0)); crane.position.set(4.5, 0, -3.2); g.add(crane);
       } else { g.add(box(10.6, .1, 7.6, M('#b9a27a'))); [-5.3, 5.3].forEach(px => g.add(box(.12, .9, 7.6, M('#8a6a3a'), px, 0, 0))); sub = 'lahan kosong'; }
-      const lb = label(def.name, sub, ds ? '#fff' : run ? '#ffe45c' : '#c8c8c8', .9); lb.position.set(0, 7, 0); g.add(lb); dyn.add(g);
+      const lb = label(def.name, sub, bk ? '#ff8a7a' : ds ? '#fff' : run ? '#ffe45c' : '#c8c8c8', .9); lb.position.set(0, 7, 0); g.add(lb); dyn.add(g);
     }
     // usaha pribadi di sudut barat laut + warung asal
     const wm = warungMini(); wm.position.set(-70, 0, -46); dyn.add(wm); const wl = label('WARUNG', 'asal usul', '#fff', .8); wl.position.set(-70, 4.6, -46); dyn.add(wl);

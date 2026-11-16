@@ -1,6 +1,7 @@
 import { ctx } from '../gfx.js';
 import { BIZ, BIZ_MAX, CAMP_ACTS, CAMP_DAYS, CITY_DAYS, IND, MAX_PROJ, PROJECTS, RIVAL, WIN_WEALTH } from '../story/kota.js';
-import { assetValue, bizIncAt, bizLevel, bizNextCost, build, buyBiz, campUses, campaign, canBuild, canRun, city, cityAvg, endingInfo, incomePerDay, isMiliarder, kota, netWorth, projectBusy, rivalPower, runForOffice, support, taxPerDay } from '../logic/kota.js';
+import { assetValue, awardTender, bizIncAt, bizLevel, bizNextCost, buyBiz, campUses, campaign, cancelTender, canBuild, canRun, city, cityAvg, dn, dprdBlock, endingInfo, incomeNominal, incomePerDay, isMiliarder, kota, netWorth, projectEffect, reportAssets, rivalPower, runForOffice, rushCost, setEproc, startTender, support, taxPerDay } from '../logic/kota.js';
+import { AUDIT_DAYS, DPRD_MIN, EPROC_COST, RUSH_PCT } from '../story/dunia.js';
 import { story } from '../logic/story.js';
 import { G, ui } from '../state.js';
 import { T, clamp, rpk, rr, wrapText } from '../util.js';
@@ -19,10 +20,10 @@ export function kotaModal() {
   T('USAHA & KOTA', x + 36, y + 54, { s: 32, c: '#6b3a14' });
   closeBtn(x + w - 40, y + 40, () => { ui.modal = null; save(); });
   T(`Kekayaan bersih ${rpk(netWorth())}  ·  Kas ${rpk(G.money)}  ·  Aset ${rpk(assetValue())}  ·  Pendapatan usaha ${rpk(incomePerDay())}/hari`, x + 36, y + 82, { s: 14, w: '700', c: '#5a3a1a' });
-  [['usaha', 'USAHA'], ['politik', wali ? 'KOTA' : 'POLITIK']].forEach(([id, label], i) => {
+  [['usaha', 'USAHA'], ['politik', wali ? 'KOTA' : 'POLITIK'], ['awasi', 'AWASI']].forEach(([id, label], i) => {
     button(x + 36 + i * 170, y + 96, 160, 40, label, () => { k.tab = id; }, { col: k.tab === id ? 'yellow' : 'wood', tc: k.tab === id ? '#4a2a00' : '#fff', s: 16 });
   });
-  if (k.tab === 'politik') (wali ? kotaTab : politikTab)(k, x, y + 150, w); else usahaTab(k, x, y + 150, w);
+  if (k.tab === 'politik') (wali ? kotaTab : politikTab)(k, x, y + 150, w); else if (k.tab === 'awasi') awasiTab(k, x, y + 150, w); else usahaTab(k, x, y + 150, w);
 }
 
 function usahaTab(k, x, y, w) {
@@ -36,12 +37,13 @@ function usahaTab(k, x, y, w) {
     T(b.name, x + 52, ry + 32, { s: 22, c: '#3a210c' });
     T(b.desc, x + 52, ry + 54, { s: 13, w: '600', c: '#5a3a1a' });
     for (let p = 0; p < BIZ_MAX; p++) { ctx.fillStyle = p < lv ? '#e0b030' : '#d8c28c'; rr(ctx, x + 52 + p * 30, ry + 64, 24, 12, 4); ctx.fill(); }
-    T(lv ? `Lv ${lv} · ${rpk(inc)}/hari` : 'Belum dibuka', x + 440, ry + 32, { s: 17, w: '800', c: lv ? '#2a5a1a' : '#7a6a5a' });
+    const wait = lv && (k.ready[b.id] || 0) > G.day ? k.ready[b.id] - G.day : 0;
+    T(lv ? (wait ? `Lv ${lv} · izin diproses ${wait} hari` : `Lv ${lv} · ${rpk(inc)}/hari`) : 'Belum dibuka', x + 440, ry + 32, { s: 17, w: '800', c: lv ? '#2a5a1a' : '#7a6a5a' });
     if (nx !== null) T(`${lv ? 'Naik' : 'Buka'}: +${rpk(gain)}/hari  ·  balik modal ~${Math.ceil(nx / gain)} hari`, x + 440, ry + 56, { s: 13, w: '700', c: '#5a3a1a' });
     else T('Level maksimum', x + 440, ry + 56, { s: 13, w: '700', c: '#5a3a1a' });
     button(x + w - 250, ry + 20, 190, 52, nx === null ? 'MAKS' : `${lv ? 'NAIK' : 'BUKA'} ${rpk(nx)}`, () => buyBiz(b.id), { col: 'green', s: 17, disabled: nx === null || G.money < nx, tip: nx !== null && G.money < nx ? 'Kas belum cukup' : 'Pendapatan masuk tiap pagi' });
   });
-  T('Pendapatan usaha masuk ke kas tiap pagi. Aset dihitung 70% dari modal untuk kekayaan bersih.', x + 36, y + 52 + BIZ.length * 98 + 12, { s: 13, w: '600', c: '#7a5a3a' });
+  T(`Nominal ${rpk(incomeNominal())}/hari, nyata hari ini ${rpk(incomePerDay())} (dipengaruhi pelanggan, saingan, inflasi, dan izin). Aset dihitung 70% untuk kekayaan bersih.`, x + 36, y + 52 + BIZ.length * 98 + 12, { s: 13, w: '600', c: '#7a5a3a' });
 }
 
 function politikTab(k, x, y, w) {
@@ -81,18 +83,57 @@ function kotaTab(k, x, y, w) {
   T(`Rata-rata ${cityAvg()} · proyek berjalan ${c.proj.length}/${MAX_PROJ}`, x + 36, y + 90, { s: 13, w: '700', c: '#7a5a3a' });
   PROJECTS.forEach((p, i) => {
     const col = i % 3, row = Math.floor(i / 3), cw = (w - 56 - 24) / 3, cx = x + 28 + col * (cw + 12), cy = y + 104 + row * 132;
-    const done = c.done[p.id], busy = projectBusy(p.id), run = c.proj.find(q => q.id === p.id), can = canBuild(p.id);
-    card(cx, cy, cw, 124, done ? 'rgba(120,200,110,.3)' : busy ? 'rgba(255,225,130,.4)' : 'rgba(255,255,255,.55)', done ? '#7ac070' : '#d6bf8a');
+    const broken = c.broken && c.broken[p.id], done = c.done[p.id] && !broken, run = c.proj.find(q => q.id === p.id), can = canBuild(p.id), blocked = dprdBlock(p.id);
+    card(cx, cy, cw, 124, broken ? 'rgba(230,150,130,.4)' : done ? 'rgba(120,200,110,.3)' : run ? 'rgba(255,225,130,.4)' : 'rgba(255,255,255,.55)', broken ? '#d88a7a' : done ? '#7ac070' : '#d6bf8a');
     T(p.name, cx + 14, cy + 26, { s: 16, c: '#3a210c' });
-    T(`${rpk(p.cost)} · ${p.days} hari`, cx + 14, cy + 46, { s: 12, w: '700', c: '#5a3a1a' });
+    T(`${rpk(p.cost)} · ${p.days} hari${blocked ? ' · butuh DPRD' : ''}`, cx + 14, cy + 46, { s: 12, w: '700', c: blocked ? '#b3281e' : '#5a3a1a' });
     T(fxText(p.fx), cx + 14, cy + 64, { s: 12, w: '700', c: '#2a5a1a' });
-    if (done) T('✔ Selesai', cx + 14, cy + 100, { s: 16, w: '800', c: '#2a5a1a' });
-    else if (busy) { T(`Dibangun… sisa ${run.left} hari`, cx + 14, cy + 100, { s: 14, w: '800', c: '#a05a1a' }); }
-    else {
-      button(cx + 12, cy + 76, cw - 24 - 96, 40, 'BANGUN', () => build(p.id), { col: 'green', s: 15, disabled: !can, tip: !can ? (c.proj.length >= MAX_PROJ ? 'Dinas PU penuh' : 'Kas kota belum cukup') : 'Anggaran bersih' });
-      button(cx + cw - 92, cy + 76, 80, 40, 'MARK-UP', () => build(p.id, true), { col: 'red', s: 12, disabled: !can, tip: '+20% ke kantong pribadi. Integritas −12, 25% ketahuan.' });
-    }
+    if (done) T(`✔ Selesai · kualitas ${c.qual[p.id] || '—'}${c.fail && c.fail[p.id] ? ' ⚠' : ''}`, cx + 14, cy + 104, { s: 14, w: '800', c: '#2a5a1a' });
+    else if (run) T(`${run.who} · kualitas ${run.quality} · sisa ${run.left} hari`, cx + 14, cy + 104, { s: 12, w: '800', c: '#a05a1a' });
+    else { if (broken) T('RUSAK — efek hilang', cx + 14, cy + 88, { s: 13, w: '800', c: '#b3281e' }); button(cx + 12, cy + 76 + (broken ? 14 : 0), cw - 24, broken ? 32 : 40, broken ? 'TENDER ULANG' : 'TENDER PROYEK', () => startTender(p.id), { col: 'green', s: 15, disabled: !can && !blocked, tip: blocked ? `DPRD menahan proyek besar (dukungan < ${DPRD_MIN}). Lihat tab AWASI.` : !can ? (c.proj.length >= MAX_PROJ ? 'Dinas PU penuh' : 'Kas kota belum cukup') : 'Pilih kontraktor lewat lelang' }); }
   });
+}
+
+/** Tab AWASI: jejak korupsi, sorotan, DPRD, harga, program antikorupsi, dan berita. */
+function awasiTab(k, x, y, w) {
+  const d = dn(), c = city(), wali = k.phase === 'wali';
+  const meter = (label, v, col, bx, by, bw, mark, hint) => { T(label, bx, by, { s: 13, w: '800', c: '#a05a1a' }); bar(bx, by + 8, bw, 14, v / 100, col); if (mark !== undefined) { ctx.fillStyle = '#3a210c'; ctx.fillRect(bx + bw * mark / 100 - 1, by + 4, 3, 22); } T(hint || String(Math.round(v)), bx + bw + 8, by + 21, { s: 12, w: '700', c: '#5a3a1a' }); };
+  meter('INTEGRITAS', k.integ, k.integ >= 70 ? '#58b948' : k.integ >= 40 ? '#e0b030' : '#d6483a', x + 36, y + 10, 330);
+  if (wali) {
+    meter('JEJAK KORUPSI (bukti yang bisa ditemukan)', d.jejak, d.jejak < 30 ? '#58b948' : d.jejak < 60 ? '#e0b030' : '#d6483a', x + 36, y + 56, 330);
+    meter('SOROTAN MEDIA', d.sorotan, '#5aa6ee', x + 36, y + 102, 330);
+    meter('DUKUNGAN DPRD', d.dprd, d.dprd >= DPRD_MIN ? '#58b948' : '#d6483a', x + 36, y + 148, 330, DPRD_MIN, `${Math.round(d.dprd)} (min ${DPRD_MIN} untuk proyek besar)`);
+    const next = AUDIT_DAYS.find(a => a >= c.day); T(`Audit BPK berikutnya: hari ke-${next || '—'} masa jabatan · Fee yang pernah diterima: ${rpk(d.fees)}`, x + 36, y + 200, { s: 13, w: '700', c: '#7a3a2a' });
+    button(x + 36, y + 216, 330, 42, d.eproc ? 'Lelang terbuka: AKTIF' : `LELANG TERBUKA ${rpk(EPROC_COST)}`, () => setEproc(), { col: d.eproc ? 'grey' : 'green', s: 15, disabled: d.eproc || c.apbd < EPROC_COST, tip: 'E-procurement: tanpa fee & kroni, audit lebih ringan, DPRD agak kecewa' });
+    button(x + 36, y + 266, 330, 42, d.lhkpn ? 'LHKPN sudah dilaporkan' : 'LAPOR HARTA (LHKPN)', () => reportAssets(), { col: d.lhkpn ? 'grey' : 'blue', s: 15, disabled: d.lhkpn, tip: 'Integritas +3, sorotan −5' });
+  }
+  const harga = Math.round((d.harga - 1) * 100); const hx = wali ? x + 36 : x + 36, hy = wali ? y + 326 : y + 56;
+  T(`Indeks harga ${harga >= 0 ? '+' : ''}${harga}% · pelanggan ${d.saingan > 0 ? `berkurang karena saingan (${d.saingan} hari)` : 'normal'}`, hx, hy, { s: 13, w: '700', c: '#5a3a1a' });
+  T('BERITA TERBARU', x + 400, y + 18, { s: 13, w: '800', c: '#a05a1a' });
+  const log = d.log.slice(-11).reverse(), col = { audit: '#b3281e', kpk: '#b3281e', rusak: '#b3281e', proyek: '#7a5a1a', harga: '#a05a1a', usaha: '#2a5a1a' };
+  if (!log.length) T('Belum ada berita.', x + 400, y + 48, { s: 14, w: '600', c: '#7a6a5a' });
+  log.forEach((n, i) => { const ls = wrapText(`Hari ${n.day}: ${n.text}`, w - 440, 13, '600'); T(ls[0] + (ls.length > 1 ? '…' : ''), x + 400, y + 44 + i * 26, { s: 13, w: '600', c: col[n.kind] || '#3a210c' }); });
+}
+
+/** Lelang proyek: pilih kontraktor. Fee/komisi hanya muncul bila tidak ada lelang terbuka. */
+export function tenderModal() {
+  const c = city(), t = c && c.tender; if (!t) { ui.modal = 'kota'; return; }
+  const p = PROJECTS.find(q => q.id === t.id), x = 150, y = 40, w = 980, h = 640; panel(x, y, w, h);
+  T(`TENDER: ${p.name.toUpperCase()}`, x + 36, y + 56, { s: 30, c: '#6b3a14' }); closeBtn(x + w - 40, y + 40, cancelTender);
+  T(`Pagu ${rpk(p.cost)} · kas kota ${rpk(c.apbd)} · ${p.days} hari · kualitas menentukan besar manfaat proyek`, x + 36, y + 84, { s: 14, w: '700', c: '#5a3a1a' });
+  const NOTE = { jujur: 'Harga wajar, kualitas tinggi, jarang molor.', murah: 'Murah tapi kualitas rendah; proyek bisa rusak dan sering molor.', kroni: 'Mahal, tapi menawarkan fee besar ke kantongmu. Bukti jejak.', sendiri: 'Milik usahamu sendiri: konflik kepentingan, tapi ada bagi hasil.' };
+  t.bids.forEach((b, i) => {
+    const ry = y + 104 + i * 98, cant = c.apbd < b.price || (t.rush && G.money < rushCost(b)), dirty = b.fee > 0;
+    card(x + 28, ry, w - 56, 90, dirty ? 'rgba(230,150,130,.28)' : 'rgba(255,255,255,.55)', dirty ? '#d88a7a' : '#d6bf8a');
+    T(b.name, x + 50, ry + 30, { s: 20, c: '#3a210c' });
+    T(NOTE[b.key], x + 50, ry + 52, { s: 13, w: '600', c: '#5a3a1a' });
+    T(`Harga ${rpk(b.price)} (${Math.round(b.price / p.cost * 100)}% pagu) · kualitas ~${b.quality} (manfaat ${Math.round(projectEffect(b.quality) * 100)}%) · keandalan ${Math.round(b.rel * 100)}%`, x + 50, ry + 74, { s: 13, w: '700', c: '#2a4a6a' });
+    if (dirty) T(`Fee untukmu ${rpk(b.fee)}`, x + w - 290, ry + 24, { s: 14, a: 'right', w: '800', c: '#b3281e' });
+    button(x + w - 270, ry + 22, 210, 50, 'PILIH', () => awardTender(i), { col: dirty ? 'red' : 'green', s: 18, disabled: cant, tip: cant ? 'Kas kota / uang pribadi tidak cukup' : '' });
+  });
+  const by = y + 104 + t.bids.length * 98 + 8;
+  button(x + 28, by, 460, 44, `${t.rush ? '☑' : '☐'} Uang pelicin percepat izin (−2 hari, ${Math.round(RUSH_PCT * 100)}% harga dari kantongmu)`, () => { t.rush = !t.rush; }, { col: t.rush ? 'red' : 'wood', s: 14, tip: 'Praktik nyata: izin cepat dengan "uang administrasi". Jejak +3, integritas −4' });
+  T('Penawar yang menawarkan fee bukan kebetulan: itu cara kerja suap & kickback. Jejaknya bisa ditemukan audit dan pelapor.', x + 36, y + h - 24, { s: 12, w: '600', c: '#7a5a3a' });
 }
 
 /** Hasil pemilihan wali kota. */
