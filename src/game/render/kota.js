@@ -1,6 +1,6 @@
 import { ctx } from '../gfx.js';
 import { BIZ, BIZ_MAX, CAMP_ACTS, CAMP_DAYS, CITY_DAYS, IND, MAX_PROJ, PROJECTS, RIVAL, WIN_WEALTH } from '../story/kota.js';
-import { assetValue, awardTender, bizIncAt, bizLevel, bizNextCost, buyBiz, campUses, campaign, cancelTender, canBuild, canRun, city, cityAvg, dn, dprdBlock, endingInfo, incomeNominal, incomePerDay, isMiliarder, kota, netWorth, projectEffect, reportAssets, rivalPower, runForOffice, rushCost, setEproc, victimOf, wargaList, hajiOf, epilogPeople, startTender, support, taxPerDay } from '../logic/kota.js';
+import { assetValue, awardTender, bizIncAt, bizLevel, bizNextCost, buyBiz, campUses, campaign, cancelTender, canBuild, canRun, city, cityAvg, dn, dprdBlock, endingInfo, incomeNominal, incomePerDay, isMiliarder, kota, netWorth, projectEffect, reportAssets, rivalPower, runForOffice, rushCost, setEproc, victimOf, riskNow, bantuWarga, canBantu, BANTU_COST, wargaList, hajiOf, epilogPeople, startTender, support, taxPerDay } from '../logic/kota.js';
 import { AUDIT_DAYS, DPRD_MIN, EPROC_COST, RUSH_PCT } from '../story/dunia.js';
 import { story } from '../logic/story.js';
 import { G, ui } from '../state.js';
@@ -106,9 +106,10 @@ function wargaTab(k, x, y, w) {
     const ry = y + 82 + i * 72;
     card(x + 28, ry, w - 56, 64);
     T(p.name, x + 52, ry + 26, { s: 19, c: '#3a210c' }); T(p.role, x + 52, ry + 48, { s: 12, w: '600', c: '#7a5a3a' });
-    T(p.talk ? `"${p.talk}"` : '', x + 260, ry + 26, { s: 14, w: '700', c: '#3a2a1a' });
-    T(p.janji ? `Janjimu: ${PROJECTS.find(q => q.id === p.janji.proj).name} sebelum hari ke-${p.janji.due}` : `Butuh: ${p.wants.map(id => PROJECTS.find(q => q.id === id).name).join(', ')}${p.fears ? ` · khawatir: ${p.fears.map(id => PROJECTS.find(q => q.id === id).name).join(', ')}` : ''}`, x + 260, ry + 48, { s: 12, w: '700', c: p.janji ? '#a05a1a' : '#5a5a5a' });
-    bar(x + 720, ry + 24, 180, 14, p.mood / 100, moodCol(p.mood)); T(String(Math.round(p.mood)), x + 910, ry + 36, { s: 13, w: '700', c: '#5a3a1a' });
+    T(p.talk ? `"${p.talk}"` : '', x + 230, ry + 26, { s: 14, w: '700', c: '#3a2a1a' });
+    T(p.janji ? `Janjimu: ${PROJECTS.find(q => q.id === p.janji.proj).name} sebelum hari ke-${p.janji.due}` : `Butuh: ${p.wants.map(id => PROJECTS.find(q => q.id === id).name).join(', ')}${p.fears ? ` · khawatir: ${p.fears.map(id => PROJECTS.find(q => q.id === id).name).join(', ')}` : ''}`, x + 230, ry + 48, { s: 12, w: '700', c: p.janji ? '#a05a1a' : '#5a5a5a' });
+    bar(x + 690, ry + 24, 120, 14, p.mood / 100, moodCol(p.mood)); T(String(Math.round(p.mood)), x + 816, ry + 36, { s: 13, w: '700', c: '#5a3a1a' });
+    button(x + 852, ry + 12, 124, 40, 'BANTU', () => bantuWarga(p.id), { col: 'blue', s: 14, disabled: !canBantu(p.id), tip: `${rpk(BANTU_COST)} dari kantongmu, diam-diam. Suasana hati +8 (jeda 3 hari)` });
   });
   T('Mereka juga belanja di warungmu dan membicarakan kota, tanpa tahu kamu sedang mendengarkan.', x + 36, y + 82 + 5 * 72 + 14, { s: 13, w: '600', c: '#7a5a3a' });
 }
@@ -141,17 +142,21 @@ export function tenderModal() {
   T(`TENDER: ${p.name.toUpperCase()}`, x + 36, y + 56, { s: 30, c: '#6b3a14' }); closeBtn(x + w - 40, y + 40, cancelTender);
   T(`Pagu ${rpk(p.cost)} · kas kota ${rpk(c.apbd)} · ${p.days} hari · kualitas menentukan besar manfaat proyek`, x + 36, y + 84, { s: 14, w: '700', c: '#5a3a1a' });
   const NOTE = { jujur: 'Harga wajar, kualitas tinggi, jarang molor.', murah: 'Murah tapi kualitas rendah; proyek bisa rusak dan sering molor.', kroni: 'Mahal, tapi menawarkan fee besar ke kantongmu. Bukti jejak.', sendiri: 'Milik usahamu sendiri: konflik kepentingan, tapi ada bagi hasil.' };
+  const sit = t.sit || []; sit.forEach((l, i) => T('⚠ ' + l, x + 36, y + 106 + i * 20, { s: 13, w: '800', c: '#a0461a' }));
+  const top = y + 104 + sit.length * 20 + (sit.length ? 6 : 0);
   t.bids.forEach((b, i) => {
-    const ry = y + 104 + i * 98, cant = c.apbd < b.price || (t.rush && G.money < rushCost(b)), dirty = b.fee > 0;
-    card(x + 28, ry, w - 56, 90, dirty ? 'rgba(230,150,130,.28)' : 'rgba(255,255,255,.55)', dirty ? '#d88a7a' : '#d6bf8a');
+    const ry = top + i * 92, cant = c.apbd < (b.upfront || b.price) || (t.rush && G.money < rushCost(b)), dirty = b.fee > 0;
+    card(x + 28, ry, w - 56, 86, dirty ? 'rgba(230,150,130,.28)' : 'rgba(255,255,255,.55)', dirty ? '#d88a7a' : '#d6bf8a');
     T(b.name, x + 50, ry + 30, { s: 20, c: '#3a210c' });
     const vic = victimOf(b, p); T(vic || NOTE[b.key], x + 50, ry + 52, { s: 13, w: vic ? '700' : '600', c: vic ? '#9a3a2a' : '#5a3a1a' });
-    T(`Harga ${rpk(b.price)} (${Math.round(b.price / p.cost * 100)}% pagu) · kualitas ~${b.quality} (manfaat ${Math.round(projectEffect(b.quality) * 100)}%) · keandalan ${Math.round(b.rel * 100)}%`, x + 50, ry + 74, { s: 13, w: '700', c: '#2a4a6a' });
-    if (dirty) T(`Fee untukmu ${rpk(b.fee)}`, x + w - 290, ry + 24, { s: 14, a: 'right', w: '800', c: '#b3281e' });
+    T(`Harga ${rpk(b.price)} (${Math.round(b.price / p.cost * 100)}%) · mutu ~${b.quality} (manfaat ${Math.round(projectEffect(b.quality) * 100)}%) · andal ${Math.round(b.rel * 100)}% · ${Math.max(1, p.days + (b.rel < .6 ? 1 : 0) + (b.dd || 0) - (t.rush ? 2 : 0))} hari${b.upfront ? ` · bayar dulu ${rpk(b.upfront)}` : ''}`, x + 50, ry + 74, { s: 13, w: '700', c: '#2a4a6a' });
+    if (dirty) T(`Fee untukmu ${rpk(t.share ? Math.round(b.fee / 2) : b.fee)}`, x + w - 290, ry + 24, { s: 14, a: 'right', w: '800', c: '#b3281e' });
     button(x + w - 270, ry + 22, 210, 50, 'PILIH', () => awardTender(i), { col: dirty ? 'red' : 'green', s: 18, disabled: cant, tip: cant ? 'Kas kota / uang pribadi tidak cukup' : '' });
   });
-  const by = y + 104 + t.bids.length * 98 + 8;
+  const by = top + t.bids.length * 92 + 6;
   button(x + 28, by, 460, 44, `${t.rush ? '☑' : '☐'} Uang pelicin percepat izin (−2 hari, ${Math.round(RUSH_PCT * 100)}% harga dari kantongmu)`, () => { t.rush = !t.rush; }, { col: t.rush ? 'red' : 'wood', s: 14, tip: 'Praktik nyata: izin cepat dengan "uang administrasi". Jejak +3, integritas −4' });
+  if (t.bids.some(b => b.fee > 0)) button(x + 500, by, 452, 44, `${t.share ? '☑' : '☐'} Bagi separuh fee ke DPRD (dewan +12)`, () => { t.share = !t.share; }, { col: t.share ? 'red' : 'wood', s: 14, tip: 'Fee untukmu separuh, tapi DPRD mendukung proyek besar. Jejak +2' });
+  T(`Risiko ketahuan saat ini: ${riskNow().toUpperCase()}${dn().feesEver ? '' : ' · belum ada yang curiga'}`, x + 36, by + 66, { s: 14, w: '800', c: riskNow() === 'rendah' ? '#2a6a2a' : riskNow() === 'sedang' ? '#a06a1a' : '#b3281e' });
   T('Penawar yang menawarkan fee bukan kebetulan: itu cara kerja suap & kickback. Jejaknya bisa ditemukan audit dan pelapor.', x + 36, y + h - 24, { s: 12, w: '600', c: '#7a5a3a' });
 }
 

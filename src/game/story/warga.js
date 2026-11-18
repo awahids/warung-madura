@@ -3,13 +3,13 @@
    Orang-orang dari warung kini merasakan langsung keputusanmu. Suasana hati (0–100) tiap warga
    naik bila proyek yang mereka butuhkan selesai, turun bila kamu mengambil fee, proyek rusak, atau janji diingkari.
    Pak Haji adalah kompas: teleponnya berubah nada mengikuti integritasmu.
-   Efek tambahan (fx): warga { id: ±n }, haji ±n, janji { who, proj }.
+   Efek tambahan (fx): warga { id: ±n }, haji ±n, janji { who, proj }, usaha ('serahkan' | 'kelola').
    Syarat tambahan (when): wargaMin { id: n }, wargaMax { id: n }, feesMin, feesMax.
    ============================================================ */
 export const WARGA = [
   { id: 'sri', name: 'Bu Sri', role: 'Ibu di gang belakang', wants: ['jalan', 'drainase'] },
   { id: 'jaka', name: 'Bang Jaka', role: 'Pengemudi ojek', wants: ['jalan'], fears: ['angkot'] },
-  { id: 'rani', name: 'Rani', role: 'Mahasiswi, relawan antikorupsi', wants: ['sekolah'], watchdog: true },
+  { id: 'rani', name: 'Rani', role: 'Mahasiswi antikorupsi', wants: ['sekolah'], watchdog: true },
   { id: 'darto', name: 'Pak Darto', role: 'Mandor bangunan', wants: ['industri', 'pasar'] },
   { id: 'wati', name: 'Bu Wati', role: 'Kader posyandu', wants: ['puskesmas', 'tpa'] },
 ];
@@ -66,6 +66,16 @@ export const WARGA_POOL = [
     { t: 'Janji: puskesmas segera dibangun', fx: { warga: { wati: 8 }, janji: { who: 'wati', proj: 'puskesmas' } }, res: 'Bu Wati mencatat janjimu di buku posyandu.' },
     { t: 'Kirim mobil klinik (Rp 20 jt)', fx: { apbd: -j(20), warga: { wati: 6 }, kota: { sej: 1 } }, res: 'Mobil klinik datang tiap minggu ke kampung.', req: { apbd: j(20) } },
     { t: 'Belum bisa, Bu', fx: { warga: { wati: -8 } }, res: 'Bu Wati menutup bukunya pelan-pelan.' },
+  ] },
+  /* godaan nyata: aturan konflik kepentingan & kebutuhan pribadi yang mendesak */
+  { id: 'w_usaha', minLevel: 1, forceOnly: true, who: 'Inspektorat', when: { phase: 'wali' }, text: 'Inspektorat mengingatkan aturan konflik kepentingan: selama menjabat, usahamu harus diserahkan ke pengelola independen. Dividennya ditahan sampai masa jabatan selesai.', choices: [
+    { t: 'Serahkan ke pengelola independen', fx: { usaha: 'serahkan', integ: 4 }, res: 'Rekeningmu kini hanya berisi gaji wali kota. Sepi, tapi bersih.' },
+    { t: 'Tetap kelola diam-diam lewat saudara', fx: { usaha: 'kelola', jejak: 5, integ: -4 }, res: 'Uang usaha tetap mengalir. Nama adikmu kini ada di akta perusahaan.' },
+  ] },
+  { id: 'h_sakit', minLevel: 1, forceOnly: true, who: 'Rumah sakit', when: { phase: 'wali' }, text: 'Pak Haji dibawa ke rumah sakit: serangan jantung. Dokter menyarankan operasi pemasangan ring. Biayanya Rp 120 juta, dan keluarga Pak Haji tidak punya tabungan sebesar itu.', choices: [
+    { t: 'Bayar dari kantong sendiri (Rp 120 jt)', fx: { money: -j(120), haji: 15 }, res: 'Operasi berhasil. Pak Haji menggenggam tanganmu: "Uang halal, Nak?" Kamu mengangguk.', req: { money: j(120) } },
+    { t: 'Pakai dana taktis kota (Rp 120 jt)', fx: { apbd: -j(120), jejak: 10, integ: -8, haji: 4 }, res: 'Operasi berhasil. Pak Haji tidak tahu dari mana uangnya, dan kamu tidak menceritakannya.', req: { apbd: j(120) } },
+    { t: 'Galang donasi warga', fx: { haji: 8, trust: 2, energy: -15, kota: { puas: 1 } }, res: 'Warga gang patungan. Butuh tiga hari, tapi Pak Haji tertolong.' },
   ] },
   /* Pak Haji: nada telepon mengikuti integritas & jejak */
   { id: 'h_baik', minLevel: 1, forceOnly: true, who: 'Pak Haji (telepon)', when: { phase: 'wali' }, text: 'Telepon dari Pak Haji. Suaranya makin lemah tapi hangat. "Nak, Bu Sri cerita kamu masih menyapa orang di pasar. Itu yang paling Bapak syukuri."', choices: [

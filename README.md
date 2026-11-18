@@ -194,3 +194,9 @@ Setelah epilog Bab 5, menu **JEDA › USAHA & KOTA** terbuka (besok pagi) dan ce
 - **Pak Haji sebagai kompas:** menelepon di hari ke-5, 15, 25 dengan nada sesuai integritas/jejak (bangga, ragu, kecewa), dan mengirim pesan pada malam pertama kamu menerima fee (bisa langsung dikembalikan).
 - **Warung sebagai tempat mendengar:** selama jadi wali kota, pembeli di warung (termasuk warga lama) membicarakan kota: jalan bolong, harga naik, gosip mark-up, atau pujian.
 - **Penutup per tokoh:** akhir masa jabatan menyebut apakah Pak Haji datang, dan nasib warga yang paling terdampak (Rani menulis skripsi tentang kota bersih… atau bersaksi di sidang).
+
+### Fee yang menggoda (dilema, bukan sekadar pilihan salah)
+- **Situasi tender:** bila ada janji ke warga, penawar jujur sedang antre (+3 hari, janji bisa terlewat) sementara kroni menjamin lebih cepat; bila kas kota kurang, hanya kroni yang mau **menalangi** (bayar separuh, sisanya dicicil dari pajak); kadang penawar jujur **mundur** karena harga material naik.
+- **Bagi fee ke DPRD:** separuh fee untuk dewan → dukungan DPRD +12, membuka proyek besar.
+- **Risiko yang terasa rendah:** tender menampilkan "Risiko ketahuan saat ini: RENDAH · belum ada yang curiga" sebelum fee pertama.
+- **Uang jadi berarti:** aturan konflik kepentingan (hari ke-2) — serahkan usaha ke pengelola independen (dividen ditahan sampai akhir jabatan) atau kelola diam-diam lewat saudara; **Pak Haji sakit** (hari ke-12) butuh Rp 120 jt (kantong sendiri, dana taktis kota, atau donasi warga); tombol **BANTU** warga Rp 10 jt dari kantong (suasana hati +8) — uang fee bisa dipakai untuk menolong orang.

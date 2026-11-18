@@ -346,7 +346,7 @@ describe('validasi data cerita', () => {
     const E = await import('../src/game/story/events'), L = await import('../src/game/logic/level'), D = await import('../src/game/data');
     const all = [...E.SCRIPT, ...E.POOL], ids = all.map(e => e.id);
     expect(new Set(ids).size).toBe(ids.length);
-    const FX = ['money', 'trust', 'rep', 'energy', 'xp', 'stock', 'flag', 'debt', 'dueShift', 'kasbon', 'bond', 'integ', 'duk', 'apbd', 'kota', 'jejak', 'sorotan', 'dprd', 'harga', 'audit', 'izin', 'saingan', 'returnFees', 'inspect', 'warga', 'haji', 'janji'], R = await import('../src/game/story/regulars'), names = R.REGULARS.map(r => r.name), WHEN = ['lunas', 'flag', 'noFlag', 'trustMin', 'trustMax', 'wealthMin', 'phase', 'jejakMin', 'jejakMax', 'dprdMax', 'puasMax', 'kerjaMax', 'hargaMin', 'bizMin', 'done', 'notDone', 'proyekJalan', 'wargaMin', 'wargaMax', 'feesMin', 'feesMax'];
+    const FX = ['money', 'trust', 'rep', 'energy', 'xp', 'stock', 'flag', 'debt', 'dueShift', 'kasbon', 'bond', 'integ', 'duk', 'apbd', 'kota', 'jejak', 'sorotan', 'dprd', 'harga', 'audit', 'izin', 'saingan', 'returnFees', 'inspect', 'warga', 'haji', 'janji', 'usaha'], R = await import('../src/game/story/regulars'), names = R.REGULARS.map(r => r.name), WHEN = ['lunas', 'flag', 'noFlag', 'trustMin', 'trustMax', 'wealthMin', 'phase', 'jejakMin', 'jejakMax', 'dprdMax', 'puasMax', 'kerjaMax', 'hargaMin', 'bizMin', 'done', 'notDone', 'proyekJalan', 'wargaMin', 'wargaMax', 'feesMin', 'feesMax'];
     const chStart = { 1: 1, 2: 3, 3: 5, 4: 7, 5: 8, 6: 8, 7: 8, 8: 8, 9: 8 };
     const setFlags = new Set(); all.forEach(e => e.choices.forEach(c => c.fx && c.fx.flag && setFlags.add(c.fx.flag)));
     expect(E.POOL.length).toBeGreaterThanOrEqual(20);

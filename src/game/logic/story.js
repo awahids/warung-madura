@@ -87,7 +87,7 @@ export function applyFx(fx = {}) {
   if (fx.dueShift) { story().due += fx.dueShift; lines.push(`Cicilan mundur ${fx.dueShift} hari`); }
   if (fx.kasbon) { G.debts.push({ who: fx.kasbon.who, amount: fx.kasbon.amount, day: G.day }); lines.push(`Kasbon ${fx.kasbon.who} ${rp(fx.kasbon.amount)}`); }
   if (fx.bond) for (const b of [].concat(fx.bond)) { bondByName(b.who, b.n); lines.push(`${b.who} ${b.n > 0 ? 'lebih dekat' : 'menjauh'}`); }
-  if (fx.integ || fx.duk || fx.apbd || fx.kota || fx.jejak || fx.sorotan || fx.dprd || fx.harga || fx.audit || fx.izin || fx.saingan || fx.returnFees || fx.inspect || fx.warga || fx.haji || fx.janji) lines.push(...applyKotaFx(fx));
+  if (fx.integ || fx.duk || fx.apbd || fx.kota || fx.jejak || fx.sorotan || fx.dprd || fx.harga || fx.audit || fx.izin || fx.saingan || fx.returnFees || fx.inspect || fx.warga || fx.haji || fx.janji || fx.usaha) lines.push(...applyKotaFx(fx));
   if (fx.flag) story().flags[fx.flag] = true;
   if (fx.xp) addXp(fx.xp);
   return lines;

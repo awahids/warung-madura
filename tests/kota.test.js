@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { G, setG, ui } from '../src/game/state';
 import * as persist from '../src/game/persist';
 const { freshState } = persist;
@@ -100,21 +100,21 @@ describe('dunia nyata: tender, fee, audit, KPK, DPRD, harga', () => {
   beforeEach(() => { begin(); openBab(); const k = kota(); k.ch = 7; k.phase = 'kampanye'; story().trust = 100; G.rep = 100; k.duk = 50; k.rivalBonus = -4; runElection(); ui.modal = null; });
 
   it('tender memberi pilihan jujur/murah/kroni dan fee masuk kantong menaikkan jejak', async () => {
-    const K = await import('../src/game/logic/kota');
-    expect(K.startTender('taman')).toBe(true); const c = city(), keys = c.tender.bids.map(b => b.key);
+    const K = await import('../src/game/logic/kota'); const sp = vi.spyOn(Math, 'random').mockReturnValue(.5);
+    expect(K.startTender('taman')).toBe(true); sp.mockRestore(); const c = city(), keys = c.tender.bids.map(b => b.key);
     expect(keys).toEqual(expect.arrayContaining(['jujur', 'murah', 'kroni'])); expect(c.tender.bids.find(b => b.key === 'jujur').fee).toBe(0);
     const i = keys.indexOf('kroni'), bid = c.tender.bids[i], m = G.money; expect(K.awardTender(i)).toBe(true);
     expect(G.money).toBe(m + bid.fee); expect(dn().jejak).toBeGreaterThan(0); expect(dn().fees).toBe(bid.fee); expect(c.proj[0].key).toBe('kroni');
   });
   it('lelang terbuka (e-procurement) menghapus kroni dan fee', async () => {
     const K = await import('../src/game/logic/kota'); city().apbd = 400e6; expect(K.setEproc()).toBe(true);
-    K.startTender('taman'); expect(city().tender.bids.every(b => b.fee === 0 && b.key !== 'kroni' && b.key !== 'sendiri')).toBe(true);
+    const sp = vi.spyOn(Math, 'random').mockReturnValue(.5); K.startTender('taman'); sp.mockRestore(); expect(city().tender.bids.every(b => b.fee === 0 && b.key !== 'kroni' && b.key !== 'sendiri')).toBe(true);
   });
   it('proyek besar butuh DPRD ≥ 45', async () => {
     const K = await import('../src/game/logic/kota'); city().apbd = 1e9; dn().dprd = 30; expect(K.startTender('sekolah')).toBe(false); dn().dprd = 60; expect(K.startTender('sekolah')).toBe(true);
   });
   it('uang pelicin mempercepat proyek tapi menaikkan jejak', async () => {
-    const K = await import('../src/game/logic/kota'); G.money = 100e6; city().apbd = 1e9; K.startTender('pasar'); city().tender.rush = true; const i = city().tender.bids.findIndex(b => b.key === 'jujur'); const days = 5;
+    const K = await import('../src/game/logic/kota'); G.money = 100e6; city().apbd = 1e9; const sp = vi.spyOn(Math, 'random').mockReturnValue(.5); K.startTender('pasar'); sp.mockRestore(); city().tender.rush = true; const i = city().tender.bids.findIndex(b => b.key === 'jujur'); const days = 5;
     K.awardTender(i); expect(city().proj[0].left).toBe(days - 2); expect(dn().jejak).toBe(3); expect(G.money).toBeLessThan(100e6);
   });
   it('kualitas buruk: efek proyek lebih kecil dan bisa rusak lalu menimbulkan skandal', () => {
@@ -211,5 +211,50 @@ describe('warga lama & Pak Haji di fase wali kota', () => {
   it('kejadian warga lama valid', async () => {
     const { eventById } = await import('../src/game/logic/story');
     for (const id of ['ww_sri_gang', 'ww_sri_terima', 'ww_jaka_angkot', 'ww_rani_data', 'ww_rani_bangga', 'ww_darto_kerja', 'ww_wati_sehat', 'h_baik', 'h_ragu', 'h_kecewa', 'h_fee']) expect(eventById(id), id).toBeTruthy();
+  });
+});
+
+describe('fee yang menggoda: situasi nyata', () => {
+  beforeEach(() => { begin(); openBab(); const k = kota(); k.ch = 7; k.phase = 'kampanye'; story().trust = 100; G.rep = 100; k.duk = 50; k.rivalBonus = -4; runElection(); ui.modal = null; city().apbd = 2e9; });
+  const mockR = v => vi.spyOn(Math, 'random').mockReturnValue(v);
+
+  it('janji mepet: penawar jujur antre +3 hari, kroni menjamin lebih cepat', async () => {
+    const K = await import('../src/game/logic/kota'); K.applyKotaFx({ janji: { who: 'sri', proj: 'jalan' } });
+    const sp = mockR(.5); const b = K.makeBids('jalan'); sp.mockRestore();
+    expect(b.find(x => x.key === 'jujur').dd).toBe(3); expect(b.find(x => x.key === 'kroni').dd).toBe(-1); expect(b.sit.join(' ')).toMatch(/Bu Sri/);
+  });
+  it('kas kota kurang: kroni menalangi separuh, sisanya dicicil dari pajak', async () => {
+    const K = await import('../src/game/logic/kota'); city().apbd = 100e6; const sp = mockR(.5); K.startTender('jalan'); sp.mockRestore();
+    const t = city().tender, i = t.bids.findIndex(b => b.key === 'kroni'), kr = t.bids[i]; expect(kr.upfront).toBe(Math.round(kr.price * .5));
+    expect(K.awardTender(t.bids.findIndex(b => b.key === 'jujur'))).toBe(false);   // jujur tidak terjangkau
+    K.startTender('jalan'); city().tender.bids = [kr]; expect(K.awardTender(0)).toBe(true); expect(city().talangan).toBe(kr.price - kr.upfront);
+    const tl = city().talangan; G.day++; startDay(); ui.modal = null; expect(city().talangan).toBeLessThan(tl);
+  });
+  it('penawar jujur kadang mundur (harga material naik)', async () => {
+    const K = await import('../src/game/logic/kota'); const sp = mockR(.05); const b = K.makeBids('taman'); sp.mockRestore();
+    expect(b.some(x => x.key === 'jujur')).toBe(false); expect(b.sit.join(' ')).toMatch(/mundur/);
+  });
+  it('bagi fee ke DPRD: separuh fee, dukungan dewan naik', async () => {
+    const K = await import('../src/game/logic/kota'); const sp = mockR(.5); K.startTender('taman'); sp.mockRestore();
+    const t = city().tender, i = t.bids.findIndex(b => b.key === 'kroni'), fee = t.bids[i].fee, d0 = dn().dprd, m0 = G.money; t.share = true;
+    K.awardTender(i); expect(G.money).toBe(m0 + Math.round(fee / 2)); expect(dn().dprd).toBe(Math.min(100, d0 + 12));
+  });
+  it('dividen ditahan selama menjabat bila usaha diserahkan; cair di akhir masa jabatan', async () => {
+    const K = await import('../src/game/logic/kota'); const k = kota(); k.biz.cabang = 3; k.ready.cabang = 0;
+    K.applyKotaFx({ usaha: 'serahkan' }); expect(K.incomePerDay()).toBe(0); const m0 = G.money; G.day++; startDay(); ui.modal = null;
+    expect(G.money).toBe(m0); expect(k.held).toBeGreaterThan(0);
+    K.applyKotaFx({ usaha: 'kelola' }); expect(K.incomePerDay()).toBeGreaterThan(0); expect(story().flags.konflik_usaha).toBe(true);
+  });
+  it('bantu warga dari kantong: suasana hati naik, ada jeda 3 hari', async () => {
+    const K = await import('../src/game/logic/kota'); G.money = 50e6; const m0 = K.moodOf('sri');
+    expect(K.bantuWarga('sri')).toBe(true); expect(K.moodOf('sri')).toBe(m0 + 8); expect(G.money).toBe(40e6); expect(K.bantuWarga('sri')).toBe(false);
+  });
+  it('risiko yang dirasakan rendah saat jejak masih kecil', async () => {
+    const K = await import('../src/game/logic/kota'); expect(K.riskNow()).toBe('rendah'); dn().jejak = 50; expect(K.riskNow()).toBe('tinggi');
+  });
+  it('Pak Haji sakit (hari ke-12) dan aturan usaha (hari ke-2) terjadwal', () => {
+    kota().biz.cabang = 1; const c = city(); c.day = 1; dn().force = null; dn().queue = []; G.day++; startDay(); ui.modal = null;
+    expect([dn().force, ...dn().queue, ...G.events.map(e => e.id)]).toContain('w_usaha');
+    c.day = 11; dn().force = null; dn().queue = []; G.day++; startDay(); ui.modal = null; expect([dn().force, ...dn().queue, ...G.events.map(e => e.id)]).toContain('h_sakit');
   });
 });
