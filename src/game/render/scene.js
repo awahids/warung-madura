@@ -10,7 +10,7 @@ import { T, clamp, rp, rr, wrapText } from '../util.js';
 /** Ukuran balon pesanan. compact: versi ringkas untuk mode 3D (tidak menutupi banyak barang). */
 export function bubbleSize(c, compact = false) {
   const w = compact ? 232 : 296, lines = c.order.length, isPay = c.stage === 'pay';
-  const nSay = compact ? 1 : wrapText(c.say, w - 28, 14, '600').length;
+  const nSay = compact ? Math.min(2, ctx ? wrapText(c.say, w - 28, 13, '600').length : Math.ceil((c.say || '').length / 29) || 1) : wrapText(c.say, w - 28, 14, '600').length;
   const rowH = compact ? 30 : 36, hh = (compact ? 34 : 40) + nSay * (compact ? 17 : 18) + lines * rowH + (isPay ? (compact ? 50 : 62) : 0) + (compact ? 18 : 22);
   return { w, hh };
 }
@@ -42,7 +42,7 @@ export function drawBubble(c, at, opts = {}) {
   }
   let cy = y + (compact ? 21 : 24);
   T(c.name + (c.reg ? ' ' + '★'.repeat(regTier(c.reg)) : '') + (c.event === 'kasbon' ? '  · KASBON' : ''), x + 14, cy, { s: compact ? 14 : 15, c: c.event === 'kasbon' ? '#c0392b' : '#8a5424' }); cy += 6;
-  const sayAll = wrapText(c.say, w - 28, compact ? 13 : 14, '600'), sayL = compact ? [sayAll[0] + (sayAll.length > 1 ? '…' : '')] : sayAll;
+  const sayAll = wrapText(c.say, w - 28, compact ? 13 : 14, '600'), sayL = compact ? (sayAll.length > 2 ? [sayAll[0], sayAll[1] + '…'] : sayAll) : sayAll;
   sayL.forEach(l => { cy += compact ? 17 : 18; T(l, x + 14, cy, { s: compact ? 13 : 14, w: '600', c: '#3a2a1a' }); });
   cy += compact ? 7 : 10;
   for (const l of c.order) {

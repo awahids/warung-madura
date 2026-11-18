@@ -186,3 +186,11 @@ Setelah epilog Bab 5, menu **JEDA › USAHA & KOTA** terbuka (besok pagi) dan ce
 - **Warga & ekonomi:** jumlah pembeli warung & usaha mengikuti kesejahteraan/lapangan kerja kota, saingan baru (minimarket nasional), dan inflasi (indeks harga ikut menaikkan harga grosir & menipiskan margin usaha). Kenaikan BBM bisa ditahan dengan pasar murah.
 - **Bisnis:** izin usaha baru tertahan 3 hari (bisa dipercepat dengan uang pelicin atau lewat jalur resmi/lapor inspektorat), manajer bisa menggelapkan setoran. Warung tetap bisa dimainkan; pengaruh kota/harga/saingan langsung terasa di pembeli dan modalnya.
 - Tab **AWASI** di menu USAHA & KOTA menampilkan integritas, jejak korupsi, sorotan media, DPRD, indeks harga, program antikorupsi, dan berita.
+
+### Warga lama & Pak Haji (fase wali kota)
+- **Warga lama datang ke balai kota:** Bu Sri (jalan gang), Bang Jaka (ojek vs angkot listrik), Rani (kini relawan antikorupsi), Pak Darto (pekerja proyek), Bu Wati (puskesmas). Tiap 3 hari satu dari mereka datang dengan masalah nyata; kamu bisa berjanji (dicatat, ditagih dalam 8 hari), membantu sementara, atau menolak.
+- **Suasana hati warga (tab WARGA):** naik bila proyek yang mereka butuhkan selesai, turun bila kamu mengambil fee (Rani −16, yang lain −4), proyek rusak, audit menemukan pelanggaran, atau janji diingkari (−20).
+- **Korban fee terlihat:** di tender, penawar kroni menunjukkan "Rp X uang warga = N beasiswa seperti Rani, atau N m jalan gang Bu Sri"; penawar murah menunjukkan siapa yang menanggung bila bangunan rusak.
+- **Pak Haji sebagai kompas:** menelepon di hari ke-5, 15, 25 dengan nada sesuai integritas/jejak (bangga, ragu, kecewa), dan mengirim pesan pada malam pertama kamu menerima fee (bisa langsung dikembalikan).
+- **Warung sebagai tempat mendengar:** selama jadi wali kota, pembeli di warung (termasuk warga lama) membicarakan kota: jalan bolong, harga naik, gosip mark-up, atau pujian.
+- **Penutup per tokoh:** akhir masa jabatan menyebut apakah Pak Haji datang, dan nasib warga yang paling terdampak (Rani menulis skripsi tentang kota bersih… atau bersaksi di sidang).

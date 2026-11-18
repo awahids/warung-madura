@@ -7,7 +7,7 @@ import { checkAchievements } from './achievements.js';
 import { bondByName } from './regulars.js';
 import { CATATAN, CHAPTERS, EPILOG, EPILOG_FLAG, POOL, SCRIPT } from '../story/events.js';
 import { addXp, level } from './level.js';
-import { applyKotaFx, kota, kotaWhenOk, netWorth, takeForcedEvent } from './kota.js';
+import { applyKotaFx, kota, kotaWhenOk, markWargaSeen, netWorth, takeForcedEvent } from './kota.js';
 
 /* ============================================================
    MESIN CERITA & TANGGUNG JAWAB
@@ -87,7 +87,7 @@ export function applyFx(fx = {}) {
   if (fx.dueShift) { story().due += fx.dueShift; lines.push(`Cicilan mundur ${fx.dueShift} hari`); }
   if (fx.kasbon) { G.debts.push({ who: fx.kasbon.who, amount: fx.kasbon.amount, day: G.day }); lines.push(`Kasbon ${fx.kasbon.who} ${rp(fx.kasbon.amount)}`); }
   if (fx.bond) for (const b of [].concat(fx.bond)) { bondByName(b.who, b.n); lines.push(`${b.who} ${b.n > 0 ? 'lebih dekat' : 'menjauh'}`); }
-  if (fx.integ || fx.duk || fx.apbd || fx.kota || fx.jejak || fx.sorotan || fx.dprd || fx.harga || fx.audit || fx.izin || fx.saingan || fx.returnFees || fx.inspect) lines.push(...applyKotaFx(fx));
+  if (fx.integ || fx.duk || fx.apbd || fx.kota || fx.jejak || fx.sorotan || fx.dprd || fx.harga || fx.audit || fx.izin || fx.saingan || fx.returnFees || fx.inspect || fx.warga || fx.haji || fx.janji) lines.push(...applyKotaFx(fx));
   if (fx.flag) story().flags[fx.flag] = true;
   if (fx.xp) addXp(fx.xp);
   return lines;
@@ -150,7 +150,7 @@ export function chooseEvent(i) {
   if (c.fx && c.fx.trust) (c.fx.trust > 0 ? SFX.up : SFX.down)(); else SFX.click();
   if (SCRIPT.includes(ev)) { s.done.push(ev.id); if (ev.group) SCRIPT.filter(e => e.group === ev.group).forEach(e => { if (!s.done.includes(e.id)) s.done.push(e.id); }); }
   if (ev.final) s.ending = endingId();
-  s.recent.push(ev.id); if (s.recent.length > 8) s.recent.shift();
+  s.recent.push(ev.id); if (s.recent.length > 8) s.recent.shift(); markWargaSeen(ev.id);
   checkAchievements();
 }
 /** Epilog menurut keadaan akhir: dipercaya / untung / bertahan. */

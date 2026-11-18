@@ -1,6 +1,6 @@
 import { ctx } from '../gfx.js';
 import { BIZ, BIZ_MAX, CAMP_ACTS, CAMP_DAYS, CITY_DAYS, IND, MAX_PROJ, PROJECTS, RIVAL, WIN_WEALTH } from '../story/kota.js';
-import { assetValue, awardTender, bizIncAt, bizLevel, bizNextCost, buyBiz, campUses, campaign, cancelTender, canBuild, canRun, city, cityAvg, dn, dprdBlock, endingInfo, incomeNominal, incomePerDay, isMiliarder, kota, netWorth, projectEffect, reportAssets, rivalPower, runForOffice, rushCost, setEproc, startTender, support, taxPerDay } from '../logic/kota.js';
+import { assetValue, awardTender, bizIncAt, bizLevel, bizNextCost, buyBiz, campUses, campaign, cancelTender, canBuild, canRun, city, cityAvg, dn, dprdBlock, endingInfo, incomeNominal, incomePerDay, isMiliarder, kota, netWorth, projectEffect, reportAssets, rivalPower, runForOffice, rushCost, setEproc, victimOf, wargaList, hajiOf, epilogPeople, startTender, support, taxPerDay } from '../logic/kota.js';
 import { AUDIT_DAYS, DPRD_MIN, EPROC_COST, RUSH_PCT } from '../story/dunia.js';
 import { story } from '../logic/story.js';
 import { G, ui } from '../state.js';
@@ -20,10 +20,10 @@ export function kotaModal() {
   T('USAHA & KOTA', x + 36, y + 54, { s: 32, c: '#6b3a14' });
   closeBtn(x + w - 40, y + 40, () => { ui.modal = null; save(); });
   T(`Kekayaan bersih ${rpk(netWorth())}  ·  Kas ${rpk(G.money)}  ·  Aset ${rpk(assetValue())}  ·  Pendapatan usaha ${rpk(incomePerDay())}/hari`, x + 36, y + 82, { s: 14, w: '700', c: '#5a3a1a' });
-  [['usaha', 'USAHA'], ['politik', wali ? 'KOTA' : 'POLITIK'], ['awasi', 'AWASI']].forEach(([id, label], i) => {
+  [['usaha', 'USAHA'], ['politik', wali ? 'KOTA' : 'POLITIK'], ['warga', 'WARGA'], ['awasi', 'AWASI']].forEach(([id, label], i) => {
     button(x + 36 + i * 170, y + 96, 160, 40, label, () => { k.tab = id; }, { col: k.tab === id ? 'yellow' : 'wood', tc: k.tab === id ? '#4a2a00' : '#fff', s: 16 });
   });
-  if (k.tab === 'politik') (wali ? kotaTab : politikTab)(k, x, y + 150, w); else if (k.tab === 'awasi') awasiTab(k, x, y + 150, w); else usahaTab(k, x, y + 150, w);
+  if (k.tab === 'politik') (wali ? kotaTab : politikTab)(k, x, y + 150, w); else if (k.tab === 'awasi') awasiTab(k, x, y + 150, w); else if (k.tab === 'warga') wargaTab(k, x, y + 150, w); else usahaTab(k, x, y + 150, w);
 }
 
 function usahaTab(k, x, y, w) {
@@ -94,6 +94,25 @@ function kotaTab(k, x, y, w) {
   });
 }
 
+/** Tab WARGA: orang-orang dari warung yang kini merasakan keputusanmu, dan Pak Haji. */
+function wargaTab(k, x, y, w) {
+  if (k.phase !== 'wali' || !k.warga) { T('Warga lama akan datang ke balai kota saat kamu memimpin kota.', x + 40, y + 50, { s: 18, w: '700', c: '#7a6a5a' }); T('Bu Sri, Bang Jaka, Rani, Pak Darto, Bu Wati, dan Pak Haji mengingat semua yang kamu lakukan di warung.', x + 40, y + 80, { s: 15, w: '600', c: '#7a6a5a' }); return; }
+  const h = hajiOf(), moodCol = m => m >= 65 ? '#58b948' : m >= 40 ? '#e0b030' : '#d6483a';
+  card(x + 28, y, w - 56, 70, 'rgba(255,240,200,.7)', '#d6a84a');
+  T('Pak Haji', x + 52, y + 30, { s: 22, c: '#3a210c' });
+  T(h >= 65 ? 'Bangga dan selalu mendoakanmu.' : h >= 40 ? 'Diam-diam khawatir. Teleponnya makin jarang.' : 'Kecewa. Ia tidak lagi menanyakan kabarmu.', x + 52, y + 54, { s: 13, w: '600', c: '#5a3a1a' });
+  bar(x + 520, y + 26, 380, 16, h / 100, moodCol(h)); T(String(Math.round(h)), x + 910, y + 40, { s: 13, w: '700', c: '#5a3a1a' });
+  wargaList().forEach((p, i) => {
+    const ry = y + 82 + i * 72;
+    card(x + 28, ry, w - 56, 64);
+    T(p.name, x + 52, ry + 26, { s: 19, c: '#3a210c' }); T(p.role, x + 52, ry + 48, { s: 12, w: '600', c: '#7a5a3a' });
+    T(p.talk ? `"${p.talk}"` : '', x + 260, ry + 26, { s: 14, w: '700', c: '#3a2a1a' });
+    T(p.janji ? `Janjimu: ${PROJECTS.find(q => q.id === p.janji.proj).name} sebelum hari ke-${p.janji.due}` : `Butuh: ${p.wants.map(id => PROJECTS.find(q => q.id === id).name).join(', ')}${p.fears ? ` · khawatir: ${p.fears.map(id => PROJECTS.find(q => q.id === id).name).join(', ')}` : ''}`, x + 260, ry + 48, { s: 12, w: '700', c: p.janji ? '#a05a1a' : '#5a5a5a' });
+    bar(x + 720, ry + 24, 180, 14, p.mood / 100, moodCol(p.mood)); T(String(Math.round(p.mood)), x + 910, ry + 36, { s: 13, w: '700', c: '#5a3a1a' });
+  });
+  T('Mereka juga belanja di warungmu dan membicarakan kota, tanpa tahu kamu sedang mendengarkan.', x + 36, y + 82 + 5 * 72 + 14, { s: 13, w: '600', c: '#7a5a3a' });
+}
+
 /** Tab AWASI: jejak korupsi, sorotan, DPRD, harga, program antikorupsi, dan berita. */
 function awasiTab(k, x, y, w) {
   const d = dn(), c = city(), wali = k.phase === 'wali';
@@ -126,7 +145,7 @@ export function tenderModal() {
     const ry = y + 104 + i * 98, cant = c.apbd < b.price || (t.rush && G.money < rushCost(b)), dirty = b.fee > 0;
     card(x + 28, ry, w - 56, 90, dirty ? 'rgba(230,150,130,.28)' : 'rgba(255,255,255,.55)', dirty ? '#d88a7a' : '#d6bf8a');
     T(b.name, x + 50, ry + 30, { s: 20, c: '#3a210c' });
-    T(NOTE[b.key], x + 50, ry + 52, { s: 13, w: '600', c: '#5a3a1a' });
+    const vic = victimOf(b, p); T(vic || NOTE[b.key], x + 50, ry + 52, { s: 13, w: vic ? '700' : '600', c: vic ? '#9a3a2a' : '#5a3a1a' });
     T(`Harga ${rpk(b.price)} (${Math.round(b.price / p.cost * 100)}% pagu) · kualitas ~${b.quality} (manfaat ${Math.round(projectEffect(b.quality) * 100)}%) · keandalan ${Math.round(b.rel * 100)}%`, x + 50, ry + 74, { s: 13, w: '700', c: '#2a4a6a' });
     if (dirty) T(`Fee untukmu ${rpk(b.fee)}`, x + w - 290, ry + 24, { s: 14, a: 'right', w: '800', c: '#b3281e' });
     button(x + w - 270, ry + 22, 210, 50, 'PILIH', () => awardTender(i), { col: dirty ? 'red' : 'green', s: 18, disabled: cant, tip: cant ? 'Kas kota / uang pribadi tidak cukup' : '' });
@@ -155,7 +174,8 @@ export function kotaAkhirModal() {
   const x = 240, y = 60, w = 800, h = 600; panel(x, y, w, h);
   T('AKHIR MASA JABATAN', x + w / 2, y + 50, { s: 16, a: 'center', c: '#7a5a3a', w: '700' });
   T(e.title, x + w / 2, y + 104, { s: 42, a: 'center', c: '#b87a14', stroke: '#fff3c8', sw: 3 });
-  wrapText(e.text, w - 100, 18, '600').forEach((t, i) => T(t, x + 50, y + 160 + i * 28, { s: 18, w: '600', c: '#3a210c' }));
+  const tl = wrapText(e.text, w - 100, 17, '600'); tl.forEach((t, i) => T(t, x + 50, y + 150 + i * 25, { s: 17, w: '600', c: '#3a210c' }));
+  let py = y + 150 + tl.length * 25 + 12; for (const l of epilogPeople()) for (const t of wrapText('• ' + l, w - 100, 15, '600')) { if (py > y + h - 140) break; T(t, x + 50, py, { s: 15, w: '600', c: '#5a3a1a' }); py += 22; }
   T(`Kesejahteraan ${Math.round(c.ind.sej)} · Kebersihan ${Math.round(c.ind.bers)} · Kerja ${Math.round(c.ind.kerja)} · Kepuasan ${Math.round(c.ind.puas)} · Integritas ${Math.round(kota().integ)}`, x + w / 2, y + h - 120, { s: 14, a: 'center', c: '#7a5a3a', w: '700' });
   button(x + w / 2 - 170, y + h - 84, 340, 56, 'LANJUT MAIN (MODE BEBAS)', () => { ui.modal = null; save(); }, { col: 'green', s: 18 });
 }

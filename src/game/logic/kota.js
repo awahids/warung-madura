@@ -1,4 +1,5 @@
 import { SFX } from '../audio.js';
+import { BEASISWA, CITY_TALK, EPI, HAJI_DAYS, JALAN_M, TALK, WARGA, WARGA_POOL } from '../story/warga.js';
 import { AUDIT_DAYS, DPRD_MIN, DPRD_MIN_COST, ENDING_ARREST, EPROC_COST, NAMES, PERMIT_DAYS, RUSH_DAYS, RUSH_PCT } from '../story/dunia.js';
 import { BIZ, BIZ_COST_MUL, BIZ_INC_MUL, BIZ_MAX, BIZ_RESALE, CAMP_ACTS, CAMP_DAYS, CITY_DAYS, ENDINGS, IND, MAX_PROJ, PROJECTS, RIVAL, WIN_WEALTH } from '../story/kota.js';
 import { G, ui } from '../state.js';
@@ -13,8 +14,8 @@ import { toast } from '../widgets.js';
 export function initKota() {
   return { ch: 0, phase: 'none', biz: {}, duk: 0, integ: 80, rivalBonus: ri(-4, 6), camp: { day: 0, pts: 0, uses: {} }, sympathy: 0, lost: 0, lostDay: -99, lastDay: 0, city: null, ending: null, dunia: initDunia(), ready: {}, tab: 'usaha' };
 }
-export function initDunia() { return { jejak: 0, sorotan: 0, dprd: 55, harga: 1, fees: 0, force: null, saingan: 0, eproc: false, lhkpn: false, arrest: false, log: [], auditN: 0, kpkDay: 0 }; }
-export const kota = () => { const k = G.kota || (G.kota = initKota()); if (!k.dunia) k.dunia = initDunia(); if (!k.ready) k.ready = {}; return k; };
+export function initDunia() { return { jejak: 0, sorotan: 0, dprd: 55, harga: 1, fees: 0, force: null, queue: [], feesEver: 0, saingan: 0, eproc: false, lhkpn: false, arrest: false, log: [], auditN: 0, kpkDay: 0 }; }
+export const kota = () => { const k = G.kota || (G.kota = initKota()); if (!k.dunia) k.dunia = initDunia(); if (!k.dunia.queue) k.dunia.queue = []; if (!k.ready) k.ready = {}; return k; };
 export const dn = () => kota().dunia;
 const st = () => G.story || (G.story = { trust: 50, flags: {}, kabar: [] });
 const flag = f => !!st().flags[f];
@@ -49,7 +50,7 @@ export function buyBiz(id) {
   const k = kota(), c = bizNextCost(id), b = BIZ.find(x => x.id === id);
   if (!k.ch || c === null || G.money < c) { SFX.err(); return false; }
   const isNew = !bizLevel(id); G.money -= c; k.biz[id] = bizLevel(id) + 1; SFX.good();
-  if (isNew) { k.ready[id] = G.day + PERMIT_DAYS; if (!dn().force) dn().force = 'd_izin'; toast(`Izin ${b.name} diproses ${PERMIT_DAYS} hari.`, '#ffe0a0'); }
+  if (isNew) { k.ready[id] = G.day + PERMIT_DAYS; setForce('d_izin'); toast(`Izin ${b.name} diproses ${PERMIT_DAYS} hari.`, '#ffe0a0'); }
   toast(`${b.name} ${k.biz[id] === 1 ? 'dibuka' : 'naik ke Lv ' + k.biz[id]}! +${rpk(bizIncAt(b, k.biz[id]) - bizIncAt(b, k.biz[id] - 1))}/hari`, '#cfe8ff');
   return true;
 }
@@ -85,7 +86,7 @@ export function runElection() {
   const share = clamp(Math.round(50 + (sc - rv) * .9), 25, 78);
   k.result = { win, share, score: sc, rival: rv };
   if (win) {
-    k.phase = 'wali'; k.ch = 9; setFlag('wali'); k.city = initCity(); k.tab = 'politik'; dn().dprd = clamp(Math.round(40 + (share - 50) * 1.2), 20, 80);
+    k.phase = 'wali'; k.ch = 9; setFlag('wali'); k.city = initCity(); k.tab = 'politik'; dn().dprd = clamp(Math.round(40 + (share - 50) * 1.2), 20, 80); initWarga();
     G.morning && G.morning.push(`Kamu terpilih jadi wali kota dengan ${share}% suara!`);
   } else {
     k.phase = 'usaha'; k.ch = 7; k.lost++; k.lostDay = G.day; k.sympathy += 5; k.camp = { day: 0, pts: 0, uses: {} };
@@ -144,9 +145,15 @@ function award(id, bid, rush) {
   if (bid.fee > 0) {   // fee/komisi masuk kantong pribadi: itulah korupsi
     G.money += bid.fee; d.fees += bid.fee; c.mark++; setFlag('korup_awal');
     d.jejak = clamp(d.jejak + (bid.key === 'kroni' ? 7 : bid.key === 'sendiri' ? 8 : 4), 0, 100); d.sorotan = clamp(d.sorotan + 2, 0, 100); k.integ = clamp(k.integ - (bid.key === 'kroni' ? 8 : bid.key === 'sendiri' ? 6 : 5), 0, 100);
+    d.feesEver += bid.fee; const first = d.feesEver === bid.fee;
+    moodAll(-4); mood('rani', -12);
+    const waiting = WARGA.find(w => w.wants.some(x => !(city().done[x])) && w.id !== 'rani');
+    note(`Fee ${rpk(bid.fee)} dari ${bid.name} masuk rekeningmu.${waiting ? ` Di kampung, ${waiting.name} masih menunggu.` : ''} Rani mulai menelusuri kontraknya.`, 'fee');
+    if (first) forceNow('h_fee');
     toast(`${bid.name}: fee ${rpk(bid.fee)} masuk kantong. Jejak bertambah.`, '#ffd0a0');
   } else toast(`${p.name} dikerjakan ${bid.name} (${days} hari).`, '#cfe8ff');
-  if (rush) { G.money -= rushCost(bid); d.jejak = clamp(d.jejak + 3, 0, 100); k.integ = clamp(k.integ - 4, 0, 100); }
+  if (id === 'angkot') { if (flag('angkot_ditunda')) { mood('jaka', -25); haji(-4); note('Bang Jaka: "Janji tinggal janji, Nak." Para ojek kecewa.', 'warga'); } }
+  if (rush) { mood('rani', -4); G.money -= rushCost(bid); d.jejak = clamp(d.jejak + 3, 0, 100); k.integ = clamp(k.integ - 4, 0, 100); }
   return true;
 }
 /** Jalan pintas (uji/otomatis): tender dengan penawar jujur, atau kroni bila markup = true. */
@@ -169,8 +176,11 @@ export function applyKotaFx(fx = {}) {
   if (fx.harga) { d.harga = clamp(d.harga + fx.harga, .9, 1.6); lines.push(`Indeks harga ${sgn(Math.round(fx.harga * 100))}%`); }
   if (fx.saingan) { d.saingan += fx.saingan; lines.push(`Pelanggan berkurang ${fx.saingan} hari`); }
   if (fx.izin === 'cepat') { for (const id in k.ready) if (k.ready[id] > G.day) k.ready[id] = G.day; lines.push('Usaha buka lebih cepat'); }
-  if (fx.returnFees) { const f = d.fees; if (city()) city().apbd += f; G.money = Math.max(0, G.money - f); d.fees = 0; lines.push(`Fee dikembalikan ${rpk(f)}`); }
+  if (fx.returnFees) { if (d.fees > 0) mood('rani', 10); const f = d.fees; if (city()) city().apbd += f; G.money = Math.max(0, G.money - f); d.fees = 0; lines.push(`Fee dikembalikan ${rpk(f)}`); }
   if (fx.inspect && city()) { for (const p of city().proj) { if (fx.inspect === 'perbaiki') { p.quality = Math.min(95, p.quality + 20); p.left += 2; } else p.quality = Math.min(95, p.quality + 10); } lines.push(fx.inspect === 'perbaiki' ? 'Kualitas proyek naik, jadwal mundur' : 'Kontraktor disanksi'); }
+  if (fx.warga) for (const id in fx.warga) { mood(id, fx.warga[id]); const w = WARGA.find(x => x.id === id); lines.push(`${w ? w.name : id} ${fx.warga[id] > 0 ? 'makin percaya' : 'kecewa'}`); }
+  if (fx.haji) { haji(fx.haji); lines.push(fx.haji > 0 ? 'Pak Haji lega' : 'Pak Haji kecewa'); }
+  if (fx.janji && city()) { k.janji = k.janji || {}; k.janji[fx.janji.who] = { proj: fx.janji.proj, due: city().day + 8 }; lines.push('Janji dicatat: 8 hari'); }
   if (fx.audit) resolveAudit(fx.audit, lines);
   return lines;
 }
@@ -181,7 +191,7 @@ export function resolveAudit(mode, lines = []) {
   if (mode === 'sogok') { if (Math.random() < .35) { S = 100; lines.push('Auditor ternyata merekam suapmu!'); } else { S -= 30; d.jejak = clamp(d.jejak + 12, 0, 100); lines.push('Auditor menerima... jejak baru tercipta'); } }
   S = Math.round(S);
   if (S >= 75) { d.arrest = true; d.sorotan = clamp(d.sorotan + 30, 0, 100); lines.push('Temuan pidana! Kasus dilimpahkan ke KPK.'); }
-  else if (S >= 50) { const pen = Math.round(d.fees * 1.5); G.money = Math.max(0, G.money - pen); d.sorotan = clamp(d.sorotan + 20, 0, 100); k.integ = clamp(k.integ - 10, 0, 100); addInd({ puas: -8 }); d.force = 'd_kpk'; lines.push(`Temuan serius: denda ${rpk(pen)}, KPK akan memanggilmu.`); }
+  else if (S >= 50) { moodAll(-6); haji(-8); const pen = Math.round(d.fees * 1.5); G.money = Math.max(0, G.money - pen); d.sorotan = clamp(d.sorotan + 20, 0, 100); k.integ = clamp(k.integ - 10, 0, 100); addInd({ puas: -8 }); forceNow('d_kpk'); lines.push(`Temuan serius: denda ${rpk(pen)}, KPK akan memanggilmu.`); }
   else if (S >= 25) { const fine = Math.round(d.fees * .3); G.money = Math.max(0, G.money - fine); d.sorotan = clamp(d.sorotan + 5, 0, 100); k.integ = clamp(k.integ - 3, 0, 100); lines.push(`Temuan administrasi: denda ${rpk(fine)}.`); }
   else { k.integ = clamp(k.integ + 3, 0, 100); addInd({ puas: 2 }); lines.push('Opini WTP: tidak ada temuan berarti.'); }
   note(`Audit BPK ke-${d.auditN}: skor risiko ${S}.`, 'audit');
@@ -204,9 +214,13 @@ export function kotaWhenOk(w) {
   if (w.done && !(c && c.done[w.done] && !(c.broken && c.broken[w.done]))) return false;
   if (w.notDone && c && c.done[w.notDone] && !(c.broken && c.broken[w.notDone])) return false;
   if (w.proyekJalan && !(c && c.proj.length)) return false;
+  if (w.wargaMin) for (const id in w.wargaMin) if (moodOf(id) < w.wargaMin[id]) return false;
+  if (w.wargaMax) for (const id in w.wargaMax) if (moodOf(id) > w.wargaMax[id]) return false;
+  if (w.feesMin !== undefined && d.fees < w.feesMin) return false;
+  if (w.feesMax !== undefined && (d.feesEver || 0) > w.feesMax) return false;
   return true;
 }
-export function takeForcedEvent() { const d = G.kota && G.kota.dunia; if (d && d.force) { const f = d.force; d.force = null; return f; } return null; }
+export function takeForcedEvent() { const d = G.kota && G.kota.dunia; if (d && d.force) { const f = d.force; d.force = (d.queue && d.queue.shift()) || null; return f; } return null; }
 export function endingOf() {
   const k = kota(), avg = cityAvg(), c = city();
   if (dn().arrest) return 'tangkap';
@@ -235,7 +249,8 @@ export function dawnKota() {
   if (k.phase === 'kampanye') { k.camp.day++; if (k.camp.day >= CAMP_DAYS) runElection(); }
   else if (k.phase === 'wali' && k.city) cityDawn();
 }
-const setForce = id => { const d = dn(); if (!d.force) d.force = id; };
+const setForce = id => { const d = dn(); if (!d.force) d.force = id; else if (d.force !== id && !d.queue.includes(id)) d.queue.push(id); };
+const forceNow = id => { const d = dn(); if (d.force && d.force !== id) d.queue.unshift(d.force); d.force = id; };
 function cityDawn() {
   const c = city(), k = kota(), d = dn(); c.broken = c.broken || {}; c.fail = c.fail || {}; c.qual = c.qual || {}; c.applied = c.applied || {};
   const tax = taxPerDay(); c.apbd += tax; c.taxToday = tax;
@@ -247,7 +262,7 @@ function cityDawn() {
     if (Math.random() < (1 - p.rel) * .35) { p.left++; note(`${PROJECTS.find(x => x.id === p.id).name} molor sehari (${p.who}: material terlambat).`, 'proyek'); }
     if (Math.random() < (1 - p.rel) * .12) { const extra = Math.round(p.price * (.08 + Math.random() * .12)); c.apbd = Math.max(0, c.apbd - extra); note(`Biaya ${PROJECTS.find(x => x.id === p.id).name} membengkak ${rpk(extra)} (addendum kontrak).`, 'proyek'); }
     p.left--; if (p.left > 0) { rest.push(p); continue; }
-    const def = PROJECTS.find(x => x.id === p.id), m = projectEffect(p.quality); c.done[p.id] = true; c.qual[p.id] = p.quality; c.applied[p.id] = { fx: def.fx, m, fee: p.fee > 0 }; addInd(def.fx, m); SFX.good();
+    const def = PROJECTS.find(x => x.id === p.id), m = projectEffect(p.quality); c.done[p.id] = true; c.qual[p.id] = p.quality; c.applied[p.id] = { fx: def.fx, m, fee: p.fee > 0 }; addInd(def.fx, m); SFX.good(); projectMoods(p.id, true);
     note(`${def.name} selesai (kualitas ${p.quality}, ${p.who}).`, 'proyek'); toast(`${def.name} selesai!`, '#ffe45c');
     if (p.quality < 55 && Math.random() < (60 - p.quality) / 55) c.fail[p.id] = c.day + ri(5, 14);
   }
@@ -255,14 +270,17 @@ function cityDawn() {
   // bangunan berkualitas buruk rusak: efeknya hilang, warga marah, penyelidikan mengendus fee
   for (const id of Object.keys(c.fail)) {
     if (c.day < c.fail[id]) continue; delete c.fail[id]; const ap = c.applied[id], def = PROJECTS.find(x => x.id === id);
-    c.broken[id] = true; if (ap) addInd(ap.fx, -ap.m); addInd({ puas: -8 }); d.sorotan = clamp(d.sorotan + 15, 0, 100); d.jejak = clamp(d.jejak + (ap && ap.fee ? 10 : 4), 0, 100);
+    c.broken[id] = true; projectMoods(id, false); if (ap) addInd(ap.fx, -ap.m); addInd({ puas: -8 }); d.sorotan = clamp(d.sorotan + 15, 0, 100); d.jejak = clamp(d.jejak + (ap && ap.fee ? 10 : 4), 0, 100);
     note(`${def.name} RUSAK: kontraktor asal-asalan! Warga marah, media menyorot.`, 'rusak');
   }
   note(`Kas kota +${rpk(tax)}.`);
   if (d.jejak >= 85 && Math.random() < .5) { d.arrest = true; note('Penyidik sudah mengantongi bukti kuat.', 'kpk'); }
   // pemicu peristiwa: audit terjadwal, panggilan KPK, pelapor, demo, DPRD
+  checkJanji();
   if (AUDIT_DAYS.includes(c.day)) setForce('d_audit');
   else if (c.day === d.kpkDay) setForce('d_kpk');
+  else if (HAJI_DAYS.includes(c.day)) setForce(hajiCall());
+  else if (c.day % 3 === 1 && nextWargaEvent()) setForce(nextWargaEvent());
   else {
     const pw = d.jejak > 20 ? d.sorotan / 500 + (100 - c.ind.puas) / 2000 + d.jejak / 1500 : 0;
     if (Math.random() < pw) setForce('d_whistle');
@@ -271,4 +289,71 @@ function cityDawn() {
   }
   if (c.day > CITY_DAYS && !k.ending) { k.ending = endingOf(); ui.modal = 'kota_akhir'; SFX.ending(); }
 }
+/* ---------- warga lama & Pak Haji ---------- */
+export function initWarga() {
+  const k = kota(), regs = (st().regs) || {}; k.warga = {}; k.janji = {}; k.wargaSeen = [];
+  for (const w of WARGA) k.warga[w.id] = clamp(Math.round(40 + ((regs[w.id] && regs[w.id].aff) || 30) * .4), 30, 85);
+  k.haji = clamp(Math.round(30 + k.integ * .5), 30, 85);
+}
+export const moodOf = id => { const k = kota(); return k.warga && k.warga[id] !== undefined ? k.warga[id] : 50; };
+function mood(id, n) { const k = kota(); if (!k.warga) return; if (k.warga[id] !== undefined) k.warga[id] = clamp(k.warga[id] + n, 0, 100); }
+function moodAll(n) { for (const w of WARGA) mood(w.id, n); }
+function haji(n) { const k = kota(); if (k.haji !== undefined) k.haji = clamp(k.haji + n, 0, 100); }
+export const hajiOf = () => (kota().haji !== undefined ? kota().haji : 60);
+/** Proyek selesai (ok) atau rusak: warga yang membutuhkannya paling merasakan. */
+function projectMoods(id, ok) {
+  for (const w of WARGA) {
+    if (w.wants.includes(id)) mood(w.id, ok ? 14 : -15);
+    else if (w.fears && w.fears.includes(id)) mood(w.id, ok ? (flag('ojek_dilibatkan') ? 6 : -12) : 0);
+    else if (!ok) mood(w.id, -5);
+  }
+  const fan = WARGA.find(w => w.wants.includes(id));
+  if (fan && ok) note(`${fan.name}: "${TALK[fan.id].got}"`, 'warga');
+}
+function checkJanji() {
+  const k = kota(), c = city(); if (!k.janji) return;
+  for (const who of Object.keys(k.janji)) {
+    const j = k.janji[who], w = WARGA.find(x => x.id === who);
+    if (c.done[j.proj] && !(c.broken && c.broken[j.proj])) { mood(who, 6); haji(2); note(`${w.name}: janjimu ditepati.`, 'warga'); delete k.janji[who]; }
+    else if (c.day > j.due) { mood(who, -20); haji(-5); note(`${w.name}: "Janji tinggal janji." Kekecewaannya menyebar di kampung.`, 'warga'); addInd({ puas: -2 }); delete k.janji[who]; }
+  }
+}
+/** Nada telepon Pak Haji mengikuti integritas, fee, dan jejak. */
+export function hajiCall() { const k = kota(), d = dn(); return d.jejak >= 40 || k.integ < 50 ? 'h_kecewa' : d.feesEver > 0 || k.integ < 70 ? 'h_ragu' : 'h_baik'; }
+/** Warga lama berikutnya yang datang ke balai kota (sekali per kejadian, bila syaratnya terpenuhi). */
+export function nextWargaEvent() {
+  const k = kota(), seen = k.wargaSeen || (k.wargaSeen = []);
+  const e = WARGA_POOL.find(ev => ev.warga && !seen.includes(ev.id) && kotaWhenOk(ev.when || {}) && [].concat(ev.when.phase || []).every(ph => ph === k.phase));
+  return e ? e.id : null;
+}
+export function markWargaSeen(id) { const k = kota(); if (WARGA_POOL.some(e => e.id === id && e.warga)) (k.wargaSeen || (k.wargaSeen = [])).push(id); }
+/** Ucapan pembeli di warung tentang kota: warga lama bicara soal kebutuhannya, pembeli lain soal kabar kota. */
+export function cityTalk(regId) {
+  const k = G.kota; if (!k || k.phase !== 'wali' || !k.city) return null; const c = k.city, d = k.dunia || {};
+  const w = WARGA.find(x => x.id === regId);
+  if (w) { const m = moodOf(w.id), got = w.wants.some(x => c.done[x] && !(c.broken && c.broken[x])); return m < 35 ? TALK[w.id].sad : got ? TALK[w.id].got : TALK[w.id].need; }
+  const pickOf = a => a[Math.floor(Math.random() * a.length)];
+  if (d.jejak >= 35) return pickOf(CITY_TALK.jejak);
+  if (c.broken && Object.values(c.broken).some(Boolean)) return pickOf(CITY_TALK.rusak);
+  if (d.harga >= 1.08) return pickOf(CITY_TALK.harga);
+  if (c.ind.bers < 35) return pickOf(CITY_TALK.kotor);
+  if (c.done.taman && Math.random() < .5) return pickOf(CITY_TALK.taman);
+  if (c.ind.puas >= 65) return pickOf(CITY_TALK.bagus);
+  return null;
+}
+/** "Korban" sebuah tawaran tender: uang warga yang hilang dibandingkan dengan hal nyata. */
+export function victimOf(bid, def) {
+  const over = Math.max(0, bid.price - def.cost) + (bid.key === 'murah' ? bid.fee : 0), fan = WARGA.find(w => w.wants.includes(def.id));
+  if (bid.key === 'murah') return `Kualitas rendah: kalau rusak, ${fan ? fan.name : 'warga'} yang menanggung. Fee-nya diambil dari mutu bangunan.`;
+  if (!over) return '';
+  return `${rpk(over)} uang warga = ${Math.floor(over / BEASISWA)} beasiswa seperti Rani, atau ${Math.floor(over / JALAN_M)} m jalan gang Bu Sri.`;
+}
+/** Kalimat penutup per tokoh untuk akhir masa jabatan. */
+export function epilogPeople() {
+  const k = kota(), out = [], h = hajiOf();
+  out.push(h >= 65 ? EPI.haji.hi : h >= 40 ? EPI.haji.mid : EPI.haji.lo);
+  for (const w of WARGA) { const m = moodOf(w.id); if (m >= 65) out.push(EPI[w.id].hi); else if (m <= 35) out.push(EPI[w.id].lo); }
+  return k.warga ? out : out.slice(0, 1);
+}
+export const wargaList = () => WARGA.map(w => ({ ...w, mood: moodOf(w.id), janji: kota().janji && kota().janji[w.id], talk: cityTalk(w.id) }));
 export const endingInfo = () => (kota().ending === 'tangkap' ? ENDING_ARREST : ENDINGS[kota().ending]) || null;

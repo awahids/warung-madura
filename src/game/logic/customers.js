@@ -1,3 +1,4 @@
+import { cityTalk } from './kota.js';
 import { SFX } from '../audio.js';
 import { ITEM_LVL, addXp, featureOn, itemOn, typeOn } from './level.js';
 import { kasbonLimit, outstanding } from './kasbon.js';
@@ -42,6 +43,7 @@ export function spawnCustomer(type, ev) {
     x: Math.random() < .5 ? -120 : W + 120, y: 0, state: 'in', patience: T0.patience * trustMul() * (reg ? patienceMul(reg.id) : 1), max: T0.patience * trustMul() * (reg ? patienceMul(reg.id) : 1),
     say: ev === 'kasbon' ? 'Bang, kasbon dulu ya, besok dibayar!' : reg ? pick(tier >= 2 ? reg.akrab : reg.say) : pick(T0.say), bob: Math.random() * 7, bye: '',
   };
+  if (!ev) { const talk = cityTalk(reg ? reg.id : null); if (talk && Math.random() < (reg ? .6 : .3)) c.say = talk; }   // fase wali kota: pembeli membicarakan kota
   recalc(c); if (reg) noteVisit(reg.id);
   G.cust.push(c); SFX.bell();
   return true;

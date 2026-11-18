@@ -155,3 +155,61 @@ describe('dunia nyata: tender, fee, audit, KPK, DPRD, harga', () => {
     expect(eventById('d_audit').forceOnly).toBe(true);
   });
 });
+
+describe('warga lama & Pak Haji di fase wali kota', () => {
+  beforeEach(() => { begin(); openBab(); const k = kota(); k.ch = 7; k.phase = 'kampanye'; story().trust = 100; G.rep = 100; k.duk = 50; k.rivalBonus = -4; runElection(); ui.modal = null; city().apbd = 2e9; });
+
+  it('dilantik: suasana hati warga lama & Pak Haji terisi', async () => {
+    const K = await import('../src/game/logic/kota'); const k = kota();
+    expect(Object.keys(k.warga)).toEqual(['sri', 'jaka', 'rani', 'darto', 'wati']); expect(K.hajiOf()).toBeGreaterThan(50);
+  });
+  it('mengambil fee: Rani paling kecewa, semua warga turun, dan Pak Haji "menelepon" malam itu', async () => {
+    const K = await import('../src/game/logic/kota'); const r0 = K.moodOf('rani'), s0 = K.moodOf('sri');
+    K.build('taman', true); expect(K.moodOf('rani')).toBe(r0 - 16); expect(K.moodOf('sri')).toBe(s0 - 4); expect(dn().force).toBe('h_fee');
+    expect(dn().log.some(l => /Rani mulai menelusuri/.test(l.text))).toBe(true);
+  });
+  it('proyek yang dibutuhkan selesai menaikkan warga terkait; rusak menurunkannya', () => {
+    const c = city(); c.proj.push({ id: 'jalan', left: 1, days: 3, price: 120e6, quality: 90, rel: 1, who: 'PT', key: 'jujur', fee: 0 });
+    const s0 = kota().warga.sri, d0 = kota().warga.darto; G.day++; startDay(); ui.modal = null; expect(kota().warga.sri).toBe(Math.min(100, s0 + 14)); expect(kota().warga.darto).toBe(d0);
+    c.fail.jalan = c.day; const s1 = kota().warga.sri; G.day++; startDay(); ui.modal = null; expect(kota().warga.sri).toBe(s1 - 15);
+  });
+  it('janji yang tidak ditepati dalam 8 hari membuat warga kecewa berat', async () => {
+    const K = await import('../src/game/logic/kota'); K.applyKotaFx({ janji: { who: 'wati', proj: 'puskesmas' } }); const m0 = K.moodOf('wati');
+    for (let i = 0; i < 9; i++) { G.day++; startDay(); ui.modal = null; }
+    expect(K.moodOf('wati')).toBeLessThanOrEqual(m0 - 20); expect(kota().janji.wati).toBeUndefined();
+  });
+  it('janji yang ditepati menambah kepercayaan', async () => {
+    const K = await import('../src/game/logic/kota'); K.applyKotaFx({ janji: { who: 'sri', proj: 'jalan' } }); city().done.jalan = true; const m0 = K.moodOf('sri');
+    G.day++; startDay(); ui.modal = null; expect(K.moodOf('sri')).toBe(m0 + 6);
+  });
+  it('nada telepon Pak Haji mengikuti integritas & jejak', async () => {
+    const K = await import('../src/game/logic/kota'); expect(K.hajiCall()).toBe('h_baik');
+    dn().feesEver = 1; expect(K.hajiCall()).toBe('h_ragu'); dn().jejak = 50; expect(K.hajiCall()).toBe('h_kecewa');
+  });
+  it('warga datang ke balai kota bergiliran; tiap kejadian sekali', async () => {
+    const K = await import('../src/game/logic/kota'); expect(K.nextWargaEvent()).toBe('ww_sri_gang');
+    K.markWargaSeen('ww_sri_gang'); expect(K.nextWargaEvent()).toBe('ww_jaka_angkot');
+    const c = city(); c.day = 3; dn().force = null; dn().queue = []; G.day++; startDay(); ui.modal = null;   // hari ke-4 masa jabatan
+    expect([dn().force, ...G.events.map(e => e.id)]).toContain('ww_jaka_angkot');
+  });
+  it('janji angkot diingkari: Bang Jaka sangat kecewa', async () => {
+    const K = await import('../src/game/logic/kota'); story().flags.angkot_ditunda = true; const m0 = K.moodOf('jaka'); K.build('angkot'); expect(K.moodOf('jaka')).toBe(m0 - 25);
+  });
+  it('pembeli di warung membicarakan kota (warga lama sesuai kebutuhannya)', async () => {
+    const K = await import('../src/game/logic/kota'); expect(K.cityTalk('sri')).toMatch(/bolong/); city().done.jalan = true; expect(K.cityTalk('sri')).toMatch(/mulus/);
+    kota().warga.sri = 20; expect(K.cityTalk('sri')).toMatch(/lupa/); dn().jejak = 50; expect(K.cityTalk(null)).toBeTruthy();
+  });
+  it('tender menunjukkan "korban" uang warga', async () => {
+    const K = await import('../src/game/logic/kota'); const def = PROJECTS.find(p => p.id === 'sekolah');
+    expect(K.victimOf({ key: 'kroni', price: 450e6, fee: 60e6 }, def)).toMatch(/beasiswa seperti Rani/); expect(K.victimOf({ key: 'jujur', price: 350e6, fee: 0 }, def)).toBe('');
+    expect(K.victimOf({ key: 'murah', price: 270e6, fee: 20e6 }, def)).toMatch(/Rani yang menanggung/);
+  });
+  it('akhir masa jabatan menyebut Pak Haji dan warga yang paling terdampak', async () => {
+    const K = await import('../src/game/logic/kota'); kota().haji = 20; kota().warga.rani = 10; kota().warga.sri = 90;
+    const L = K.epilogPeople(); expect(L[0]).toMatch(/tidak datang/); expect(L.join(' ')).toMatch(/Rani bersaksi/); expect(L.join(' ')).toMatch(/Bu Sri lewat/);
+  });
+  it('kejadian warga lama valid', async () => {
+    const { eventById } = await import('../src/game/logic/story');
+    for (const id of ['ww_sri_gang', 'ww_sri_terima', 'ww_jaka_angkot', 'ww_rani_data', 'ww_rani_bangga', 'ww_darto_kerja', 'ww_wati_sehat', 'h_baik', 'h_ragu', 'h_kecewa', 'h_fee']) expect(eventById(id), id).toBeTruthy();
+  });
+});
