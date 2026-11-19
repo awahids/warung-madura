@@ -1,5 +1,6 @@
 import { SFX } from '../audio.js';
 import { BEASISWA, CITY_TALK, EPI, HAJI_DAYS, JALAN_M, TALK, WARGA, WARGA_POOL } from '../story/warga.js';
+import { ARC, REELECT_APBD, WARISAN } from '../story/arc.js';
 import { AUDIT_DAYS, DPRD_MIN, DPRD_MIN_COST, ENDING_ARREST, EPROC_COST, NAMES, PERMIT_DAYS, RUSH_DAYS, RUSH_PCT } from '../story/dunia.js';
 import { BIZ, BIZ_COST_MUL, BIZ_INC_MUL, BIZ_MAX, BIZ_RESALE, CAMP_ACTS, CAMP_DAYS, CITY_DAYS, ENDINGS, IND, MAX_PROJ, PROJECTS, RIVAL, WIN_WEALTH } from '../story/kota.js';
 import { G, ui } from '../state.js';
@@ -62,9 +63,15 @@ export const flagBonus = () => (flag('banjir_bantu') ? 4 : 0) + (flag('beasiswa'
 export function support() {
   const k = kota(), s = st(), r = G.rep || 50;
   const integPen = k.integ < 50 ? (50 - k.integ) * .3 : 0;
-  return clamp(Math.round(12 + s.trust * .3 + r * .12 + k.duk + flagBonus() + k.sympathy + k.camp.pts - integPen), 0, 100);
+  return clamp(Math.round(12 + s.trust * .3 + r * .12 + k.duk + flagBonus() + k.sympathy + k.camp.pts - integPen + reelectBonus()), 0, 100);
 }
-export const rivalPower = () => 52 + kota().rivalBonus;
+export const rivalPower = () => 52 + kota().rivalBonus + (kota().reelect ? 4 : 0);
+/** Pemilihan periode kedua: warga menilai hasil kerja (indikator kota), suasana hati warga lama, dan restu Pak Haji. */
+export function reelectBonus() {
+  const k = kota(); if (!k.reelect || !k.city) return 0;
+  const moods = WARGA.map(w => moodOf(w.id)), avg = moods.reduce((a, b) => a + b, 0) / moods.length;
+  return Math.round((cityAvg() - 50) * .6 + (avg - 50) * .25 + (hajiOf() - 50) * .1 - (dn().jejak > 40 ? 8 : 0));
+}
 export const canRun = () => { const k = kota(); return k.ch >= 7 && k.phase === 'usaha' && flag('diminta_calon') && st().trust >= 55 && G.day - k.lostDay >= 5; };
 export function runForOffice() {
   const k = kota(); if (!canRun()) { SFX.err(); return false; }
@@ -87,8 +94,14 @@ export function runElection() {
   const k = kota(), sc = support() + ri(-4, 4), rv = rivalPower(), win = sc > rv;
   const share = clamp(Math.round(50 + (sc - rv) * .9), 25, 78);
   k.result = { win, share, score: sc, rival: rv };
+  if (k.reelect) {
+    k.reelect = false;
+    if (win) { const c = k.city; k.term = 2; c.day = 1; c.apbd += REELECT_APBD; k.ending = null; k.phase = 'wali'; k.ch = 10; k.tab = 'politik'; dn().dprd = clamp(Math.round(35 + (share - 50) * 1.2), 20, 80); dn().arrest = false; G.morning && G.morning.push(`Terpilih kembali dengan ${share}% suara!`); }
+    else { k.final = 'kalah'; k.phase = 'selesai'; G.morning && G.morning.push(`Kalah dari ${RIVAL}: ${share}% suara.`); }
+    ui.modal = 'pilkada'; (win ? SFX.ending : SFX.down)(); return k.result;
+  }
   if (win) {
-    k.phase = 'wali'; k.ch = 9; setFlag('wali'); k.city = initCity(); k.tab = 'politik'; dn().dprd = clamp(Math.round(40 + (share - 50) * 1.2), 20, 80); initWarga();
+    k.term = 1; k.phase = 'wali'; k.ch = 9; setFlag('wali'); k.city = initCity(); k.tab = 'politik'; dn().dprd = clamp(Math.round(40 + (share - 50) * 1.2), 20, 80); initWarga();
     G.morning && G.morning.push(`Kamu terpilih jadi wali kota dengan ${share}% suara!`);
   } else {
     k.phase = 'usaha'; k.ch = 7; k.lost++; k.lostDay = G.day; k.sympathy += 5; k.camp = { day: 0, pts: 0, uses: {} };
@@ -110,7 +123,7 @@ export const needsDprd = id => (PROJECTS.find(x => x.id === id) || {}).cost >= D
 export const dprdBlock = id => needsDprd(id) && dn().dprd < DPRD_MIN;
 export const canBuild = id => {
   const c = city(), p = PROJECTS.find(x => x.id === id);
-  return !!c && !!p && (!c.done[id] || !!(c.broken && c.broken[id])) && !projectBusy(id) && c.proj.length < MAX_PROJ && c.apbd >= p.cost * .5 && !dprdBlock(id);
+  return !!c && !!p && (p.term || 1) <= (kota().term || 1) && (!c.done[id] || !!(c.broken && c.broken[id])) && !projectBusy(id) && c.proj.length < MAX_PROJ && c.apbd >= p.cost * .5 && !dprdBlock(id);
 };
 function addInd(fx, mul = 1) { const c = city(); if (!c || !fx) return; for (const key in fx) c.ind[key] = clamp(c.ind[key] + Math.round(fx[key] * mul * 10) / 10, 0, 100); }
 
@@ -160,7 +173,7 @@ function award(id, bid, rush, share = false) {
     G.money += mine; d.fees += mine; c.mark++; setFlag('korup_awal');
     d.jejak = clamp(d.jejak + (bid.key === 'kroni' ? 7 : bid.key === 'sendiri' ? 8 : 4), 0, 100); d.sorotan = clamp(d.sorotan + 2, 0, 100); k.integ = clamp(k.integ - (bid.key === 'kroni' ? 8 : bid.key === 'sendiri' ? 6 : 5), 0, 100);
     const first = !d.feesEver; d.feesEver += mine;
-    moodAll(-4); mood('rani', -12);
+    moodAll(-4); mood('rani', -12); if (flag('rani_pengadaan')) { mood('rani', -10); d.jejak = clamp(d.jejak + 3, 0, 100); note('Rani melihat kontrak itu di mejanya. Ia memotretnya.', 'warga'); }
     const waiting = WARGA.find(w => w.wants.some(x => !(city().done[x])) && w.id !== 'rani');
     note(`Fee ${rpk(mine)} dari ${bid.name} masuk rekeningmu.${waiting ? ` Di kampung, ${waiting.name} masih menunggu.` : ''} Rani mulai menelusuri kontraknya.`, 'fee');
     if (first) forceNow('h_fee');
@@ -252,7 +265,7 @@ export function dawnKota() {
   if (!k.ch && s.ending) { k.ch = 6; k.phase = 'usaha'; setFlag('babak_usaha'); }
   if (!k.ch || k.lastDay === G.day) return;
   k.lastDay = G.day;
-  if (d.arrest && !k.ending) { k.ending = 'tangkap'; ui.modal = 'kota_akhir'; SFX.down(); note('OTT KPK di rumah dinas pagi ini.', 'kpk'); return; }
+  if (d.arrest && !k.ending) { k.ending = 'tangkap'; k.final = 'tangkap'; k.phase = 'selesai'; (k.endings || (k.endings = []))[(k.term || 1) - 1] = 'tangkap'; ui.modal = 'kota_akhir'; SFX.down(); note('OTT KPK di rumah dinas pagi ini.', 'kpk'); return; }
   // ekonomi: harga bergerak, saingan reda, sorotan & jejak memudar pelan
   d.harga = clamp(d.harga + (1 - d.harga) * .02 + (Math.random() - .5) * .012, .9, 1.6); if (d.saingan > 0) d.saingan--;
   d.sorotan = Math.max(0, d.sorotan - 1.5); d.jejak = Math.max(0, d.jejak - .15);
@@ -264,7 +277,7 @@ export function dawnKota() {
   }
   if (k.ch === 6 && isMiliarder()) { k.ch = 7; setFlag('miliarder'); note('Kekayaan bersihmu menembus Rp 1 miliar!'); }
   if (k.phase === 'kampanye') { k.camp.day++; if (k.camp.day >= CAMP_DAYS) runElection(); }
-  else if (k.phase === 'wali' && k.city) cityDawn();
+  else if (k.phase === 'wali' && k.city && !k.ending) cityDawn();
 }
 const setForce = id => { const d = dn(); if (!d.force) d.force = id; else if (d.force !== id && !d.queue.includes(id)) d.queue.push(id); };
 const forceNow = id => { const d = dn(); if (d.force && d.force !== id) d.queue.unshift(d.force); d.force = id; };
@@ -297,8 +310,9 @@ function cityDawn() {
   checkJanji();
   if (AUDIT_DAYS.includes(c.day)) setForce('d_audit');
   else if (c.day === d.kpkDay) setForce('d_kpk');
-  else if (c.day === 2 && Object.values(k.biz).some(v => v > 0)) setForce('w_usaha');
-  else if (c.day === 12) setForce('h_sakit');
+  else if (arcFor(c.day)) setForce(arcFor(c.day));
+  else if ((k.term || 1) === 1 && c.day === 2 && Object.values(k.biz).some(v => v > 0)) setForce('w_usaha');
+  else if ((k.term || 1) === 1 && c.day === 12) setForce('h_sakit');
   else if (HAJI_DAYS.includes(c.day)) setForce(hajiCall());
   else if (c.day % 3 === 1 && nextWargaEvent()) setForce(nextWargaEvent());
   else {
@@ -307,7 +321,7 @@ function cityDawn() {
     else if (c.ind.puas < 35 && Math.random() < .35) setForce('d_demo');
     else if (d.dprd < DPRD_MIN && c.day % 5 === 0) setForce('d_jatah');
   }
-  if (c.day > CITY_DAYS && !k.ending) { k.ending = endingOf(); ui.modal = 'kota_akhir'; SFX.ending(); if (k.held) { G.money += k.held; note(`Dividen usaha yang ditahan selama menjabat cair: ${rpk(k.held)}.`, 'usaha'); k.held = 0; } }
+  if (c.day > CITY_DAYS && !k.ending) { k.ending = endingOf(); (k.endings || (k.endings = []))[(k.term || 1) - 1] = k.ending; if ((k.term || 1) >= 2 || k.ending === 'tangkap') { k.final = k.ending === 'tangkap' ? 'tangkap' : 'selesai'; k.phase = 'selesai'; } ui.modal = 'kota_akhir'; SFX.ending(); if (k.held) { G.money += k.held; note(`Dividen usaha yang ditahan selama menjabat cair: ${rpk(k.held)}.`, 'usaha'); k.held = 0; } }
 }
 /* ---------- warga lama & Pak Haji ---------- */
 export function initWarga() {
@@ -385,4 +399,28 @@ export function bantuWarga(id) {
   toast(`${w.name} terbantu. Suasana hatinya membaik.`, '#cfe8ff'); return true;
 }
 export const wargaList = () => WARGA.map(w => ({ ...w, mood: moodOf(w.id), janji: kota().janji && kota().janji[w.id], talk: cityTalk(w.id) }));
+/* ---------- alur bertanggal, periode kedua, warisan ---------- */
+export function arcFor(day) {
+  const k = kota(), a = ARC[k.term || 1]; if (!a || !a[day]) return null;
+  const v = a[day]; return typeof v === 'function' ? v({ rani: moodOf('rani'), haji: hajiOf(), jejak: dn().jejak }) : v;
+}
+export const canReelect = () => { const k = kota(); return (k.term || 1) === 1 && !!k.ending && k.ending !== 'tangkap' && !k.final && k.phase === 'wali'; };
+/** Maju periode kedua: kampanye 7 hari lagi; dukungan dinilai dari hasil kerja periode pertama. */
+export function runSecondTerm() {
+  const k = kota(); if (!canReelect()) { SFX.err(); return false; }
+  k.reelect = true; k.phase = 'kampanye'; k.ch = 10; k.camp = { day: 0, pts: 0, uses: {} }; k.tab = 'politik'; ui.modal = null; SFX.chapter();
+  toast(`Kamu maju periode kedua. ${RIVAL} menantangmu lagi.`, '#ffe45c'); return true;
+}
+export function retire() { const k = kota(); if (!canReelect()) return false; k.final = 'pensiun'; k.phase = 'selesai'; ui.modal = 'warisan'; return true; }
+/** Penutup akhir: dua periode, penerus, nasib warung lama, Pak Haji, dan warga. */
+export function warisanLines() {
+  const k = kota(), f = st().flags, out = [], fin = k.final || 'selesai';
+  out.push(WARISAN.intro[fin]);
+  (k.endings || []).forEach((e, i) => { const info = e === 'tangkap' ? ENDING_ARREST : ENDINGS[e]; if (info) out.push(`Periode ${i + 1}: ${info.title}.`); });
+  const pen = ['penerus_rani', 'penerus_burhan', 'penerus_netral'].find(x => f[x]); if (pen) out.push(WARISAN.penerus[pen]);
+  const wr = ['warung_rizky', 'warung_koperasi', 'warung_pulang'].find(x => f[x]); out.push(WARISAN.warung[wr || 'none']);
+  const h = hajiOf(); out.push(h >= 65 ? WARISAN.haji.hi : h >= 40 ? WARISAN.haji.mid : WARISAN.haji.lo);
+  for (const l of epilogPeople().slice(1)) out.push(l);
+  return { title: WARISAN.title[fin], lines: out };
+}
 export const endingInfo = () => (kota().ending === 'tangkap' ? ENDING_ARREST : ENDINGS[kota().ending]) || null;

@@ -1,6 +1,6 @@
 import { ctx } from '../gfx.js';
 import { BIZ, BIZ_MAX, CAMP_ACTS, CAMP_DAYS, CITY_DAYS, IND, MAX_PROJ, PROJECTS, RIVAL, WIN_WEALTH } from '../story/kota.js';
-import { assetValue, awardTender, bizIncAt, bizLevel, bizNextCost, buyBiz, campUses, campaign, cancelTender, canBuild, canRun, city, cityAvg, dn, dprdBlock, endingInfo, incomeNominal, incomePerDay, isMiliarder, kota, netWorth, projectEffect, reportAssets, rivalPower, runForOffice, rushCost, setEproc, victimOf, riskNow, bantuWarga, canBantu, BANTU_COST, wargaList, hajiOf, epilogPeople, startTender, support, taxPerDay } from '../logic/kota.js';
+import { assetValue, awardTender, bizIncAt, bizLevel, bizNextCost, buyBiz, campUses, campaign, cancelTender, canBuild, canRun, city, cityAvg, dn, dprdBlock, endingInfo, incomeNominal, incomePerDay, isMiliarder, kota, netWorth, projectEffect, reportAssets, rivalPower, runForOffice, rushCost, setEproc, canReelect, runSecondTerm, retire, warisanLines, victimOf, riskNow, bantuWarga, canBantu, BANTU_COST, wargaList, hajiOf, epilogPeople, startTender, support, taxPerDay } from '../logic/kota.js';
 import { AUDIT_DAYS, DPRD_MIN, EPROC_COST, RUSH_PCT } from '../story/dunia.js';
 import { story } from '../logic/story.js';
 import { G, ui } from '../state.js';
@@ -48,6 +48,7 @@ function usahaTab(k, x, y, w) {
 
 function politikTab(k, x, y, w) {
   const s = story(), sup = support(), kamp = k.phase === 'kampanye';
+  if (k.final) { T('Masa jabatanmu sudah selesai.', x + 40, y + 50, { s: 20, w: '800', c: '#6b3a14' }); button(x + 40, y + 80, 300, 50, 'LIHAT WARISAN', () => { ui.modal = 'warisan'; }, { col: 'green', s: 18 }); return; }
   if (k.ch < 7) { T('Terbuka setelah kekayaan bersihmu menembus Rp 1 miliar (tab USAHA).', x + 40, y + 50, { s: 18, w: '700', c: '#7a6a5a' }); return; }
   T('DUKUNGAN WARGA', x + 36, y + 14, { s: 13, w: '800', c: '#a05a1a' });
   bar(x + 36, y + 24, w - 72, 18, sup / 100, sup >= rivalPower() ? '#58b948' : '#e0b030');
@@ -80,17 +81,18 @@ function kotaTab(k, x, y, w) {
     T(IND[id], bx, y + 44, { s: 13, w: '800', c: '#a05a1a' }); bar(bx, y + 52, 230, 12, v / 100, v >= 60 ? '#58b948' : v >= 35 ? '#e0b030' : '#d6483a');
     T(String(Math.round(v)), bx + 236, y + 64, { s: 12, w: '700', c: '#5a3a1a' });
   });
-  T(`Rata-rata ${cityAvg()} · proyek berjalan ${c.proj.length}/${MAX_PROJ}`, x + 36, y + 90, { s: 13, w: '700', c: '#7a5a3a' });
+  T(`Periode ${k.term || 1} · rata-rata ${cityAvg()} · proyek berjalan ${c.proj.length}/${MAX_PROJ}${c.talangan ? ` · talangan ${rpk(c.talangan)}` : ''}`, x + 36, y + 90, { s: 13, w: '700', c: '#7a5a3a' });
   PROJECTS.forEach((p, i) => {
-    const col = i % 3, row = Math.floor(i / 3), cw = (w - 56 - 24) / 3, cx = x + 28 + col * (cw + 12), cy = y + 104 + row * 132;
-    const broken = c.broken && c.broken[p.id], done = c.done[p.id] && !broken, run = c.proj.find(q => q.id === p.id), can = canBuild(p.id), blocked = dprdBlock(p.id);
-    card(cx, cy, cw, 124, broken ? 'rgba(230,150,130,.4)' : done ? 'rgba(120,200,110,.3)' : run ? 'rgba(255,225,130,.4)' : 'rgba(255,255,255,.55)', broken ? '#d88a7a' : done ? '#7ac070' : '#d6bf8a');
-    T(p.name, cx + 14, cy + 26, { s: 16, c: '#3a210c' });
-    T(`${rpk(p.cost)} · ${p.days} hari${blocked ? ' · butuh DPRD' : ''}`, cx + 14, cy + 46, { s: 12, w: '700', c: blocked ? '#b3281e' : '#5a3a1a' });
-    T(fxText(p.fx), cx + 14, cy + 64, { s: 12, w: '700', c: '#2a5a1a' });
-    if (done) T(`✔ Selesai · kualitas ${c.qual[p.id] || '—'}${c.fail && c.fail[p.id] ? ' ⚠' : ''}`, cx + 14, cy + 104, { s: 14, w: '800', c: '#2a5a1a' });
-    else if (run) T(`${run.who} · kualitas ${run.quality} · sisa ${run.left} hari`, cx + 14, cy + 104, { s: 12, w: '800', c: '#a05a1a' });
-    else { if (broken) T('RUSAK — efek hilang', cx + 14, cy + 88, { s: 13, w: '800', c: '#b3281e' }); button(cx + 12, cy + 76 + (broken ? 14 : 0), cw - 24, broken ? 32 : 40, broken ? 'TENDER ULANG' : 'TENDER PROYEK', () => startTender(p.id), { col: 'green', s: 15, disabled: !can && !blocked, tip: blocked ? `DPRD menahan proyek besar (dukungan < ${DPRD_MIN}). Lihat tab AWASI.` : !can ? (c.proj.length >= MAX_PROJ ? 'Dinas PU penuh' : 'Kas kota belum cukup') : 'Pilih kontraktor lewat lelang' }); }
+    const col = i % 3, row = Math.floor(i / 3), cw = (w - 56 - 24) / 3, cx = x + 28 + col * (cw + 12), cy = y + 100 + row * 103;
+    const broken = c.broken && c.broken[p.id], done = c.done[p.id] && !broken, run = c.proj.find(q => q.id === p.id), can = canBuild(p.id), blocked = dprdBlock(p.id), locked = (p.term || 1) > (k.term || 1);
+    card(cx, cy, cw, 96, locked ? 'rgba(200,200,200,.35)' : broken ? 'rgba(230,150,130,.4)' : done ? 'rgba(120,200,110,.3)' : run ? 'rgba(255,225,130,.4)' : 'rgba(255,255,255,.55)', broken ? '#d88a7a' : done ? '#7ac070' : '#d6bf8a');
+    T(p.name, cx + 12, cy + 21, { s: 15, c: locked ? '#8a8a8a' : '#3a210c' });
+    T(`${rpk(p.cost)} · ${p.days} hari${blocked ? ' · butuh DPRD' : ''}`, cx + 12, cy + 38, { s: 11, w: '700', c: blocked ? '#b3281e' : '#5a3a1a' });
+    T(fxText(p.fx), cx + 12, cy + 53, { s: 11, w: '700', c: locked ? '#8a8a8a' : '#2a5a1a' });
+    if (locked) T('Terbuka di periode kedua', cx + 12, cy + 80, { s: 13, w: '800', c: '#8a8a8a' });
+    else if (done) T(`✔ Selesai · kualitas ${c.qual[p.id] || '—'}${c.fail && c.fail[p.id] ? ' ⚠' : ''}`, cx + 12, cy + 80, { s: 13, w: '800', c: '#2a5a1a' });
+    else if (run) T(`${run.who} · mutu ${run.quality} · sisa ${run.left} hari`, cx + 12, cy + 80, { s: 12, w: '800', c: '#a05a1a' });
+    else button(cx + 10, cy + 60, cw - 20, 30, broken ? 'RUSAK — TENDER ULANG' : 'TENDER PROYEK', () => startTender(p.id), { col: broken ? 'red' : 'green', s: 13, disabled: !can && !blocked, tip: blocked ? `DPRD menahan proyek besar (dukungan < ${DPRD_MIN}). Lihat tab AWASI.` : !can ? (c.proj.length >= MAX_PROJ ? 'Dinas PU penuh' : 'Kas kota belum cukup') : 'Pilih kontraktor lewat lelang' });
   });
 }
 
@@ -170,7 +172,7 @@ export function pilkadaModal() {
   T(`${r.share}% suara`, x + w / 2, y + 192, { s: 20, a: 'center', c: '#fff', stroke: 'rgba(0,0,0,.5)', sw: 3 });
   const msg = r.win ? `Warga memilihmu. Skor dukunganmu ${r.score} mengalahkan ${RIVAL} (${r.rival}). Pelantikan di pagi hari berikutnya... kota ini sekarang tanggung jawabmu.` : `Skor dukunganmu ${r.score}, ${RIVAL} ${r.rival}. Warga simpati: dukunganmu bertambah. Kamu boleh mencalonkan lagi 5 hari lagi.`;
   wrapText(msg, w - 120, 17, '600').forEach((t, i) => T(t, x + 60, y + 260 + i * 26, { s: 17, w: '600', c: '#3a210c' }));
-  button(x + w / 2 - 130, y + h - 90, 260, 56, 'LANJUT', () => { ui.modal = null; kota().tab = r.win ? 'politik' : 'politik'; save(); }, { col: 'green', s: 20 });
+  button(x + w / 2 - 130, y + h - 90, 260, 56, 'LANJUT', () => { ui.modal = kota().final ? 'warisan' : null; kota().tab = 'politik'; save(); }, { col: 'green', s: 20 });
 }
 
 /** Penutup masa jabatan 30 hari. */
@@ -182,5 +184,20 @@ export function kotaAkhirModal() {
   const tl = wrapText(e.text, w - 100, 17, '600'); tl.forEach((t, i) => T(t, x + 50, y + 150 + i * 25, { s: 17, w: '600', c: '#3a210c' }));
   let py = y + 150 + tl.length * 25 + 12; for (const l of epilogPeople()) for (const t of wrapText('• ' + l, w - 100, 15, '600')) { if (py > y + h - 140) break; T(t, x + 50, py, { s: 15, w: '600', c: '#5a3a1a' }); py += 22; }
   T(`Kesejahteraan ${Math.round(c.ind.sej)} · Kebersihan ${Math.round(c.ind.bers)} · Kerja ${Math.round(c.ind.kerja)} · Kepuasan ${Math.round(c.ind.puas)} · Integritas ${Math.round(kota().integ)}`, x + w / 2, y + h - 120, { s: 14, a: 'center', c: '#7a5a3a', w: '700' });
-  button(x + w / 2 - 170, y + h - 84, 340, 56, 'LANJUT MAIN (MODE BEBAS)', () => { ui.modal = null; save(); }, { col: 'green', s: 18 });
+  if (canReelect()) {
+    button(x + 40, y + h - 84, 350, 56, 'MAJU PERIODE KEDUA', () => { runSecondTerm(); save(); }, { col: 'green', s: 18, tip: 'Kampanye 7 hari. Warga menilai hasil kerjamu, suasana hati warga lama, dan restu Pak Haji.' });
+    button(x + w - 390, y + h - 84, 350, 56, 'CUKUP SATU PERIODE', () => { retire(); save(); }, { col: 'wood', s: 18 });
+  } else if (kota().final) button(x + w / 2 - 170, y + h - 84, 340, 56, 'LIHAT WARISAN', () => { ui.modal = 'warisan'; save(); }, { col: 'green', s: 18 });
+  else button(x + w / 2 - 170, y + h - 84, 340, 56, 'LANJUT MAIN (MODE BEBAS)', () => { ui.modal = null; save(); }, { col: 'green', s: 18 });
+}
+
+/** Penutup akhir: warisan dua periode, penerus, warung lama, Pak Haji, warga. */
+export function warisanModal() {
+  const W0 = warisanLines(), x = 200, y = 40, w = 880, h = 640; panel(x, y, w, h);
+  T('PENUTUP', x + w / 2, y + 46, { s: 16, a: 'center', c: '#7a5a3a', w: '700' });
+  T(W0.title, x + w / 2, y + 100, { s: 44, a: 'center', c: '#b87a14', stroke: '#fff3c8', sw: 3 });
+  let py = y + 150;
+  W0.lines.forEach((l, i) => { for (const t of wrapText((i ? '• ' : '') + l, w - 100, i ? 15 : 17, '600')) { if (py > y + h - 110) return; T(t, x + 50, py, { s: i ? 15 : 17, w: i ? '600' : '700', c: i ? '#4a3a1a' : '#3a210c' }); py += i ? 23 : 26; } py += 4; });
+  T('Terima kasih sudah bermain Juragan Warung.', x + w / 2, y + h - 96, { s: 14, a: 'center', c: '#7a5a3a', w: '700' });
+  button(x + w / 2 - 170, y + h - 80, 340, 56, 'LANJUT MAIN (MODE BEBAS)', () => { ui.modal = null; save(); }, { col: 'green', s: 18 });
 }

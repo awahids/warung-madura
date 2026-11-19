@@ -258,3 +258,53 @@ describe('fee yang menggoda: situasi nyata', () => {
     c.day = 11; dn().force = null; dn().queue = []; G.day++; startDay(); ui.modal = null; expect([dn().force, ...dn().queue, ...G.events.map(e => e.id)]).toContain('h_sakit');
   });
 });
+
+describe('alur masa jabatan, periode kedua, dan warisan', () => {
+  beforeEach(() => { begin(); openBab(); const k = kota(); k.ch = 7; k.phase = 'kampanye'; story().trust = 100; G.rep = 100; k.duk = 50; k.rivalBonus = -4; runElection(); ui.modal = null; city().apbd = 2e9; });
+  const toDay = n => { const c = city(); c.day = n - 1; dn().force = null; dn().queue = []; G.day++; startDay(); ui.modal = null; return [dn().force, ...dn().queue, ...G.events.map(e => e.id)]; };
+
+  it('kejadian bertanggal periode pertama: Pak Burhan, Koh Awi, Rani, surat Pak Haji', async () => {
+    expect(toDay(6)).toContain('b_burhan_oposisi'); expect(toDay(9)).toContain('a_awi_hyper'); expect(toDay(16)).toContain('b_burhan_jebak');
+    kota().warga.rani = 70; expect(toDay(18)).toContain('r_rani_magang'); kota().warga.rani = 20; const K = await import('../src/game/logic/kota'); expect(K.arcFor(18)).toBe('r_rani_demo');
+    kota().haji = 80; expect(K.arcFor(22)).toBe('h_surat_baik'); kota().haji = 30; expect(K.arcFor(22)).toBe('h_surat_ragu');
+  });
+  it('Rani di bagian pengadaan: fee langsung ketahuan olehnya', async () => {
+    const K = await import('../src/game/logic/kota'); story().flags.rani_pengadaan = true; const r0 = K.moodOf('rani'), j0 = dn().jejak;
+    K.build('taman', true); expect(K.moodOf('rani')).toBe(Math.max(0, r0 - 26)); expect(dn().jejak).toBeGreaterThan(j0 + 7);
+  });
+  it('akhir periode pertama: bisa maju lagi atau pensiun', async () => {
+    const K = await import('../src/game/logic/kota'); const c = city(); c.day = 30; G.day++; startDay();
+    expect(ui.modal).toBe('kota_akhir'); expect(K.canReelect()).toBe(true); const d0 = c.day; G.day++; startDay(); expect(c.day).toBe(d0);   // kota berhenti setelah masa jabatan
+    expect(K.retire()).toBe(true); expect(kota().final).toBe('pensiun'); expect(ui.modal).toBe('warisan');
+    const W = K.warisanLines(); expect(W.title).toBe('CUKUP SATU PERIODE'); expect(W.lines.join(' ')).toMatch(/Periode 1/);
+  });
+  it('periode kedua: kampanye dinilai dari hasil kerja; menang → hari 1 lagi dengan kota yang sama & proyek periode 2', async () => {
+    const K = await import('../src/game/logic/kota'); const c = city(); c.done.jalan = true; c.ind = { sej: 80, bers: 80, kerja: 80, puas: 80 }; c.day = 30; G.day++; startDay(); ui.modal = null;
+    expect(K.canBuild('rsud')).toBe(false);
+    expect(K.runSecondTerm()).toBe(true); expect(kota().phase).toBe('kampanye'); expect(K.reelectBonus()).toBeGreaterThan(10);
+    kota().rivalBonus = -10; for (let i = 0; i < 7; i++) { G.day++; startDay(); }
+    expect(kota().phase).toBe('wali'); expect(kota().term).toBe(2); expect(c.day).toBe(1); expect(c.done.jalan).toBe(true); expect(kota().ending).toBe(null); expect(K.canBuild('rsud')).toBe(true);
+    const { chapterOf } = await import('../src/game/logic/story'); expect(chapterOf()).toBe(10);
+  });
+  it('kalah di periode kedua → kembali ke warung (warisan)', async () => {
+    const K = await import('../src/game/logic/kota'); city().day = 30; G.day++; startDay(); ui.modal = null; K.runSecondTerm();
+    kota().rivalBonus = 60; story().trust = 0; G.rep = 0; kota().duk = -50; K.runElection(); expect(kota().final).toBe('kalah'); expect(K.warisanLines().title).toBe('KEMBALI KE WARUNG');
+  });
+  it('akhir periode kedua: warisan menyebut penerus, warung lama, dan Pak Haji', async () => {
+    const K = await import('../src/game/logic/kota'); const k = kota(); k.term = 2; k.endings = ['bapak']; story().flags.penerus_rani = true; story().flags.warung_koperasi = true; k.haji = 80;
+    city().day = 30; G.day++; startDay(); expect(k.final).toBe('selesai'); expect(K.canReelect()).toBe(false);
+    const L = K.warisanLines(); expect(L.title).toBe('WARISAN'); const t = L.lines.join(' ');
+    expect(t).toMatch(/Periode 1: BAPAK/); expect(t).toMatch(/Periode 2/); expect(t).toMatch(/Rani terpilih/); expect(t).toMatch(/Warung Kita/); expect(t).toMatch(/bangku teras/);
+  });
+  it('kejadian bertanggal periode kedua', async () => {
+    const K = await import('../src/game/logic/kota'); kota().term = 2;
+    expect(K.arcFor(2)).toBe('p2_lantik'); expect(K.arcFor(8)).toBe('b_burhan_angket'); expect(K.arcFor(28)).toBe('p2_pengganti');
+    dn().jejak = 40; expect(K.arcFor(15)).toBe('r_rani_kpk'); dn().jejak = 0; expect(K.arcFor(15)).toBe('r_rani_mitra');
+    kota().haji = 70; expect(K.arcFor(23)).toBe('h_pamit'); kota().haji = 20; expect(K.arcFor(23)).toBe('h_pamit_dingin');
+    expect(K.arcFor(2) && K.arcFor(12)).toBeFalsy();   // Pak Haji sakit hanya di periode pertama
+  });
+  it('semua kejadian alur valid', async () => {
+    const { eventById } = await import('../src/game/logic/story');
+    for (const id of ['b_burhan_oposisi', 'a_awi_hyper', 'b_burhan_jebak', 'r_rani_magang', 'r_rani_demo', 'h_surat_baik', 'h_surat_ragu', 'b_burhan_akhir', 'p2_lantik', 'b_burhan_angket', 'r_rani_kpk', 'r_rani_mitra', 'h_pamit', 'h_pamit_dingin', 'p2_pengganti']) expect(eventById(id), id).toBeTruthy();
+  });
+});

@@ -54,6 +54,10 @@ export const PROJECTS = [
   { id: 'tpa', name: 'Pengolahan Sampah', cost: 220e6, days: 4, fx: { bers: 10 } },
   { id: 'industri', name: 'Kawasan Industri Kecil', cost: 500e6, days: 7, fx: { kerja: 14, bers: -4 } },
   { id: 'angkot', name: 'Angkot Listrik', cost: 400e6, days: 6, fx: { kerja: 6, bers: 6, puas: 4 } },
+  /* periode kedua */
+  { id: 'rusun', name: 'Rusun Warga', cost: 450e6, days: 6, fx: { sej: 10, bers: 4, puas: 4 }, term: 2 },
+  { id: 'rsud', name: 'RSUD Kota', cost: 600e6, days: 7, fx: { sej: 12, puas: 8 }, term: 2 },
+  { id: 'terminal', name: 'Terminal Terpadu', cost: 500e6, days: 6, fx: { kerja: 8, puas: 5, bers: 3 }, term: 2 },
 ];
 export const IND = { sej: 'Kesejahteraan', bers: 'Kebersihan', kerja: 'Lapangan Kerja', puas: 'Kepuasan Warga' };
 export const MAX_PROJ = 2;      // proyek yang boleh jalan bersamaan

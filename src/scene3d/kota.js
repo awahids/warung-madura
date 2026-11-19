@@ -8,7 +8,7 @@ import { BIZ, PROJECTS } from '../game/story/kota.js';
    ============================================================ */
 export const CITY_ORIGIN = new THREE.Vector3(0, 0, -220);
 /** Lokasi proyek di peta: [x, z]. Peta ±80 × ±55 m: danau memanjang di tengah, jembatan di utara, Balai Kota di timur. 'jalan' mengubah semua jalan. */
-export const PLOT = { sekolah: [-48, -6], puskesmas: [-48, 16], drainase: [22, -22], pasar: [50, -24], industri: [72, -6], taman: [-2, 6], angkot: [44, 22], tpa: [62, 48] };
+export const PLOT = { sekolah: [-48, -6], puskesmas: [-48, 16], drainase: [22, -22], pasar: [50, -24], industri: [72, -6], taman: [-2, 6], angkot: [44, 22], tpa: [62, 48], rusun: [-62, 30], rsud: [-62, 0], terminal: [22, 40] };
 export const HALL_AT = [44, -5];
 const LAKE = [[-8, -50], [6, -47], [12, -36], [10, -24], [16, -12], [14, 0], [8, 10], [4, 22], [8, 34], [2, 50], [-10, 52], [-14, 40], [-12, 28], [-18, 14], [-14, 0], [-18, -14], [-12, -26], [-14, -38]];
 const BAY = [[54, 18], [66, 15], [80, 18], [80, 30], [66, 32], [56, 28]];
@@ -47,6 +47,9 @@ const BUILD = {
   taman: () => { const g = new THREE.Group(); g.add(box(10.5, .15, 7.5, M('#5aa24a'))); const p = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, .12, 20), M('#3a86c8', { roughness: .2 })); p.position.set(0, .2, 0); g.add(p); [[-4, -2.5], [4, -2.5], [-4, 2.5], [4, 2.5], [-3.2, 0], [3.2, 0]].forEach(([x, z]) => g.add(tree(x, z, .9))); g.add(box(1.6, .35, .5, M('#8a5a2a'), 0, .15, 3.1)); return g; },
   tpa: () => { const g = new THREE.Group(); g.add(box(7, 2.6, 4, M('#7e8a92'), -1.5, 0, -.5)); const d = new THREE.Mesh(new THREE.SphereGeometry(2, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), M('#58b948')); d.position.set(3.2, 0, .5); g.add(d); g.add(cyl(.5, 4.4, M('#6a6a70'), -3.8, 0, -1.8)); g.add(box(1.6, 1, 1.2, M('#3b9ad9'), 1.5, 0, 2.4)); return g; },
   industri: () => { const g = new THREE.Group(); for (let i = 0; i < 3; i++) { g.add(box(3, 2.4, 5, M('#9a8f86'), -3.4 + i * 3.4, 0, -.3)); const r = box(3.1, .1, 5.2, M('#4a5560'), -3.4 + i * 3.4, 2.4, -.3); r.rotation.z = .3; g.add(r); } g.add(cyl(.45, 5.6, M('#7a4a3a'), 4.4, 0, -1.8)); g.add(cyl(.35, 4.2, M('#7a4a3a'), 3.6, 0, 1.8)); return g; },
+  rusun: () => { const g = new THREE.Group(); [-3, 3].forEach(x => { g.add(box(4.2, 6.5, 3.4, M('#e9e2d2'), x, 0, -.8)); for (let f = 0; f < 5; f++) for (let w = -1; w <= 1; w++) g.add(box(.7, .5, .05, M('#5a7890'), x + w * 1.2, .9 + f * 1.2, .93)); g.add(box(4.4, .2, 3.6, M('#c9512f'), x, 6.5, -.8)); }); g.add(box(10, .1, 2.2, M('#9a9a96'), 0, 0, 2.4)); return g; },
+  rsud: () => { const g = new THREE.Group(); g.add(box(9.5, 4.2, 5, M('#f6f6f2'), 0, 0, -.6)); g.add(box(4, 1.8, 3, M('#f6f6f2'), 2.2, 4.2, -.8)); g.add(box(.5, 2, .15, M('#e8312f'), -2.5, 2.2, 1.95)); g.add(box(2, .5, .15, M('#e8312f'), -2.5, 2.95, 1.95)); const hp = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.3, .08, 20), M('#3a3a40')); hp.position.set(2.2, 6.05, -.8); g.add(hp); g.add(box(1.4, .02, .25, M('#ffffff'), 2.2, 6.1, -.8)); g.add(box(2.2, 1.6, .2, M('#9fd0f0'), 0, 0, 1.95)); return g; },
+  terminal: () => { const g = new THREE.Group(); g.add(box(10.5, .15, 6.5, M('#9a9a96'))); g.add(box(9, .3, 2.6, M('#2f7fbf'), 0, 3, -1.8)); for (const x of [-4, -1.3, 1.3, 4]) g.add(cyl(.12, 3, M('#cfcfcf'), x, 0, -1.8, 6)); [[-3, 1.8, '#e8312f'], [1, 1.8, '#3bb0d9'], [4.2, 1.8, '#f0b429']].forEach(([x, z, c]) => { g.add(box(3, 1.2, 1.2, M(c), x, .1, z)); g.add(box(2.6, .4, 1.22, M('#9fd0f0'), x, .75, z)); }); return g; },
   angkot: () => { const g = new THREE.Group(); g.add(box(5, .15, 2, M('#b8b0a0'), 0, 0, 2.2)); g.add(box(4.6, .18, 2.2, M('#2f9a6a'), 0, 2.2, 2.2)); [-2, 2].forEach(x => g.add(cyl(.08, 2.2, M('#6a6a70'), x, 0, 2.9, 6))); const v = box(2.8, 1.1, 1.3, M('#3bb0d9'), -1.5, .5, -1.6); g.add(v); g.add(box(1.5, .7, 1.2, M('#9fd0f0'), -1.1, 1.6, -1.6)); [-2.3, -.7].forEach(x => [-1, -2.2].forEach(z => g.add(cyl(.3, .2, M('#222'), x, .1, z, 10)))); g.add(box(.6, .3, .1, M('#58d658'), -1.5, 1.2, -.9)); return g; },
 };
 function hall() {
@@ -201,7 +204,7 @@ export function createKota() {
   /** state = G.kota (boleh null). Membangun ulang hanya bila ada perubahan. */
   const sync = k => {
     const c = k && k.city, lv = BIZ.map(b => (k && k.biz[b.id]) || 0), done = c ? Object.keys(c.done).filter(i => c.done[i]).sort().join() + '!' + Object.keys(c.broken || {}).filter(i => c.broken[i]).join() : '', pr = c ? c.proj.map(p => p.id + p.left).join() : '', bers = c ? Math.round(c.ind.bers / 10) : 4;
-    const s = [lv.join(), done, pr, bers, !!c, c ? Math.round(c.ind.sej / 5) : 0].join('|'); if (s === sig) return; sig = s;
+    const s = [lv.join(), done, pr, bers, !!c, c ? Math.round(c.ind.sej / 5) : 0, k && k.term].join('|'); if (s === sig) return; sig = s;
     carN = Math.round(14 + (c && c.done.jalan ? 22 : 0) + (c ? c.ind.sej * .2 : 4)); dyn.clear(); buildRoads(!!(c && c.done.jalan), c ? c.ind.bers : 40);
     trees.count = Math.round(treeSpots.length * (.35 + .65 * (c ? c.ind.bers : 40) / 100) + (c && c.done.taman ? 0 : 0));
     const H = hall(); H.position.set(HALL_AT[0], 0, HALL_AT[1]); dyn.add(H); const lh = label('BALAI KOTA', c ? '' : 'belum dilantik'); lh.position.set(HALL_AT[0], 8.5, HALL_AT[1]); dyn.add(lh);
@@ -216,7 +219,7 @@ export function createKota() {
         const prog = 1 - run.left / def.days, b = BUILD[id](); b.scale.y = Math.max(.12, prog); g.add(b); sub = `sisa ${run.left} hari`;
         [[-5, -3.5], [5, -3.5], [-5, 3.5], [5, 3.5]].forEach(([px, pz]) => g.add(cyl(.1, 4.4, M('#f0b429'), px, 0, pz, 6)));
         const crane = new THREE.Group(); crane.add(cyl(.18, 8, M('#f0b429'), 0, 0, 0, 6)); crane.add(box(7, .25, .25, M('#f0b429'), -2.5, 8, 0)); crane.add(box(.1, 2.2, .1, M('#444'), -5.4, 5.8, 0)); crane.position.set(4.5, 0, -3.2); g.add(crane);
-      } else { g.add(box(10.6, .1, 7.6, M('#b9a27a'))); [-5.3, 5.3].forEach(px => g.add(box(.12, .9, 7.6, M('#8a6a3a'), px, 0, 0))); sub = 'lahan kosong'; }
+      } else { g.add(box(10.6, .1, 7.6, M('#b9a27a'))); [-5.3, 5.3].forEach(px => g.add(box(.12, .9, 7.6, M('#8a6a3a'), px, 0, 0))); sub = def.term > ((k && k.term) || 1) ? 'cadangan periode 2' : 'lahan kosong'; }
       const lb = label(def.name, sub, bk ? '#ff8a7a' : ds ? '#fff' : run ? '#ffe45c' : '#c8c8c8', .9); lb.position.set(0, 7, 0); g.add(lb); dyn.add(g);
     }
     // usaha pribadi di sudut barat laut + warung asal

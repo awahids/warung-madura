@@ -255,4 +255,6 @@ export const EPILOG_FLAG = { cabang: 'Cabang di jalan besar sudah berdiri.', lay
 import { KOTA_CATATAN, KOTA_CHAPTERS, KOTA_INTRO, KOTA_POOL, KOTA_SCRIPT } from './kota.js';
 import { DUNIA_POOL } from './dunia.js';
 import { WARGA_POOL } from './warga.js';
-CHAPTERS.push(...KOTA_CHAPTERS); INTRO.push(...KOTA_INTRO); CATATAN.push(...KOTA_CATATAN); SCRIPT.push(...KOTA_SCRIPT); POOL.push(...KOTA_POOL, ...DUNIA_POOL, ...WARGA_POOL);
+import { ARC_POOL, P2_CATATAN, P2_CHAPTER, P2_INTRO } from './arc.js';
+CHAPTERS.push(...KOTA_CHAPTERS); INTRO.push(...KOTA_INTRO); CATATAN.push(...KOTA_CATATAN); SCRIPT.push(...KOTA_SCRIPT); POOL.push(...KOTA_POOL, ...DUNIA_POOL, ...WARGA_POOL, ...ARC_POOL);
+CHAPTERS.push(P2_CHAPTER); INTRO.push(P2_INTRO); CATATAN.push(P2_CATATAN);
