@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { CITY_ORIGIN, createKota } from './kota';
+import { createPapan } from './papan';
 import { galon, gas, toples, rakBensin, kardus, beras, aqua, cola, redbull, mie, gelas, bensin, minyak, telur, telurButir, gula, sabun, susu, teh } from '../props3d/props';
 import { woodTex, roofTex, slatTex, asphaltTex, concreteTex, bannerTex, signTex, reliefTex } from './textures';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
@@ -68,6 +69,7 @@ export function createWarung(canvas, opts = {}) {
   const roofMat = new THREE.MeshStandardMaterial({ map: roofTex(), roughness: .5, metalness: .2, side: THREE.DoubleSide });
   const roof = sh(new THREE.Mesh(new THREE.BoxGeometry(5.3, .05, 4.5), roofMat)); roof.position.set(0, 3.4, -1.2); roof.rotation.x = .06; scene.add(roof);
   const banner = new THREE.Mesh(new THREE.PlaneGeometry(3.4, .58), new THREE.MeshStandardMaterial({ map: bannerTex(), roughness: .6 })); banner.position.set(0, 2.65, .1); scene.add(banner);
+  const papan = createPapan(scene, { banner, std });   // papan nama/kenangan/baliho mengikuti cerita
   [['PULSA', -1.9, '#2f80d6'], ['ES TEH', 1.9, '#3f9e58']].forEach(([t, x, c]) => { const s = new THREE.Mesh(new THREE.PlaneGeometry(.5, .19), new THREE.MeshStandardMaterial({ map: signTex(t, c) })); s.position.set(x, 2.65, .1); scene.add(s); });
   // tabung neon + rumah rolling door
   const tubeMat = addGlow(new THREE.MeshBasicMaterial({ color: '#9a9a9a' }), '#ffffff', '#9a9a9a');
@@ -756,7 +758,7 @@ export function createWarung(canvas, opts = {}) {
     setDoor(open) { doorTarget = open ? 1 : 0; },
     setDoorFraction(f) { doorOpen = doorTarget = f; applyDoor(); },
     get doorOpen() { return doorTarget > .5; },
-    setView, get view() { return view; }, syncKota: k => kotaScene.sync(k),
+    setView, get view() { return view; }, syncKota: k => kotaScene.sync(k), setWarungLook: look => papan.set(look), get papan() { return papan; },
     setAutoRotate(v) { controls.autoRotate = v; },
     setPaket(v) { KUR.on = v; },
     kurirHead: () => (kurir.visible ? new THREE.Vector3(kurir.position.x, 1.95, kurir.position.z) : null),   // kepala kurir (dunia) bila terlihat

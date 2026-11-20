@@ -404,6 +404,28 @@ export function bantuWarga(id) {
   toast(`${w.name} terbantu. Suasana hatinya membaik.`, '#cfe8ff'); return true;
 }
 export const wargaList = () => WARGA.map(w => ({ ...w, mood: moodOf(w.id), janji: kota().janji && kota().janji[w.id], talk: cityTalk(w.id) }));
+/* ---------- tampilan warung 3D menurut cerita ---------- */
+/** Papan nama, papan kenangan, dan baliho untuk warung 3D (dibaca engine tiap ~0,5 detik). */
+export function warungLook() {
+  const k = G.kota, f = (G.story && G.story.flags) || {}, d = k && k.dunia;
+  let sign = { title: 'WARUNG MADURA', sub: 'Sembako · Minuman · Rokok · Pulsa', style: 'klasik' };
+  if (f.warung_koperasi || f.koperasi) sign = { title: 'WARUNG KITA', sub: 'Koperasi Warga · Sembako · Pulsa', style: 'kita' };
+  else if (f.warung_rizky) sign.sub = 'Dikelola Bang Rizky · Buka Sejak Subuh';
+  else if (f.warung_pulang) sign.sub = 'Buka Lagi! · Sejak Zaman Pak Haji';
+  else if (k && k.phase === 'wali') sign.sub = 'Sembako · Pulsa · Langganan Pak Wali';
+  else if (f.cabang) sign.sub = 'Pusat · Cabang di Jalan Besar';
+  if (k && k.final === 'tangkap') sign = { ...sign, style: 'pudar', sub: 'Buka Lagi, Pelan-Pelan' };
+  const board = [];
+  if (k && k.term) board.push({ kind: 'lantik' });
+  if (k && (k.endings || []).includes('bapak')) board.push({ kind: 'piagam' });
+  if (k && k.final === 'tangkap') board.push({ kind: 'skandal', text: 'Wali Kota Dijemput KPK' });
+  else if (d && d.koran && (k.phase === 'wali' || k.final)) board.push({ kind: 'koran', text: d.koran.title });
+  if (k && k.warga && k.warga.rani >= 65) board.push({ kind: 'rani' });
+  if (k && k.term && k.haji >= 65) board.push({ kind: 'haji' });
+  const baliho = k && k.phase === 'kampanye' ? (k.reelect ? { title: 'LANJUTKAN!', sub: 'Periode Kedua · Tuntaskan Janji' } : { title: 'PILIH ANAK WARUNG', sub: 'Jujur Melayani Kota' }) : null;
+  return { sign, board, baliho };
+}
+
 /* ---------- gema masa lalu, koran kota, bab 11 pulang ---------- */
 /** Pilihan lama yang kembali menyapa (sekali per gema, bila flag-nya pernah terjadi). */
 export function nextEcho() {

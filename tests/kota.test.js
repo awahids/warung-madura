@@ -386,3 +386,18 @@ describe('gema masa lalu, koran kota, bab 11 pulang', () => {
     for (const id of ['g_kembalian', 'g_tamu', 'g_tamu_gelap', 'g_menimbun', 'g_banjir', 'g_beasiswa', 'g_pajak', 'g_awi', 'g_koperasi', 'g_kerabat', 'g_ipar', 'g_usaha', 'p_pagi', 'p_bebas', 'p_sri', 'p_rani', 'p_burhan', 'p_netral', 'p_haji']) expect(eventById(id), id).toBeTruthy();
   });
 });
+
+describe('tampilan warung 3D mengikuti cerita', () => {
+  it('papan nama, papan kenangan, dan baliho berubah sesuai keadaan', async () => {
+    const K = await import('../src/game/logic/kota');
+    setG(persist.freshState(G)); expect(K.warungLook()).toEqual({ sign: { title: 'WARUNG MADURA', sub: 'Sembako · Minuman · Rokok · Pulsa', style: 'klasik' }, board: [], baliho: null });
+    const { startBab9 } = await import('../src/game/logic/shortcut'); ui.hasSave = false; startBab9(); ui.modal = null;
+    let L = K.warungLook(); expect(L.sign.sub).toMatch(/Pak Wali/); expect(L.board.map(b => b.kind)).toContain('lantik');
+    story().flags.warung_koperasi = true; L = K.warungLook(); expect(L.sign).toMatchObject({ title: 'WARUNG KITA', style: 'kita' });
+    delete story().flags.warung_koperasi; kota().endings = ['bapak']; kota().warga.rani = 90; kota().haji = 90; K.makeKoran();
+    expect(K.warungLook().board.map(b => b.kind)).toEqual(['lantik', 'piagam', 'koran', 'rani', 'haji']);
+    kota().final = 'tangkap'; L = K.warungLook(); expect(L.sign.style).toBe('pudar'); expect(L.board.map(b => b.kind)).toContain('skandal');
+    kota().final = null; kota().phase = 'kampanye'; expect(K.warungLook().baliho.title).toBe('PILIH ANAK WARUNG'); kota().reelect = true; expect(K.warungLook().baliho.title).toBe('LANJUTKAN!');
+    story().flags.warung_rizky = true; kota().phase = 'selesai'; expect(K.warungLook().sign.sub).toMatch(/Rizky/);
+  });
+});

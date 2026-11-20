@@ -27,6 +27,7 @@ import { clamp, inRect, rp } from './util.js';
 import * as customersApi from './logic/customers.js';
 import * as dayApi from './logic/day.js';
 import { createWarung } from '../scene3d/warung.js';
+import { warungLook } from './logic/kota.js';
 
 /* Menyambungkan logika game (G, update, transaksi…) ke adegan warung 3D.
    Logika tidak berubah: posisi pelanggan dari update() dipetakan ke dunia 3D, barang 3D yang diklik
@@ -221,6 +222,7 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
     fpsSum += rdt;
     if (fpsN >= 40 + 150) { fpsDone = true; if (fpsSum / 150 > 1 / 28 && autoDowngrade()) toast('Grafis diturunkan otomatis agar lancar. Ubah di menu Jeda.', '#cfe8ff'); }
   };
+  let lookT = -1;
   const kotaOpen = () => G.screen === 'play' && !!G.kota && G.kota.ch >= 6;
   const loop = now => {
     if (!alive) return;
@@ -228,6 +230,7 @@ export function createEngine3D({ stack, glCanvas, overlay, onReady, onError } = 
     update(dt); syncScene(rdt);
     fpsWatch(rdt);
     const prevHits = ui.hits; ui.hits = prevHits; hover();
+    if (scene.setWarungLook && (t - lookT > .5 || lookT > t)) { lookT = t; scene.setWarungLook(warungLook()); }   // papan nama & kenangan mengikuti cerita
     scene.frame(rdt, t);
     view.kotaView = api.view === 'kota'; if (view.kotaView) { if (!kotaOpen()) api.setView('penjaga'); else scene.syncKota(G.kota); }
     ctx.clearRect(0, 0, W, H);
