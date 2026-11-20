@@ -106,7 +106,8 @@ function kotaOverlay(view) {
   button(x + 20, y + 62, 270, 34, 'MENU USAHA & KOTA', () => { ui.modal = 'kota'; }, { col: 'yellow', tc: '#4a2a00', s: 15 });
   button(x + 310, y + 62, 270, 34, 'KEMBALI KE WARUNG', () => view.exitKota(), { col: 'green', s: 15 });
   button(1040, 262, 200, 40, 'LEWATI HARI ▶', () => { skipDay(); }, { col: 'blue', s: 15, tip: 'Warung tutup hari ini; usaha, pajak, proyek, dan cerita tetap berjalan' });
-  if (G.cust.length) T('Ada pembeli menunggu di warung!', 640, HUD_H + 40, { s: 18, a: 'center', c: '#fff', stroke: '#b3281e', sw: 5 });
+  const kr = k && k.dunia && k.dunia.koran; if (kr) { ctx.font = '800 16px sans-serif'; const tw = ctx.measureText(kr.title).width + 150; ctx.fillStyle = 'rgba(246,239,224,.95)'; rr(ctx, 640 - tw / 2, HUD_H + 12, tw, 32, 8); ctx.fill(); ctx.strokeStyle = '#3a210c'; ctx.lineWidth = 2; ctx.stroke(); T(`KORAN KOTA · ${kr.title}`, 640, HUD_H + 34, { s: 16, a: 'center', c: '#3a210c' }); }
+  if (G.cust.length) T('Ada pembeli menunggu di warung!', 640, HUD_H + 70, { s: 18, a: 'center', c: '#fff', stroke: '#b3281e', sw: 5 });
 }
 
 /* ---------- penempatan balon pesanan: hindari barang yang bisa diklik & panel tetap ---------- */

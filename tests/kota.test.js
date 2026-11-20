@@ -352,3 +352,37 @@ describe('lewati hari', () => {
     expect(seen).toEqual(expect.arrayContaining(['w_lantik', 'b_burhan_oposisi', 'a_awi_hyper']));
   });
 });
+
+describe('gema masa lalu, koran kota, bab 11 pulang', () => {
+  beforeEach(async () => { const { startBab9 } = await import('../src/game/logic/shortcut'); ui.hasSave = false; startBab9(); ui.modal = null; });
+  const toDay = n => { const c = city(); c.day = n - 1; dn().force = null; dn().queue = []; G.day++; startDay(); ui.modal = null; return [dn().force, ...dn().queue, ...G.events.map(e => e.id)]; };
+
+  it('pilihan lama kembali menyapa: kembalian jujur, suap pajak, tamu bertudung', async () => {
+    const K = await import('../src/game/logic/kota'); const f = story().flags;
+    expect(K.nextEcho()).toBe('g_beasiswa');   // mulai Bab 9: beasiswa dianggap pernah diberikan
+    f.jujur_kembalian = true; expect(K.nextEcho()).toBe('g_kembalian');
+    K.markWargaSeen('g_kembalian'); f.suap_pajak = true; f.beasiswa = false; f.banjir_bantu = false; expect(K.nextEcho()).toBe('g_pajak');
+    expect(toDay(3)).toContain('g_pajak');
+  });
+  it('Koran Kota memilih judul dari peristiwa terpenting', async () => {
+    const K = await import('../src/game/logic/kota'); dn().log.push({ day: G.day, text: 'x', kind: 'fee' }, { day: G.day, text: 'y', kind: 'proyek' });
+    expect(K.makeKoran().kind).toBe('fee'); dn().log.push({ day: G.day, text: 'z', kind: 'audit' }); expect(K.makeKoran().kind).toBe('audit');
+    dn().log = []; city().ind.puas = 80; expect(K.makeKoran().kind).toBe('bagus');
+    G.day++; startDay(); expect(G.morning[0]).toMatch(/KORAN KOTA/);
+  });
+  it('selesai menjabat → Bab 11 Pulang dengan kejadian berurutan sesuai pilihan', async () => {
+    const K = await import('../src/game/logic/kota'); const { chapterOf } = await import('../src/game/logic/story');
+    city().day = 30; G.day++; startDay(); ui.modal = null; story().flags.penerus_rani = true; K.retire(); ui.modal = null;
+    expect(kota().final).toBe('pensiun'); expect(chapterOf()).toBe(11);
+    const got = []; for (let i = 0; i < 5; i++) { dn().force = null; dn().queue = []; G.day++; startDay(); ui.modal = null; got.push(dn().force || (G.events.find(e => e.k === 'story') || {}).id); }
+    expect(got.slice(0, 4)).toEqual(['p_pagi', 'p_sri', 'p_rani', 'p_haji']);
+  });
+  it('bila ditangkap, Bab 11 dimulai bertahun-tahun kemudian', async () => {
+    dn().arrest = true; G.day++; startDay(); ui.modal = null; expect(kota().final).toBe('tangkap');
+    dn().force = null; G.day++; startDay(); expect([dn().force, ...G.events.map(e => e.id)]).toContain('p_bebas');
+  });
+  it('semua kejadian gema & pulang valid', async () => {
+    const { eventById } = await import('../src/game/logic/story');
+    for (const id of ['g_kembalian', 'g_tamu', 'g_tamu_gelap', 'g_menimbun', 'g_banjir', 'g_beasiswa', 'g_pajak', 'g_awi', 'g_koperasi', 'g_kerabat', 'g_ipar', 'g_usaha', 'p_pagi', 'p_bebas', 'p_sri', 'p_rani', 'p_burhan', 'p_netral', 'p_haji']) expect(eventById(id), id).toBeTruthy();
+  });
+});

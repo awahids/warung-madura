@@ -346,8 +346,8 @@ describe('validasi data cerita', () => {
     const E = await import('../src/game/story/events'), L = await import('../src/game/logic/level'), D = await import('../src/game/data');
     const all = [...E.SCRIPT, ...E.POOL], ids = all.map(e => e.id);
     expect(new Set(ids).size).toBe(ids.length);
-    const FX = ['money', 'trust', 'rep', 'energy', 'xp', 'stock', 'flag', 'debt', 'dueShift', 'kasbon', 'bond', 'integ', 'duk', 'apbd', 'kota', 'jejak', 'sorotan', 'dprd', 'harga', 'audit', 'izin', 'saingan', 'returnFees', 'inspect', 'warga', 'haji', 'janji', 'usaha'], R = await import('../src/game/story/regulars'), names = R.REGULARS.map(r => r.name), WHEN = ['lunas', 'flag', 'noFlag', 'trustMin', 'trustMax', 'wealthMin', 'phase', 'jejakMin', 'jejakMax', 'dprdMax', 'puasMax', 'kerjaMax', 'hargaMin', 'bizMin', 'done', 'notDone', 'proyekJalan', 'wargaMin', 'wargaMax', 'feesMin', 'feesMax'];
-    const chStart = { 1: 1, 2: 3, 3: 5, 4: 7, 5: 8, 6: 8, 7: 8, 8: 8, 9: 8, 10: 8 };
+    const FX = ['money', 'trust', 'rep', 'energy', 'xp', 'stock', 'flag', 'debt', 'dueShift', 'kasbon', 'bond', 'integ', 'duk', 'apbd', 'kota', 'jejak', 'sorotan', 'dprd', 'harga', 'audit', 'izin', 'saingan', 'returnFees', 'inspect', 'warga', 'haji', 'janji', 'usaha'], R = await import('../src/game/story/regulars'), names = R.REGULARS.map(r => r.name), WHEN = ['lunas', 'flag', 'noFlag', 'trustMin', 'trustMax', 'wealthMin', 'phase', 'jejakMin', 'jejakMax', 'dprdMax', 'puasMax', 'kerjaMax', 'hargaMin', 'bizMin', 'done', 'notDone', 'proyekJalan', 'wargaMin', 'wargaMax', 'feesMin', 'feesMax', 'final'];
+    const chStart = { 1: 1, 2: 3, 3: 5, 4: 7, 5: 8, 6: 8, 7: 8, 8: 8, 9: 8, 10: 8, 11: 8 };
     const setFlags = new Set(); all.forEach(e => e.choices.forEach(c => c.fx && c.fx.flag && setFlags.add(c.fx.flag)));
     expect(E.POOL.length).toBeGreaterThanOrEqual(20);
     for (const ev of all) {
@@ -374,7 +374,7 @@ describe('tahap E: kartu bab & pencapaian', () => {
 
   it('kartu pembuka bab dijadwalkan sekali per bab dan tampil saat warung buka', async () => {
     const S = await import('../src/game/logic/story'), E = await import('../src/game/story/events'), L = await import('../src/game/logic/level');
-    expect(E.INTRO).toHaveLength(10); E.INTRO.forEach(i => { expect(i.text.length).toBeGreaterThan(40); expect(i.goal.length).toBeGreaterThan(10); });
+    expect(E.INTRO).toHaveLength(11); E.INTRO.forEach(i => { expect(i.text.length).toBeGreaterThan(40); expect(i.goal.length).toBeGreaterThan(10); });
     expect(G.events.some(e => e.k === 'bab')).toBe(true);              // Bab 1 belum pernah ditampilkan
     G.door = 1; openShop(); G.firstCust = false; G.spawnCd = 1e9; for (let i = 0; i < 60 && ui.modal !== 'bab'; i++) update(1 / 30);
     expect(ui.modal).toBe('bab'); expect(S.story().chapterSeen).toBe(1); ui.modal = null;

@@ -70,7 +70,7 @@ export const WARGA_POOL = [
   /* godaan nyata: aturan konflik kepentingan & kebutuhan pribadi yang mendesak */
   { id: 'w_usaha', minLevel: 1, forceOnly: true, who: 'Inspektorat', when: { phase: 'wali' }, text: 'Inspektorat mengingatkan aturan konflik kepentingan: selama menjabat, usahamu harus diserahkan ke pengelola independen. Dividennya ditahan sampai masa jabatan selesai.', choices: [
     { t: 'Serahkan ke pengelola independen', fx: { usaha: 'serahkan', integ: 4 }, res: 'Rekeningmu kini hanya berisi gaji wali kota. Sepi, tapi bersih.' },
-    { t: 'Tetap kelola diam-diam lewat saudara', fx: { usaha: 'kelola', jejak: 5, integ: -4 }, res: 'Uang usaha tetap mengalir. Nama adikmu kini ada di akta perusahaan.' },
+    { t: 'Tetap kelola diam-diam lewat saudara', fx: { usaha: 'kelola', jejak: 5, integ: -4, flag: 'konflik_usaha' }, res: 'Uang usaha tetap mengalir. Nama adikmu kini ada di akta perusahaan.' },
   ] },
   { id: 'h_sakit', minLevel: 1, forceOnly: true, who: 'Rumah sakit', when: { phase: 'wali' }, text: 'Pak Haji dibawa ke rumah sakit: serangan jantung. Dokter menyarankan operasi pemasangan ring. Biayanya Rp 120 juta, dan keluarga Pak Haji tidak punya tabungan sebesar itu.', choices: [
     { t: 'Bayar dari kantong sendiri (Rp 120 jt)', fx: { money: -j(120), haji: 15 }, res: 'Operasi berhasil. Pak Haji menggenggam tanganmu: "Uang halal, Nak?" Kamu mengangguk.', req: { money: j(120) } },

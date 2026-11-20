@@ -134,6 +134,7 @@ function awasiTab(k, x, y, w) {
   const harga = Math.round((d.harga - 1) * 100); const hx = wali ? x + 36 : x + 36, hy = wali ? y + 326 : y + 56;
   T(`Indeks harga ${harga >= 0 ? '+' : ''}${harga}% · pelanggan ${d.saingan > 0 ? `berkurang karena saingan (${d.saingan} hari)` : 'normal'}`, hx, hy, { s: 13, w: '700', c: '#5a3a1a' });
   T('BERITA TERBARU', x + 400, y + 18, { s: 13, w: '800', c: '#a05a1a' });
+  if (d.koran) { ctx.fillStyle = '#f6efe0'; rr(ctx, x + w - 330, y + 2, 300, 24, 6); ctx.fill(); T(`📰 ${d.koran.title}`, x + w - 320, y + 19, { s: 12, w: '800', c: '#3a210c' }); }
   const log = d.log.slice(-11).reverse(), col = { audit: '#b3281e', kpk: '#b3281e', rusak: '#b3281e', proyek: '#7a5a1a', harga: '#a05a1a', usaha: '#2a5a1a' };
   if (!log.length) T('Belum ada berita.', x + 400, y + 48, { s: 14, w: '600', c: '#7a6a5a' });
   log.forEach((n, i) => { const ls = wrapText(`Hari ${n.day}: ${n.text}`, w - 440, 13, '600'); T(ls[0] + (ls.length > 1 ? '…' : ''), x + 400, y + 44 + i * 26, { s: 13, w: '600', c: col[n.kind] || '#3a210c' }); });

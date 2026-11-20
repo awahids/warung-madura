@@ -1,6 +1,7 @@
 import { SFX } from '../audio.js';
 import { BEASISWA, CITY_TALK, EPI, HAJI_DAYS, JALAN_M, TALK, WARGA, WARGA_POOL } from '../story/warga.js';
 import { ARC, REELECT_APBD, WARISAN } from '../story/arc.js';
+import { ECHO_DAYS, ECHO_POOL, KORAN, KORAN_ORDER, PULANG_POOL } from '../story/gema.js';
 import { AUDIT_DAYS, DPRD_MIN, DPRD_MIN_COST, ENDING_ARREST, EPROC_COST, NAMES, PERMIT_DAYS, RUSH_DAYS, RUSH_PCT } from '../story/dunia.js';
 import { BIZ, BIZ_COST_MUL, BIZ_INC_MUL, BIZ_MAX, BIZ_RESALE, CAMP_ACTS, CAMP_DAYS, CITY_DAYS, ENDINGS, IND, MAX_PROJ, PROJECTS, RIVAL, WIN_WEALTH } from '../story/kota.js';
 import { G, ui } from '../state.js';
@@ -97,7 +98,7 @@ export function runElection() {
   if (k.reelect) {
     k.reelect = false;
     if (win) { const c = k.city; k.term = 2; c.day = 1; c.apbd += REELECT_APBD; k.ending = null; k.phase = 'wali'; k.ch = 10; k.tab = 'politik'; dn().dprd = clamp(Math.round(35 + (share - 50) * 1.2), 20, 80); dn().arrest = false; G.morning && G.morning.push(`Terpilih kembali dengan ${share}% suara!`); }
-    else { k.final = 'kalah'; k.phase = 'selesai'; G.morning && G.morning.push(`Kalah dari ${RIVAL}: ${share}% suara.`); }
+    else { finish('kalah'); G.morning && G.morning.push(`Kalah dari ${RIVAL}: ${share}% suara.`); }
     ui.modal = 'pilkada'; (win ? SFX.ending : SFX.down)(); return k.result;
   }
   if (win) {
@@ -243,6 +244,7 @@ export function kotaWhenOk(w) {
   if (w.done && !(c && c.done[w.done] && !(c.broken && c.broken[w.done]))) return false;
   if (w.notDone && c && c.done[w.notDone] && !(c.broken && c.broken[w.notDone])) return false;
   if (w.proyekJalan && !(c && c.proj.length)) return false;
+  if (w.final && ![].concat(w.final).includes(kota().final)) return false;
   if (w.wargaMin) for (const id in w.wargaMin) if (moodOf(id) < w.wargaMin[id]) return false;
   if (w.wargaMax) for (const id in w.wargaMax) if (moodOf(id) > w.wargaMax[id]) return false;
   if (w.feesMin !== undefined && d.fees < w.feesMin) return false;
@@ -265,7 +267,7 @@ export function dawnKota() {
   if (!k.ch && s.ending) { k.ch = 6; k.phase = 'usaha'; setFlag('babak_usaha'); }
   if (!k.ch || k.lastDay === G.day) return;
   k.lastDay = G.day;
-  if (d.arrest && !k.ending) { k.ending = 'tangkap'; k.final = 'tangkap'; k.phase = 'selesai'; (k.endings || (k.endings = []))[(k.term || 1) - 1] = 'tangkap'; ui.modal = 'kota_akhir'; SFX.down(); note('OTT KPK di rumah dinas pagi ini.', 'kpk'); return; }
+  if (d.arrest && !k.ending) { k.ending = 'tangkap'; finish('tangkap'); (k.endings || (k.endings = []))[(k.term || 1) - 1] = 'tangkap'; ui.modal = 'kota_akhir'; SFX.down(); note('OTT KPK di rumah dinas pagi ini.', 'kpk'); return; }
   // ekonomi: harga bergerak, saingan reda, sorotan & jejak memudar pelan
   d.harga = clamp(d.harga + (1 - d.harga) * .02 + (Math.random() - .5) * .012, .9, 1.6); if (d.saingan > 0) d.saingan--;
   d.sorotan = Math.max(0, d.sorotan - 1.5); d.jejak = Math.max(0, d.jejak - .15);
@@ -278,6 +280,7 @@ export function dawnKota() {
   if (k.ch === 6 && isMiliarder()) { k.ch = 7; setFlag('miliarder'); note('Kekayaan bersihmu menembus Rp 1 miliar!'); }
   if (k.phase === 'kampanye') { k.camp.day++; if (k.camp.day >= CAMP_DAYS) runElection(); }
   else if (k.phase === 'wali' && k.city && !k.ending) cityDawn();
+  else if (k.phase === 'selesai' && k.post) pulangDawn();
 }
 const setForce = id => { const d = dn(); if (!d.force) d.force = id; else if (d.force !== id && !d.queue.includes(id)) d.queue.push(id); };
 const forceNow = id => { const d = dn(); if (d.force && d.force !== id) d.queue.unshift(d.force); d.force = id; };
@@ -311,6 +314,7 @@ function cityDawn() {
   if (AUDIT_DAYS.includes(c.day)) setForce('d_audit');
   else if (c.day === d.kpkDay) setForce('d_kpk');
   else if (arcFor(c.day)) setForce(arcFor(c.day));
+  else if (ECHO_DAYS.includes(c.day) && nextEcho()) setForce(nextEcho());
   else if ((k.term || 1) === 1 && c.day === 2 && Object.values(k.biz).some(v => v > 0)) setForce('w_usaha');
   else if ((k.term || 1) === 1 && c.day === 12) setForce('h_sakit');
   else if (HAJI_DAYS.includes(c.day)) setForce(hajiCall());
@@ -321,7 +325,8 @@ function cityDawn() {
     else if (c.ind.puas < 35 && Math.random() < .35) setForce('d_demo');
     else if (d.dprd < DPRD_MIN && c.day % 5 === 0) setForce('d_jatah');
   }
-  if (c.day > CITY_DAYS && !k.ending) { k.ending = endingOf(); (k.endings || (k.endings = []))[(k.term || 1) - 1] = k.ending; if ((k.term || 1) >= 2 || k.ending === 'tangkap') { k.final = k.ending === 'tangkap' ? 'tangkap' : 'selesai'; k.phase = 'selesai'; } ui.modal = 'kota_akhir'; SFX.ending(); if (k.held) { G.money += k.held; note(`Dividen usaha yang ditahan selama menjabat cair: ${rpk(k.held)}.`, 'usaha'); k.held = 0; } }
+  makeKoran();
+  if (c.day > CITY_DAYS && !k.ending) { k.ending = endingOf(); (k.endings || (k.endings = []))[(k.term || 1) - 1] = k.ending; if ((k.term || 1) >= 2 || k.ending === 'tangkap') finish(k.ending === 'tangkap' ? 'tangkap' : 'selesai'); ui.modal = 'kota_akhir'; SFX.ending(); if (k.held) { G.money += k.held; note(`Dividen usaha yang ditahan selama menjabat cair: ${rpk(k.held)}.`, 'usaha'); k.held = 0; } }
 }
 /* ---------- warga lama & Pak Haji ---------- */
 export function initWarga() {
@@ -360,7 +365,7 @@ export function nextWargaEvent() {
   const e = WARGA_POOL.find(ev => ev.warga && !seen.includes(ev.id) && kotaWhenOk(ev.when || {}) && [].concat(ev.when.phase || []).every(ph => ph === k.phase));
   return e ? e.id : null;
 }
-export function markWargaSeen(id) { const k = kota(); if (WARGA_POOL.some(e => e.id === id && e.warga)) (k.wargaSeen || (k.wargaSeen = [])).push(id); }
+export function markWargaSeen(id) { const k = kota(); if (WARGA_POOL.some(e => e.id === id && e.warga)) (k.wargaSeen || (k.wargaSeen = [])).push(id); if (ECHO_POOL.some(e => e.id === id)) (k.echoSeen || (k.echoSeen = [])).push(id); }
 /** Ucapan pembeli di warung tentang kota: warga lama bicara soal kebutuhannya, pembeli lain soal kabar kota. */
 export function cityTalk(regId) {
   const k = G.kota; if (!k || k.phase !== 'wali' || !k.city) return null; const c = k.city, d = k.dunia || {};
@@ -399,6 +404,32 @@ export function bantuWarga(id) {
   toast(`${w.name} terbantu. Suasana hatinya membaik.`, '#cfe8ff'); return true;
 }
 export const wargaList = () => WARGA.map(w => ({ ...w, mood: moodOf(w.id), janji: kota().janji && kota().janji[w.id], talk: cityTalk(w.id) }));
+/* ---------- gema masa lalu, koran kota, bab 11 pulang ---------- */
+/** Pilihan lama yang kembali menyapa (sekali per gema, bila flag-nya pernah terjadi). */
+export function nextEcho() {
+  const k = kota(), seen = k.echoSeen || [], f = st().flags;
+  const e = ECHO_POOL.find(ev => !seen.includes(ev.id) && (!ev.when.flag || f[ev.when.flag]) && kotaWhenOk(ev.when));
+  return e ? e.id : null;
+}
+/** Judul Koran Kota pagi ini, dari peristiwa terpenting kemarin dan pagi ini. */
+export function makeKoran() {
+  const d = dn(), c = city(), recent = d.log.filter(l => l.day >= G.day - 1).map(l => l.kind);
+  const kind = KORAN_ORDER.find(x => recent.includes(x)) || (c && c.ind.puas >= 65 ? 'bagus' : 'biasa');
+  const list = KORAN[kind], title = list[(G.day + d.log.length) % list.length];
+  d.koran = { day: G.day, title, kind }; (G.morning || (G.morning = [])).unshift(`KORAN KOTA: ${title}`);
+  return d.koran;
+}
+/** Selesai menjabat (pensiun / kalah / dua periode / ditangkap): masuk Bab 11 · Pulang. */
+function finish(kind) { const k = kota(); k.final = kind; k.phase = 'selesai'; k.ch = 11; k.post = { step: 0 }; }
+function pulangDawn() {
+  const k = kota(), f = st().flags;
+  while (k.post.step < 4) {
+    k.post.step++;
+    const e = PULANG_POOL.find(ev => ev.pulang === k.post.step && (!ev.when.flag || f[ev.when.flag]) && (!ev.when.noFlag || !f[ev.when.noFlag]) && kotaWhenOk(ev.when));
+    if (e) { setForce(e.id); return; }
+  }
+}
+
 /* ---------- alur bertanggal, periode kedua, warisan ---------- */
 export function arcFor(day) {
   const k = kota(), a = ARC[k.term || 1]; if (!a || !a[day]) return null;
@@ -411,7 +442,7 @@ export function runSecondTerm() {
   k.reelect = true; k.phase = 'kampanye'; k.ch = 10; k.camp = { day: 0, pts: 0, uses: {} }; k.tab = 'politik'; ui.modal = null; SFX.chapter();
   toast(`Kamu maju periode kedua. ${RIVAL} menantangmu lagi.`, '#ffe45c'); return true;
 }
-export function retire() { const k = kota(); if (!canReelect()) return false; k.final = 'pensiun'; k.phase = 'selesai'; ui.modal = 'warisan'; return true; }
+export function retire() { if (!canReelect()) return false; finish('pensiun'); ui.modal = 'warisan'; return true; }
 /** Penutup akhir: dua periode, penerus, nasib warung lama, Pak Haji, dan warga. */
 export function warisanLines() {
   const k = kota(), f = st().flags, out = [], fin = k.final || 'selesai';
