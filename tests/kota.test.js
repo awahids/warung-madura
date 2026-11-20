@@ -308,3 +308,23 @@ describe('alur masa jabatan, periode kedua, dan warisan', () => {
     for (const id of ['b_burhan_oposisi', 'a_awi_hyper', 'b_burhan_jebak', 'r_rani_magang', 'r_rani_demo', 'h_surat_baik', 'h_surat_ragu', 'b_burhan_akhir', 'p2_lantik', 'b_burhan_angket', 'r_rani_kpk', 'r_rani_mitra', 'h_pamit', 'h_pamit_dingin', 'p2_pengganti']) expect(eventById(id), id).toBeTruthy();
   });
 });
+
+describe('mode mulai dari Bab 9', () => {
+  it('langsung menjabat wali kota dengan keadaan pemain yang jujur & berhasil', async () => {
+    const { startBab9 } = await import('../src/game/logic/shortcut');
+    const { chapterOf, pickEvent } = await import('../src/game/logic/story');
+    const { level } = await import('../src/game/logic/level');
+    ui.hasSave = false; startBab9();
+    const k = kota();
+    expect(k.phase).toBe('wali'); expect(k.term).toBe(1); expect(chapterOf()).toBe(9); expect(city().day).toBe(1);
+    expect(level()).toBeGreaterThanOrEqual(10); expect(story().lunas).toBe(true); expect(G.money).toBeGreaterThan(1e9);
+    expect(Object.keys(k.warga)).toHaveLength(5); expect(G.events.some(e => e.k === 'bab')).toBe(true);   // kartu Bab 9 tampil
+    const ev = pickEvent(); expect(ev && (ev.ch === 9 || ev.forceOnly || !ev.ch)).toBe(true);   // tidak ada cerita bab lama yang tersisa
+    G.day++; startDay(); ui.modal = null; expect(city().day).toBe(2); expect(city().taxToday).toBeGreaterThan(0);
+  });
+  it('meminta konfirmasi bila ada simpanan', async () => {
+    const { startBab9Clicked } = await import('../src/game/logic/shortcut');
+    setG(persist.freshState(G)); ui.hasSave = true; ui.bab9Confirm = 0;
+    expect(startBab9Clicked()).toBe(false); expect(startBab9Clicked()).toBe(true); expect(kota().phase).toBe('wali');
+  });
+});

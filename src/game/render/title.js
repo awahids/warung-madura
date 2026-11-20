@@ -3,6 +3,7 @@ import { ctx } from '../gfx.js';
 import { startDay } from '../logic/day.js';
 import { freshState, loadSave } from '../persist.js';
 import { initStory } from '../logic/story.js';
+import { startBab9Clicked } from '../logic/shortcut.js';
 import { SP } from '../sprites.js';
 import { G, setG, ui } from '../state.js';
 import { T } from '../util.js';
@@ -18,6 +19,7 @@ export function drawTitleUI() {
   button(66, 340, 300, 62, 'MAIN BARU', () => { setG(freshState(G)); startDay(); ui.modal = null; }, { col: 'green', s: 26 });
   button(66, 418, 300, 54, 'LANJUTKAN', () => { const s = loadSave(); if (!s) return; setG(freshState(G)); Object.assign(G, { day: s.day, xp: s.xp || 0, batches: s.batches || {}, fridge: !!s.fridge, lastOrder: s.lastOrder || null, story: s.story ? { ...initStory(s.day), ...s.story } : initStory(s.day), money: s.money, rep: s.rep, stock: s.stock, debts: s.debts || [], deliveries: [], totalProfit: s.totalProfit || 0, won: !!s.won, kota: s.kota || null, sound: s.sound !== false, auto: !!s.auto }); G.deliveries = (s.deliveries || []).map(d => ({ items: d.items, eta: 0 })); G.firstCust = false; startDay(true); G.deliveries.forEach(d => d.eta = G.abs + 30); ui.modal = null; }, { col: 'blue', s: 22, disabled: !ui.hasSave });
   button(66, 486, 300, 50, 'CARA MAIN', () => { ui.modal = 'help'; }, { col: 'wood', s: 20 });
+  button(66, 546, 300, 44, 'MULAI DARI BAB 9 (WALI KOTA)', startBab9Clicked, { col: 'yellow', tc: '#4a2a00', s: 15, tip: 'Langsung menjabat wali kota: usaha jalan, utang lunas, warga percaya. Untuk mencoba babak akhir.' });
 }
 
 export function drawTitle() {
@@ -32,6 +34,6 @@ export function drawTitle() {
   // karakter
   const cs = ['juragan', 'ibu', 'ojol', 'pemuda', 'cowok', 'hoodie'];
   cs.forEach((n, i) => SP(n, 100 + i * 118 + 560 * 0, 720 + Math.sin(ui.frame / 20 + i) * 2, .52, .5, 1));
-  T('Klik MAIN BARU untuk mulai', 66, 600, { s: 15, c: '#4a3a2a', w: '600' });
+  T('Klik MAIN BARU untuk mulai', 66, 612, { s: 15, c: '#4a3a2a', w: '600' });
 }
 
