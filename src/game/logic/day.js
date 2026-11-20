@@ -6,7 +6,7 @@ import { featureOn, itemOn, typeOn } from './level.js';
 import { checkAchievements } from './achievements.js';
 import { expireStock, reconcileAll } from './freshness.js';
 import { dawnStaff, payWages } from './staff.js';
-import { changeTrust, dawnStory, repayChance, scheduleStory, settleInstallment } from './story.js';
+import { changeTrust, dawnStory, openChapterIntro, openStoryEvent, repayChance, scheduleStory, settleInstallment } from './story.js';
 import { dawnKota } from './kota.js';
 import { save } from '../persist.js';
 import { G, ui } from '../state.js';
@@ -83,4 +83,23 @@ export function finishClose() {
   ui.modal = 'summary'; save();
 }
 export function nextDay() { G.day++; ui.modal = null; startDay(); }
+
+/* ---------- lewati hari (babak usaha/kota) ---------- */
+/** Kejadian cerita hari ini yang belum dibuka (bab, cerita, peristiwa kota). */
+export const pendingStory = () => (G.events || []).find(e => !e.done && (e.k === 'bab' || e.k === 'story')) || null;
+/**
+ * Lewati sisa hari: warung tutup lebih awal (tanpa pendapatan warung hari ini), gaji & cicilan tetap dibayar, lalu pagi berikutnya.
+ * Cerita hari ini tidak ikut terlewat: bila masih ada, kejadian itu dibuka dulu dan pemain perlu menekan tombol lagi.
+ */
+export function skipDay() {
+  if (G.screen !== 'play') return 'none';
+  const ev = pendingStory();
+  if (ev) { ev.done = true; if (ev.k === 'bab') openChapterIntro(); else if (!openStoryEvent(ev.id)) return skipDay(); return 'event'; }
+  returnTray(); G.cust = []; G.leaving = []; if (G.social) G.social.v = [];
+  G.running = false; G.closing = false; G.doorState = 'closed'; G.door = 0;
+  payWages(); settleInstallment(); checkAchievements();
+  const d = G.day; G.day++; ui.modal = null; startDay();
+  toast(`Hari ${d} dilewati: warung tutup, langsung ke pagi hari ${G.day}.`, '#cfe8ff');
+  return 'skipped';
+}
 

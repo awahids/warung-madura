@@ -7,6 +7,7 @@ import { hit } from '../sprites.js';
 import { G, ui } from '../state.js';
 import { T, clamp, rpk, rr } from '../util.js';
 import { netWorth } from '../logic/kota.js';
+import { skipDay } from '../logic/day.js';
 import { button } from '../widgets.js';
 import { drawHUD } from './hud.js';
 import { drawFloats, drawTooltip } from './index.js';
@@ -104,6 +105,7 @@ function kotaOverlay(view) {
   T('Geser untuk memutar, cubit/gulir untuk zoom. Proyek yang dibangun tampil di sini.', x + 20, y + 54, { s: 13, c: '#e8d8b8', w: '600' });
   button(x + 20, y + 62, 270, 34, 'MENU USAHA & KOTA', () => { ui.modal = 'kota'; }, { col: 'yellow', tc: '#4a2a00', s: 15 });
   button(x + 310, y + 62, 270, 34, 'KEMBALI KE WARUNG', () => view.exitKota(), { col: 'green', s: 15 });
+  button(1040, 262, 200, 40, 'LEWATI HARI ▶', () => { skipDay(); }, { col: 'blue', s: 15, tip: 'Warung tutup hari ini; usaha, pajak, proyek, dan cerita tetap berjalan' });
   if (G.cust.length) T('Ada pembeli menunggu di warung!', 640, HUD_H + 40, { s: 18, a: 'center', c: '#fff', stroke: '#b3281e', sw: 5 });
 }
 

@@ -209,3 +209,6 @@ Setelah epilog Bab 5, menu **JEDA › USAHA & KOTA** terbuka (besok pagi) dan ce
 
 ### Mode "Mulai dari Bab 9"
 Tombol **MULAI DARI BAB 9 (WALI KOTA)** di layar judul langsung membawamu ke pelantikan wali kota, tanpa ±70 hari permainan: level 10, utang lunas, kepercayaan 72, kas Rp 1,2 M, Cabang Lv 3 · Grosir Lv 2 · Minimarket Lv 1, menang pemilu 62%, warga lama cukup dekat. Kartu Bab 9 dan kejadian pelantikan muncul seperti biasa; warung tetap bisa dimainkan. Bila ada simpanan, tombol perlu diklik dua kali (simpanan lama tertimpa). Kode: `src/game/logic/shortcut.js`.
+
+### Lewati hari
+Tombol **LEWATI HARI ▶** (di menu USAHA & KOTA dan di kamera Kota, setelah Bab 6) menutup warung lebih awal dan langsung ke pagi berikutnya: gaji & cicilan tetap dibayar, pendapatan usaha, pajak kota, proyek, audit, dan alur cerita tetap berjalan; **cerita hari itu tidak terlewat** — bila masih ada kejadian hari ini, kejadian itu dibuka dulu. Harganya: tidak ada pendapatan warung pada hari yang dilewati.

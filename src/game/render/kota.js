@@ -1,12 +1,13 @@
 import { ctx } from '../gfx.js';
 import { BIZ, BIZ_MAX, CAMP_ACTS, CAMP_DAYS, CITY_DAYS, IND, MAX_PROJ, PROJECTS, RIVAL, WIN_WEALTH } from '../story/kota.js';
-import { assetValue, awardTender, bizIncAt, bizLevel, bizNextCost, buyBiz, campUses, campaign, cancelTender, canBuild, canRun, city, cityAvg, dn, dprdBlock, endingInfo, incomeNominal, incomePerDay, isMiliarder, kota, netWorth, projectEffect, reportAssets, rivalPower, runForOffice, rushCost, setEproc, canReelect, runSecondTerm, retire, warisanLines, victimOf, riskNow, bantuWarga, canBantu, BANTU_COST, wargaList, hajiOf, epilogPeople, startTender, support, taxPerDay } from '../logic/kota.js';
+import { assetValue, awardTender, bizIncAt, bizLevel, bizNextCost, buyBiz, campUses, campaign, cancelTender, canBuild, canRun, city, cityAvg, dn, dprdBlock, endingInfo, incomeNominal, incomePerDay, isMiliarder, kota, netWorth, projectEffect, reportAssets, rivalPower, runForOffice, rushCost, setEproc, usahaOpen, canReelect, runSecondTerm, retire, warisanLines, victimOf, riskNow, bantuWarga, canBantu, BANTU_COST, wargaList, hajiOf, epilogPeople, startTender, support, taxPerDay } from '../logic/kota.js';
 import { AUDIT_DAYS, DPRD_MIN, EPROC_COST, RUSH_PCT } from '../story/dunia.js';
 import { story } from '../logic/story.js';
 import { G, ui } from '../state.js';
 import { T, clamp, rpk, rr, wrapText } from '../util.js';
 import { button, panel } from '../widgets.js';
 import { save } from '../persist.js';
+import { skipDay } from '../logic/day.js';
 import { closeBtn } from './modals.js';
 
 const bar = (x, y, w, h, v, col, back = '#d8c28c') => { ctx.fillStyle = back; rr(ctx, x, y, w, h, h / 2); ctx.fill(); if (v > 0) { ctx.fillStyle = col; rr(ctx, x, y, Math.max(h, w * clamp(v, 0, 1)), h, h / 2); ctx.fill(); } };
@@ -19,6 +20,7 @@ export function kotaModal() {
   const wali = k.phase === 'wali';
   T('USAHA & KOTA', x + 36, y + 54, { s: 32, c: '#6b3a14' });
   closeBtn(x + w - 40, y + 40, () => { ui.modal = null; save(); });
+  if (usahaOpen()) button(x + w - 270, y + 22, 200, 40, `LEWATI HARI ▶`, () => { ui.modal = null; if (skipDay() === 'skipped' && !ui.modal) ui.modal = 'kota'; }, { col: 'blue', s: 15, tip: `Hari ${G.day} selesai lebih cepat: warung tutup (tanpa pendapatan warung). Pendapatan usaha, pajak, proyek, dan cerita tetap berjalan; cerita hari ini dibuka dulu bila ada.` });
   T(`Kekayaan bersih ${rpk(netWorth())}  ·  Kas ${rpk(G.money)}  ·  Aset ${rpk(assetValue())}  ·  Pendapatan usaha ${rpk(incomePerDay())}/hari`, x + 36, y + 82, { s: 14, w: '700', c: '#5a3a1a' });
   [['usaha', 'USAHA'], ['politik', wali ? 'KOTA' : 'POLITIK'], ['warga', 'WARGA'], ['awasi', 'AWASI']].forEach(([id, label], i) => {
     button(x + 36 + i * 170, y + 96, 160, 40, label, () => { k.tab = id; }, { col: k.tab === id ? 'yellow' : 'wood', tc: k.tab === id ? '#4a2a00' : '#fff', s: 16 });

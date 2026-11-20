@@ -328,3 +328,27 @@ describe('mode mulai dari Bab 9', () => {
     expect(startBab9Clicked()).toBe(false); expect(startBab9Clicked()).toBe(true); expect(kota().phase).toBe('wali');
   });
 });
+
+describe('lewati hari', () => {
+  it('membuka cerita hari ini dulu, lalu melewati hari: pajak & proyek jalan, warung tutup', async () => {
+    const { startBab9 } = await import('../src/game/logic/shortcut');
+    const { skipDay, pendingStory } = await import('../src/game/logic/day');
+    ui.hasSave = false; startBab9(); const d0 = G.day, c = city();
+    expect(pendingStory()).toBeTruthy();
+    let guard = 0; while (pendingStory() && guard++ < 5) { expect(skipDay()).toBe('event'); ui.modal = null; story().cur = null; }
+    const a0 = c.apbd; expect(skipDay()).toBe('skipped');
+    expect(G.day).toBe(d0 + 1); expect(c.day).toBe(2); expect(c.apbd).toBeGreaterThan(a0); expect(G.running).toBe(false); expect(G.cust).toHaveLength(0);
+  });
+  it('alur bertanggal tidak terlewat saat melewati banyak hari', async () => {
+    const { startBab9 } = await import('../src/game/logic/shortcut');
+    const { skipDay } = await import('../src/game/logic/day');
+    const { chooseEvent, closeStoryEvent, currentEvent } = await import('../src/game/logic/story');
+    ui.hasSave = false; startBab9(); const seen = [];
+    for (let i = 0; i < 60 && city().day < 10; i++) {
+      const r = skipDay();
+      if (ui.modal === 'event' && currentEvent()) { seen.push(currentEvent().id); chooseEvent(currentEvent().choices.findIndex(ch => !ch.req) >= 0 ? currentEvent().choices.findIndex(ch => !ch.req) : 0); closeStoryEvent(); }
+      if (r !== 'event') ui.modal = null; else if (ui.modal === 'bab') ui.modal = null;
+    }
+    expect(seen).toEqual(expect.arrayContaining(['w_lantik', 'b_burhan_oposisi', 'a_awi_hyper']));
+  });
+});
